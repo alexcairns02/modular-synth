@@ -1,10 +1,18 @@
 <script>
+	import VCO from './VCO.svelte';
+	import Output from './Output.svelte';
+
 	export let name;
+	
+    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+    var ctx = new AudioContext();
+
+	var o = ctx.createOscillator();
 </script>
 
 <main>
-	<h1>Hello {name}!</h1>
-	<p>Visit the <a href="https://svelte.dev/tutorial">Svelte tutorial</a> to learn how to build Svelte apps.</p>
+	<VCO bind:ctx bind:o/>
+	<Output bind:ctx bind:o/>
 </main>
 
 <style>

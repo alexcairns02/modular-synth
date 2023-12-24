@@ -1,0 +1,37 @@
+<script>
+    export var ctx;
+    export var o;
+
+    var gainNode = ctx.createGain();
+    gainNode.connect(ctx.destination);
+    o.connect(gainNode);
+
+    var playing = true;
+    var muteUnmute = 'Mute';
+
+    function toggleMute() {
+        if (playing) {
+            playing = false;
+            muteUnmute = 'Unmute';
+            ctx.suspend();
+        } else {
+            playing = true;
+            muteUnmute = 'Mute';
+            ctx.resume();
+        }
+    }
+</script>
+
+<main>
+    <div>
+        <h2>Output</h2>
+        <label><input bind:value={gainNode.gain.value} type='range' min='-1' max='0' step='0.001'>Gain</label>
+        <button on:click="{toggleMute}">{muteUnmute}</button>
+    </div>
+</main>
+
+<style>
+    div {
+        border-style: solid;
+    }
+</style>
