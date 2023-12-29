@@ -4,7 +4,7 @@
 
     var gainNode = ctx.createGain();
     gainNode.connect(ctx.destination);
-    input.connect(gainNode);
+    $: if (input) input.connect(gainNode);
 
     var playing = false;
     var muteUnmute = 'Unmute';

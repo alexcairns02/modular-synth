@@ -1,4 +1,5 @@
 <script>
+	import MIDI from './MIDI.svelte';
 	import VCO from './VCO.svelte';
 	import Output from './Output.svelte';
 
@@ -6,18 +7,21 @@
     var ctx = new AudioContext();
 
 	let input;
-	let connected = false;
+	let voct;
 
 	const handle = (event) => {
 		input = event.detail.output;
-		connected = true;
+	}
+
+	const handleMIDI = (event) => {
+		voct = event.detail.output;
 	}
 </script>
 
 <main>
-	<h1>Modular Synthesiser</h1>
-	<VCO bind:ctx on:signal={handle} />
-	{#if connected}<Output bind:ctx bind:input />{/if}
+	<MIDI on:signal={handleMIDI} ></MIDI>
+	<VCO bind:ctx bind:voct on:signal={handle} />
+	<Output bind:ctx bind:input />
 </main>
 
 <style>
@@ -26,13 +30,6 @@
 		padding: 1em;
 		max-width: 240px;
 		margin: 0 auto;
-	}
-
-	h1 {
-		color: #ff3e00;
-		text-transform: uppercase;
-		font-size: 4em;
-		font-weight: 100;
 	}
 
 	@media (min-width: 640px) {
