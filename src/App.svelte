@@ -9,15 +9,14 @@
 	let connected = false;
 
 	const handle = (event) => {
-		console.log('hii');
-		input = event.detail.o;
+		input = event.detail.output;
 		connected = true;
 	}
 </script>
 
 <main>
 	<h1>Modular Synthesiser</h1>
-	<VCO bind:ctx on:message={handle} />
+	<VCO bind:ctx on:signal={handle} />
 	{#if connected}<Output bind:ctx bind:input />{/if}
 </main>
 
