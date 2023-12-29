@@ -1,13 +1,13 @@
 <script>
     export var ctx;
-    export var o;
+    export var input;
 
     var gainNode = ctx.createGain();
     gainNode.connect(ctx.destination);
-    o.connect(gainNode);
+    input.connect(gainNode);
 
-    var playing = true;
-    var muteUnmute = 'Mute';
+    var playing = false;
+    var muteUnmute = 'Unmute';
 
     function toggleMute() {
         if (playing) {

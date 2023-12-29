@@ -2,17 +2,23 @@
 	import VCO from './VCO.svelte';
 	import Output from './Output.svelte';
 
-	export let name;
-	
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
     var ctx = new AudioContext();
 
-	var o = ctx.createOscillator();
+	let input;
+	let connected = false;
+
+	const handle = (event) => {
+		console.log('hii');
+		input = event.detail.o;
+		connected = true;
+	}
 </script>
 
 <main>
-	<VCO bind:ctx bind:o/>
-	<Output bind:ctx bind:o/>
+	<h1>Modular Synthesiser</h1>
+	<VCO bind:ctx on:message={handle} />
+	{#if connected}<Output bind:ctx bind:input />{/if}
 </main>
 
 <style>

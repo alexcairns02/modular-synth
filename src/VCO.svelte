@@ -1,23 +1,24 @@
 <script>
-    export var ctx;
-    export var o;
+    import { createEventDispatcher } from "svelte";
+
+    export let ctx;
+
+    const dispach = createEventDispatcher();
+
+	let o = ctx.createOscillator();
 
     o.frequency.value = 440;
     o.connect(ctx.destination);
-    var started = false;
+    o.start(0);
 
-    function startOsc() {
-        if (!started) {
-            started = true;
-            o.start(0);
-        }
-    }
+    const handle = () => dispach('message', {o});
+
+    console.log('dispatched');
 </script>
 
-<main>
+<main use:handle>
 <div>
     <h2>VCO</h2>
-	{#if !started}<button on:click="{startOsc}">Start</button>{/if}
     <label><input bind:value={o.frequency.value} type='range' min='20' max='18000' step='1'>Freq</label>
     <section>
         <label>
