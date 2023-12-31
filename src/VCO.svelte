@@ -17,7 +17,7 @@
 
 <main>
 <div>
-    <h2>VCO</h2>
+    <h2>Oscillator</h2>
     <label><input bind:value={voct} type='range' min='2.78135971352466' max='14.78135971352466' step='0.0001'>Freq</label>
     <section>
         <label>

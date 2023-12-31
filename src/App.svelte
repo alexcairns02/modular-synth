@@ -2,26 +2,34 @@
 	import MIDI from './MIDI.svelte';
 	import VCO from './VCO.svelte';
 	import Output from './Output.svelte';
+	import VCA from './VCA.svelte';
 
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
     var ctx = new AudioContext();
 
-	let input;
+	let vcaOutput;
+	let vcoOutput;
 	let voct;
+	let vcacv;
 
-	const handle = (event) => {
-		input = event.detail.output;
+	const handleVCO = (event) => {
+		vcoOutput = event.detail.output;
 	}
 
 	const handleMIDI = (event) => {
 		voct = event.detail.output;
 	}
+
+	const handleVCA = (event) => {
+		vcaOutput = event.detail.output;
+	}
 </script>
 
 <main>
 	<MIDI on:signal={handleMIDI} ></MIDI>
-	<VCO bind:ctx bind:voct on:signal={handle} />
-	<Output bind:ctx bind:input />
+	<VCO bind:ctx bind:voct on:signal={handleVCO} />
+	<VCA bind:ctx bind:cv={vcacv} bind:input={vcoOutput} on:signal={handleVCA} />
+	<Output bind:ctx bind:input={vcaOutput} />
 </main>
 
 <style>

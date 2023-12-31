@@ -2,9 +2,10 @@
     export var ctx;
     export var input;
 
-    var gainNode = ctx.createGain();
-    gainNode.connect(ctx.destination);
-    $: if (input) input.connect(gainNode);
+    //var gainNode = ctx.createGain();
+    //gainNode.connect(ctx.destination);
+
+    //$: if (input) input.connect(gainNode);
 
     var playing = false;
     var muteUnmute = 'Unmute';
@@ -25,7 +26,7 @@
 <main>
     <div>
         <h2>Output</h2>
-        <label><input bind:value={gainNode.gain.value} type='range' min='-1' max='0' step='0.001'>Gain</label>
+        <!--<label><input bind:value={gainNode.gain.value} type='range' min='-10' max='10' step='0.001'>Gain</label>-->
         <button on:click="{toggleMute}">{muteUnmute}</button>
     </div>
 </main>
