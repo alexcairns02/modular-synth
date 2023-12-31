@@ -6,13 +6,13 @@
 
     const dispatch = createEventDispatcher();
 
-	let o = ctx.createOscillator();
+	let oscNode = ctx.createOscillator();
 
-    $: if (voct) o.frequency.value = Math.pow(2, voct);
-    o.connect(ctx.destination);
-    o.start(0);
+    $: if (voct) oscNode.frequency.value = Math.pow(2, voct);
+    //oscNode.connect(ctx.destination);
+    oscNode.start(0);
 
-    const handle = () => dispatch('signal', {output: o});
+    const handle = () => dispatch('signal', {output: oscNode});
 </script>
 
 <main>
@@ -21,16 +21,16 @@
     <label><input bind:value={voct} type='range' min='2.78135971352466' max='14.78135971352466' step='0.0001'>Freq</label>
     <section>
         <label>
-            <input type='radio' value='sine' bind:group={o.type} /> Sine
+            <input type='radio' value='sine' bind:group={oscNode.type} /> Sine
         </label>
         <label>
-            <input type='radio' value='triangle' bind:group={o.type} /> Triangle
+            <input type='radio' value='triangle' bind:group={oscNode.type} /> Triangle
         </label>
         <label>
-            <input type='radio' value='sawtooth' bind:group={o.type} /> Sawtooth
+            <input type='radio' value='sawtooth' bind:group={oscNode.type} /> Sawtooth
         </label>
         <label>
-            <input type='radio' value='square' bind:group={o.type} /> Square
+            <input type='radio' value='square' bind:group={oscNode.type} /> Square
         </label>
     </section>
 </div> 

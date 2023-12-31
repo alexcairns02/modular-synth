@@ -3,14 +3,18 @@
 	import VCO from './VCO.svelte';
 	import Output from './Output.svelte';
 	import VCA from './VCA.svelte';
+	import ADSR from './ADSR.svelte';
 
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
     var ctx = new AudioContext();
 
-	let vcaOutput;
+	let vcaOutput1;
+	let vcaOutput2;
 	let vcoOutput;
 	let voct;
-	let vcacv;
+	let vcacv1;
+	let vcacv2;
+	let trigger;
 
 	const handleVCO = (event) => {
 		vcoOutput = event.detail.output;
@@ -18,18 +22,28 @@
 
 	const handleMIDI = (event) => {
 		voct = event.detail.output;
+		trigger = event.detail.trigger;
 	}
 
-	const handleVCA = (event) => {
-		vcaOutput = event.detail.output;
+	const handleVCA1 = (event) => {
+		vcaOutput1 = event.detail.output;
+	}
+
+	const handleVCA2 = (event) => {
+		vcaOutput2 = event.detail.output;
+	}
+
+	const handleADSR = (event) => {
+		vcacv2 = event.detail.output;
 	}
 </script>
 
 <main>
-	<MIDI on:signal={handleMIDI} ></MIDI>
+	<MIDI on:signal={handleMIDI} />
 	<VCO bind:ctx bind:voct on:signal={handleVCO} />
-	<VCA bind:ctx bind:cv={vcacv} bind:input={vcoOutput} on:signal={handleVCA} />
-	<Output bind:ctx bind:input={vcaOutput} />
+	<ADSR bind:ctx bind:trigger bind:input={vcoOutput} on:signal={handleADSR} />
+	<VCA bind:ctx bind:cv={vcacv1} bind:input={vcoOutput} on:signal={handleVCA1} />
+	<Output bind:ctx bind:input={vcacv2} />
 </main>
 
 <style>

@@ -1,16 +1,14 @@
 <script>
     import { createEventDispatcher } from "svelte";
 
-    export let cv;
+    export let cv = 1;
     export let ctx;
     export let input;
 
     const dispatch = createEventDispatcher();
 
     var gainNode = ctx.createGain();
-    gainNode.connect(ctx.destination);
-
-    $: console.log(gainNode.gain.value);
+    //gainNode.connect(ctx.destination);
 
     $: if (input) input.connect(gainNode);
     $: if (cv) gainNode.gain.value = cv;
@@ -21,7 +19,7 @@
 <main>
 <div>
     <h2>Amplifier</h2>
-    <label><input bind:value={cv} type='range' min='-1' max='0' step='0.001'>Gain</label>
+    <label><input bind:value={cv} type='range' min='0' max='2' step='0.001'>Gain</label>
 </div>
 </main>
 

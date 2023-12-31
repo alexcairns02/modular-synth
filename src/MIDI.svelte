@@ -3,6 +3,9 @@
 
     const dispatch = createEventDispatcher();
 
+    let trigger = false;
+    let freqChanged = false;
+
     let octave = 4;
 
     let note = 'A';
@@ -10,11 +13,13 @@
 
     let frequency = 440;
 
-    const handle = () => dispatch('signal', {output: Math.log2(frequency)});
+    const handle = () => dispatch('signal', {output: Math.log2(frequency), trigger: freqChanged });
 
     function onKeyDown(e) {
-        let freqChanged = false;
+        freqChanged = false;
         octUp = 0;
+
+        trigger = true;
 
         switch(e.keyCode) {
             case 61: //=
@@ -136,6 +141,13 @@
 
         handle();
     }
+
+    function onKeyUp(e) {
+        trigger = false;
+        freqChanged = false;
+
+        handle();
+    }
 </script>
 
 <main>
@@ -151,4 +163,4 @@
     }
 </style>
 
-<svelte:window on:keydown|preventDefault={onKeyDown} />
+<svelte:window on:keydown|preventDefault={onKeyDown} on:keyup|preventDefault={onKeyUp} />
