@@ -13,13 +13,13 @@
 
     let frequency = 440;
 
-    const handle = () => dispatch('signal', {output: Math.log2(frequency), trigger: freqChanged });
+    const handle = () => dispatch('signal', {output: Math.log2(frequency), trigger: trigger });
 
     function onKeyDown(e) {
-        freqChanged = false;
-        octUp = 0;
 
-        trigger = true;
+        if (e.repeat) return;
+
+        trigger = !trigger;
 
         switch(e.keyCode) {
             case 61: //=
@@ -141,13 +141,6 @@
 
         handle();
     }
-
-    function onKeyUp(e) {
-        trigger = false;
-        freqChanged = false;
-
-        handle();
-    }
 </script>
 
 <main>
@@ -163,4 +156,4 @@
     }
 </style>
 
-<svelte:window on:keydown|preventDefault={onKeyDown} on:keyup|preventDefault={onKeyUp} />
+<svelte:window on:keydown|preventDefault={onKeyDown} />

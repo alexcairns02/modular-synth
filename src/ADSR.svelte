@@ -25,7 +25,7 @@
         gainNode.gain.linearRampToValueAtTime(0, now + attack + release);
     }
 
-    $: if (trigger) fireEnv();
+    $: if (trigger || !trigger) fireEnv();
 
 </script>
 
@@ -33,8 +33,8 @@
     <div>
         <h2>Envelope {gainNode.gain.value}</h2>
         <label><input bind:value={attack} type='range' min='0' max='1' step='0.001'>Attack</label>
-        <label><input bind:value={decay} type='range' min='0' max='1' step='0.001'>Decay</label>
-        <label><input bind:value={sustain} type='range' min='0' max='1' step='0.001'>Sustain</label>
+        <!--<label><input bind:value={decay} type='range' min='0' max='1' step='0.001'>Decay</label>-->
+        <!--<label><input bind:value={sustain} type='range' min='0' max='1' step='0.001'>Sustain</label>-->
         <label><input bind:value={release} type='range' min='0' max='1' step='0.001'>Release</label>
     </div>
 </main>
