@@ -42,7 +42,7 @@
 	<MIDI on:signal={handleMIDI} />
 	<VCO bind:ctx bind:voct on:signal={handleVCO} />
 	<ADSR bind:ctx bind:trigger bind:input={vcoOutput} on:signal={handleADSR} />
-	<VCA bind:ctx bind:cv={vcacv1} bind:input={vcoOutput} on:signal={handleVCA1} />
+	<!---<VCA bind:ctx bind:cv={vcacv1} bind:input={vcoOutput} on:signal={handleVCA1} />-->
 	<Output bind:ctx bind:input={vcacv2} />
 </main>
 

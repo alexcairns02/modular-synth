@@ -155,6 +155,7 @@
 <main>
 <div>
     <h2>MIDI</h2>
+    Play notes by pressing keys on keyboard. Row Z-/ is white notes, row A-' is black notes. Press - to lower octave and = to raise octave.
     <h3>{note}{newOct+newoctUp}</h3>
 </div> 
 </main>

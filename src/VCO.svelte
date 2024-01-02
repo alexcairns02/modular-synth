@@ -18,7 +18,7 @@
 <main>
 <div>
     <h2>Oscillator</h2>
-    <label><input bind:value={voct} type='range' min='2.78135971352466' max='14.78135971352466' step='0.0001'>Freq</label>
+    <label><input bind:value={voct} type='range' min='2.78135971352466' max='14.78135971352466' step='0.0001'>Frequency</label>
     <section>
         <label>
             <input type='radio' value='sine' bind:group={oscNode.type} /> Sine
