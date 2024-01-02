@@ -20,7 +20,7 @@
     const fireEnv = () => {
         let now = ctx.currentTime;
         gainNode.gain.cancelScheduledValues(now);
-        gainNode.gain.setValueAtTime(0, now);
+        //gainNode.gain.setValueAtTime(0, now);
         gainNode.gain.linearRampToValueAtTime(1, now + attack);
         gainNode.gain.linearRampToValueAtTime(0, now + attack + release);
     }
@@ -31,7 +31,7 @@
 
 <main>
     <div>
-        <h2>Envelope {gainNode.gain.value}</h2>
+        <h2>Envelope</h2>
         <label><input bind:value={attack} type='range' min='0' max='1' step='0.001'>Attack</label>
         <!--<label><input bind:value={decay} type='range' min='0' max='1' step='0.001'>Decay</label>-->
         <!--<label><input bind:value={sustain} type='range' min='0' max='1' step='0.001'>Sustain</label>-->

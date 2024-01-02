@@ -7,9 +7,11 @@
     let freqChanged = false;
 
     let octave = 4;
+    let newOct = 4;
 
     let note = 'A';
     let octUp = 0;
+    let newoctUp = 0;
 
     let frequency = 440;
 
@@ -17,9 +19,10 @@
 
     function onKeyDown(e) {
 
-        if (e.repeat) return;
-
-        trigger = !trigger;
+        if (e.repeat) return
+        
+        freqChanged = false;
+        octUp = 0;
 
         switch(e.keyCode) {
             case 61: //=
@@ -137,6 +140,12 @@
                     frequency /= 2;
                 }
             }
+
+            trigger = !trigger;
+
+            newOct = octave;
+            newoctUp = octUp;
+
         }
 
         handle();
@@ -146,7 +155,7 @@
 <main>
 <div>
     <h2>MIDI</h2>
-    <h3>{note}{octave+octUp}</h3>
+    <h3>{note}{newOct+newoctUp}</h3>
 </div> 
 </main>
 
