@@ -2,14 +2,18 @@
     import { createEventDispatcher } from "svelte";
 
     export let ctx;
-    export let voct;
+    export let voctIn;
 
     const dispatch = createEventDispatcher();
 
+    let voct = Math.log2(440);
+
 	let oscNode = ctx.createOscillator();
 
-    $: if (voct) oscNode.frequency.value = Math.pow(2, voct);
-    //oscNode.connect(ctx.destination);
+    $: if (voctIn != null) voct = voctIn;
+
+    $: oscNode.frequency.value = Math.pow(2, voct);
+    
     oscNode.start(0);
 
     const handle = () => dispatch('signal', {output: oscNode});

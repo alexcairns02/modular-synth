@@ -1,28 +1,22 @@
 <script>
-    import { createEventDispatcher } from "svelte";
-
     export let ctx;
     export let trigger;
-    export let input;
+    export let cv_out;
+    export let max_cv;
 
     let attack = 1;
     let decay = 1;
     let sustain = 1;
     let release = 1;
 
-    let dispatch = createEventDispatcher();
-
-    var gainNode = ctx.createGain();
-    $: if (input) input.connect(gainNode);
-
-    const handle = () => dispatch('signal', { output: gainNode });
-
     const fireEnv = () => {
-        let now = ctx.currentTime;
-        gainNode.gain.cancelScheduledValues(now);
-        //gainNode.gain.setValueAtTime(0, now);
-        gainNode.gain.linearRampToValueAtTime(1, now + attack);
-        gainNode.gain.linearRampToValueAtTime(0, now + attack + release);
+        if (cv_out) {
+            let now = ctx.currentTime;
+            cv_out.cancelScheduledValues(now);
+            cv_out.setValueAtTime(0, now);
+            cv_out.linearRampToValueAtTime(max_cv.value, now + attack);
+            cv_out.linearRampToValueAtTime(0, now + attack + release);
+        }
     }
 
     $: if (trigger || !trigger) fireEnv();
@@ -45,4 +39,4 @@
     }
 </style>
 
-<svelte:window use:handle />
+<svelte:window />
