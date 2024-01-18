@@ -1,4 +1,6 @@
 <script>
+	import Component from 'svelte-tag';
+
 	import MIDI from './MIDI.svelte';
 	import VCO from './VCO.svelte';
 	import Output from './Output.svelte';
@@ -9,52 +11,65 @@
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
     var ctx = new AudioContext();
 
-	let vcaOutput1;
-	let vcaOutput2;
-	let vcoOutput;
-	let vcaInputCv;
-	let voct;
-	let vcacv1;
-	let vcaInputMax;
-	let vcacv2;
-	let trigger;
-	let vcfOutput;
-	let vcfInputCv;
-	let vcfInputMax;
-
-	const handleVCO = (event) => {
-		vcoOutput = event.detail.output;
+	const vco = {
+		output: null,
+		handle: (event) => {
+			vco.output = event.detail.output;
+		}
 	}
 
-	const handleMIDI = (event) => {
-		voct = event.detail.output;
-		trigger = event.detail.trigger;
+	const midi = {
+		comp: MIDI,
+		voct: null,
+		trigger: null,
+		handle: (event) => {
+			midi.voct = event.detail.output;
+			midi.trigger = event.detail.trigger;
+		}
 	}
 
-	const handleVCA = (event) => {
-		vcaOutput1 = event.detail.output;
-		vcaInputCv = event.detail.cv_in;
-		vcaInputMax = event.detail.max_cv;
+	const vcf = {
+		output: null,
+		cv: null,
+		cvmax: null,
+		hasEnv: false,
+		handle: (event) => {
+			vcf.output = event.detail.output;
+			vcf.cv = event.detail.cv_in;
+			vcf.cvmax = event.detail.max_cv;
+		}
 	}
 
-	const handleVCF = (event) => {
-		vcfOutput = event.detail.output;
-		vcfInputCv = event.detail.cv_in;
-		vcfInputMax = event.detail.max_cv;
+	const vca = {
+		output: null,
+		cv: null,
+		cvmax: null,
+		hasEnv: false,
+		handle: (event) => {
+			vca.output = event.detail.output;
+			vca.cv = event.detail.cv_in;
+			vca.cvmax = event.detail.max_cv;
+		}
 	}
 </script>
 
 <main>
-	<MIDI on:signal={handleMIDI} />
-	<VCO bind:ctx bind:voctIn={voct} on:signal={handleVCO} />
+	<svelte:component this={midi.comp} on:input={midi.handle} />
+	<VCO bind:ctx bind:voctIn={midi.voct} on:connect={vco.handle} />
 	<br>
-	<ADSR bind:ctx bind:trigger bind:cv_out={vcfInputCv} bind:max_cv={vcfInputMax} />
-	<VCF bind:ctx bind:input={vcaOutput1} on:signal={handleVCF} />
+	<input type='checkbox' bind:checked={vcf.hasEnv} />
+	{#if vcf.hasEnv}
+		<ADSR bind:ctx bind:trigger={midi.trigger} bind:cv_out={vcf.cv} bind:max_cv={vcf.cvmax} />
+	{/if}
+	<VCF bind:ctx bind:input={vco.output} on:connect={vcf.handle} />
 	<br>
-	<ADSR bind:ctx bind:trigger bind:cv_out={vcaInputCv} bind:max_cv={vcaInputMax} />
-	<VCA bind:ctx bind:input={vcoOutput} on:signal={handleVCA} />
+	<input type='checkbox' bind:checked={vca.hasEnv} />
+	{#if vca.hasEnv}
+		<ADSR bind:ctx bind:trigger={midi.trigger} bind:cv_out={vca.cv} bind:max_cv={vca.cvmax} />
+	{/if}
+	<VCA bind:ctx bind:input={vcf.output} on:connect={vca.handle} />
 	<br>
-	<Output bind:ctx bind:input={vcfOutput} />
+	<Output bind:ctx bind:input={vca.output} />
 </main>
 
 <style>

@@ -15,7 +15,7 @@
 
     let frequency = 440;
 
-    const handle = () => dispatch('signal', {output: Math.log2(frequency), trigger: trigger });
+    const handle = () => dispatch('input', {output: Math.log2(frequency), trigger: trigger });
 
     function onKeyDown(e) {
 

@@ -4,15 +4,17 @@
     export let ctx;
     export let input;
 
-    let max_cv = { value: 1000 };
+    let max_cv = { value: 18000 };
 
     const dispatch = createEventDispatcher();
 
     var filterNode = ctx.createBiquadFilter();
 
+    $: filterNode.frequency.value = max_cv.value;
+
     $: if (input) input.connect(filterNode);
 
-    const handle = () => dispatch('signal', { output: filterNode, cv_in: filterNode.frequency, max_cv })
+    const handle = () => dispatch('connect', { output: filterNode, cv_in: filterNode.frequency, max_cv })
 </script>
 
 <main>

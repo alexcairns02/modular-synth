@@ -10,9 +10,11 @@
 
     var gainNode = ctx.createGain();
 
+    $: gainNode.gain.setValueAtTime(max_cv.value, ctx.currentTime);
+    
     $: if (input) input.connect(gainNode);
 
-    const handle = () => dispatch('signal', { output: gainNode, cv_in: gainNode.gain, max_cv });
+    const handle = () => dispatch('connect', { output: gainNode, cv_in: gainNode.gain, max_cv });
 </script>
 
 <main>

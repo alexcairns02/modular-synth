@@ -1,4 +1,6 @@
 <script>
+    import { onDestroy } from "svelte";
+
     export let ctx;
     export let trigger;
     export let cv_out;
@@ -20,6 +22,11 @@
     }
 
     $: if (trigger || !trigger) fireEnv();
+
+    onDestroy(() => {
+        cv_out.cancelScheduledValues(ctx.currentTime);
+        cv_out.setValueAtTime(max_cv.value, ctx.currentTime);
+    });
 
 </script>
 

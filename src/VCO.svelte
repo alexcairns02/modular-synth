@@ -16,7 +16,7 @@
     
     oscNode.start(0);
 
-    const handle = () => dispatch('signal', {output: oscNode});
+    const handle = () => dispatch('connect', {output: oscNode});
 </script>
 
 <main>

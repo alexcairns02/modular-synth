@@ -104,6 +104,17 @@ var app = (function () {
         return current_component;
     }
     /**
+     * Schedules a callback to run immediately before the component is unmounted.
+     *
+     * Out of `onMount`, `beforeUpdate`, `afterUpdate` and `onDestroy`, this is the
+     * only one that runs inside a server-side component.
+     *
+     * https://svelte.dev/docs#run-time-svelte-ondestroy
+     */
+    function onDestroy(fn) {
+        get_current_component().$$.on_destroy.push(fn);
+    }
+    /**
      * Creates an event dispatcher that can be used to dispatch [component events](/docs#template-syntax-component-directives-on-eventname).
      * Event dispatchers are functions that can take two arguments: `name` and `detail`.
      *
@@ -242,6 +253,19 @@ var app = (function () {
     }
     const outroing = new Set();
     let outros;
+    function group_outros() {
+        outros = {
+            r: 0,
+            c: [],
+            p: outros // parent group
+        };
+    }
+    function check_outros() {
+        if (!outros.r) {
+            run_all(outros.c);
+        }
+        outros = outros.p;
+    }
     function transition_in(block, local) {
         if (block && block.i) {
             outroing.delete(block);
@@ -462,6 +486,25 @@ var app = (function () {
             }
         }
     }
+    function construct_svelte_component_dev(component, props) {
+        const error_message = 'this={...} of <svelte:component> should specify a Svelte component.';
+        try {
+            const instance = new component(props);
+            if (!instance.$$ || !instance.$set || !instance.$on || !instance.$destroy) {
+                throw new Error(error_message);
+            }
+            return instance;
+        }
+        catch (err) {
+            const { message } = err;
+            if (typeof message === 'string' && message.indexOf('is not a constructor') !== -1) {
+                throw new Error(error_message);
+            }
+            else {
+                throw err;
+            }
+        }
+    }
     /**
      * Base class for Svelte components with some minor dev-enhancements. Used when dev=true.
      */
@@ -480,6 +523,154 @@ var app = (function () {
         }
         $capture_state() { }
         $inject_state() { }
+    }
+
+    /*
+    Usage - convert svelte app to web component
+    import component from "svelte-tag"
+    new component({component:App,tagname:"hello-world",href="/your/stylesheet.css",attributes:["name"]})
+    */
+
+    function createSlots(slots) {
+      const svelteSlots = {};
+      for (const slotName in slots) {
+        svelteSlots[slotName] = [createSlotFn(slots[slotName])];
+      }
+      function createSlotFn(element) {
+        return function() {
+          return {
+            c: noop,
+            m: function mount(target, anchor) {
+              insert(target, element.cloneNode(true), anchor); 
+            },
+            d: function destroy(detaching) { 
+              if (detaching && element.innerHTML){ 
+                detach(element);
+              } 
+            },
+            l: noop,
+          };
+        }
+      }
+      return svelteSlots;
+    }
+
+    function Component(opts){
+      class Wrapper extends HTMLElement{
+
+        constructor() {
+          super();
+          this.slotcount = 0;
+          let root = opts.shadow ? this.attachShadow({ mode: 'open' }) : this;
+          // link generated style
+          if(opts.href && opts.shadow){
+            let link = document.createElement('link');
+            link.setAttribute("href",opts.href);
+            link.setAttribute("rel","stylesheet");
+            root.appendChild(link);    
+          }
+          if(opts.shadow){
+            this._root = document.createElement('div');
+            root.appendChild(this._root);
+          }else {
+            this._root = root;
+          }
+        }
+
+        static get observedAttributes() {
+          return opts.attributes || []
+        }
+
+        connectedCallback(){
+          let props = opts.defaults ? opts.defaults : {};
+          let slots;
+          props.$$scope = {};
+          Array.from(this.attributes).forEach( attr => props[attr.name] = attr.value );
+          props.$$scope = {};
+          if(opts.shadow){
+            slots = this.getShadowSlots();
+            let props = opts.defaults ? opts.defaults : {};
+            props.$$scope = {};
+            this.observer = new MutationObserver(this.processMutations.bind(this,{root:this._root,props}));
+            this.observer.observe(this,{childList: true, subtree: true, attributes: false});
+          }else {
+            slots = this.getSlots();
+          }
+          this.slotcount = Object.keys(slots).length;
+          props.$$slots = createSlots(slots);
+          this.elem = new opts.component({	target: this._root,	props});
+        }
+
+        disconnectedCallback(){
+          if(this.observe){
+            this.observer.disconnect();
+          }
+          try{ this.elem.$destroy();}catch(err){} // detroy svelte element when removed from dom
+        }
+        
+        unwrap(from){
+          let node = document.createDocumentFragment();
+          while (from.firstChild) {
+            node.appendChild(from.removeChild(from.firstChild));
+          }
+          return node
+        }
+
+        getSlots(){
+          const namedSlots = this.querySelectorAll('[slot]');
+          let slots = {};
+          namedSlots.forEach(n=>{
+            slots[n.slot] = this.unwrap(n);
+            this.removeChild(n);
+          });
+          if(this.innerHTML.length){
+            slots.default = this.unwrap(this);
+            this.innerHTML = "";
+          }
+          return slots
+        }
+
+        getShadowSlots(){
+          const namedSlots = this.querySelectorAll('[slot]');
+          let slots = {};
+          let htmlLength = this.innerHTML.length;
+          namedSlots.forEach(n=>{
+            slots[n.slot] = document.createElement("slot");
+            slots[n.slot].setAttribute("name",n.slot);
+            htmlLength-=n.outerHTML.length;
+          });
+          if(htmlLength>0){
+            slots.default = document.createElement("slot");
+          }
+          return slots
+        }
+
+        processMutations({root,props},mutations){
+          for(let mutation of mutations){
+            if(mutation.type=="childList"){
+              let slots = this.getShadowSlots();
+              if(Object.keys(slots).length){
+                props.$$slots = createSlots(slots);
+                this.elem.$set({"$$slots":createSlots(slots)});
+                // do full re-render on slot count change - needed for tabs component
+                if(this.slotcount != Object.keys(slots).length){
+                  Array.from(this.attributes).forEach( attr => props[attr.name] = attr.value );
+                  this.slotcount = Object.keys(slots).length;
+                  root.innerHTML = "";
+                  this.elem = new opts.component({	target: root,	props});
+                }
+              }
+            }
+          }
+        }
+
+        attributeChangedCallback(name, oldValue, newValue) {
+          if(this.elem && newValue!=oldValue){
+            this.elem.$set({[name]:newValue});
+          }
+        }
+      }  
+      window.customElements.define(opts.tagname, Wrapper);
     }
 
     /* src\MIDI.svelte generated by Svelte v3.59.2 */
@@ -511,12 +702,12 @@ var app = (function () {
     			h3 = element("h3");
     			t3 = text(/*note*/ ctx[1]);
     			t4 = text(t4_value);
-    			add_location(h2, file$6, 161, 4, 4373);
-    			add_location(br, file$6, 163, 4, 4486);
-    			add_location(h3, file$6, 164, 4, 4601);
+    			add_location(h2, file$6, 161, 4, 4372);
+    			add_location(br, file$6, 163, 4, 4485);
+    			add_location(h3, file$6, 164, 4, 4600);
     			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$6, 160, 0, 4362);
-    			add_location(main, file$6, 159, 0, 4354);
+    			add_location(div, file$6, 160, 0, 4361);
+    			add_location(main, file$6, 159, 0, 4353);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -573,7 +764,7 @@ var app = (function () {
     	let octUp = 0;
     	let newoctUp = 0;
     	let frequency = 440;
-    	const handle = () => dispatch('signal', { output: Math.log2(frequency), trigger });
+    	const handle = () => dispatch('input', { output: Math.log2(frequency), trigger });
 
     	function onKeyDown(e) {
     		if (e.repeat) return;
@@ -846,37 +1037,37 @@ var app = (function () {
     			label4 = element("label");
     			input4 = element("input");
     			t10 = text(" Square");
-    			add_location(h2, file$5, 23, 4, 463);
+    			add_location(h2, file$5, 23, 4, 464);
     			attr_dev(input0, "type", "range");
     			attr_dev(input0, "min", "2.78135971352466");
     			attr_dev(input0, "max", "14.78135971352466");
     			attr_dev(input0, "step", "0.0001");
-    			add_location(input0, file$5, 24, 11, 495);
-    			add_location(label0, file$5, 24, 4, 488);
+    			add_location(input0, file$5, 24, 11, 496);
+    			add_location(label0, file$5, 24, 4, 489);
     			attr_dev(input1, "type", "radio");
     			input1.__value = "sine";
     			input1.value = input1.__value;
-    			add_location(input1, file$5, 27, 12, 657);
-    			add_location(label1, file$5, 26, 8, 636);
+    			add_location(input1, file$5, 27, 12, 658);
+    			add_location(label1, file$5, 26, 8, 637);
     			attr_dev(input2, "type", "radio");
     			input2.__value = "triangle";
     			input2.value = input2.__value;
-    			add_location(input2, file$5, 30, 12, 772);
-    			add_location(label2, file$5, 29, 8, 751);
+    			add_location(input2, file$5, 30, 12, 773);
+    			add_location(label2, file$5, 29, 8, 752);
     			attr_dev(input3, "type", "radio");
     			input3.__value = "sawtooth";
     			input3.value = input3.__value;
-    			add_location(input3, file$5, 33, 12, 895);
-    			add_location(label3, file$5, 32, 8, 874);
+    			add_location(input3, file$5, 33, 12, 896);
+    			add_location(label3, file$5, 32, 8, 875);
     			attr_dev(input4, "type", "radio");
     			input4.__value = "square";
     			input4.value = input4.__value;
-    			add_location(input4, file$5, 36, 12, 1018);
-    			add_location(label4, file$5, 35, 8, 997);
-    			add_location(section, file$5, 25, 4, 617);
+    			add_location(input4, file$5, 36, 12, 1019);
+    			add_location(label4, file$5, 35, 8, 998);
+    			add_location(section, file$5, 25, 4, 618);
     			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$5, 22, 0, 452);
-    			add_location(main, file$5, 21, 0, 444);
+    			add_location(div, file$5, 22, 0, 453);
+    			add_location(main, file$5, 21, 0, 445);
     			binding_group.p(input1, input2, input3, input4);
     		},
     		l: function claim(nodes) {
@@ -978,7 +1169,7 @@ var app = (function () {
     	let voct = Math.log2(440);
     	let oscNode = ctx.createOscillator();
     	oscNode.start(0);
-    	const handle = () => dispatch('signal', { output: oscNode });
+    	const handle = () => dispatch('connect', { output: oscNode });
 
     	$$self.$$.on_mount.push(function () {
     		if (ctx === undefined && !('ctx' in $$props || $$self.$$.bound[$$self.$$.props['ctx']])) {
@@ -1334,16 +1525,16 @@ var app = (function () {
     			label = element("label");
     			input_1 = element("input");
     			t2 = text("Gain");
-    			add_location(h2, file$3, 19, 4, 408);
+    			add_location(h2, file$3, 21, 4, 484);
     			attr_dev(input_1, "type", "range");
     			attr_dev(input_1, "min", "0");
     			attr_dev(input_1, "max", "1");
     			attr_dev(input_1, "step", "0.001");
-    			add_location(input_1, file$3, 20, 11, 439);
-    			add_location(label, file$3, 20, 4, 432);
+    			add_location(input_1, file$3, 22, 11, 515);
+    			add_location(label, file$3, 22, 4, 508);
     			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$3, 18, 0, 397);
-    			add_location(main, file$3, 17, 0, 389);
+    			add_location(div, file$3, 20, 0, 473);
+    			add_location(main, file$3, 19, 0, 465);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1402,7 +1593,7 @@ var app = (function () {
     	const dispatch = createEventDispatcher();
     	var gainNode = ctx.createGain();
 
-    	const handle = () => dispatch('signal', {
+    	const handle = () => dispatch('connect', {
     		output: gainNode,
     		cv_in: gainNode.gain,
     		max_cv
@@ -1456,6 +1647,10 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
+    		if ($$self.$$.dirty & /*max_cv, ctx*/ 5) {
+    			gainNode.gain.setValueAtTime(max_cv.value, ctx.currentTime);
+    		}
+
     		if ($$self.$$.dirty & /*input*/ 8) {
     			if (input) input.connect(gainNode);
     		}
@@ -1495,7 +1690,6 @@ var app = (function () {
     }
 
     /* src\ADSR.svelte generated by Svelte v3.59.2 */
-
     const file$2 = "src\\ADSR.svelte";
 
     function create_fragment$2(ctx) {
@@ -1527,22 +1721,22 @@ var app = (function () {
     			label1 = element("label");
     			input1 = element("input");
     			t4 = text("Release");
-    			add_location(h2, file$2, 27, 8, 628);
+    			add_location(h2, file$2, 34, 8, 824);
     			attr_dev(input0, "type", "range");
     			attr_dev(input0, "min", "0");
     			attr_dev(input0, "max", "1");
     			attr_dev(input0, "step", "0.001");
-    			add_location(input0, file$2, 28, 15, 662);
-    			add_location(label0, file$2, 28, 8, 655);
+    			add_location(input0, file$2, 35, 15, 858);
+    			add_location(label0, file$2, 35, 8, 851);
     			attr_dev(input1, "type", "range");
     			attr_dev(input1, "min", "0");
     			attr_dev(input1, "max", "1");
     			attr_dev(input1, "step", "0.001");
-    			add_location(input1, file$2, 31, 15, 976);
-    			add_location(label1, file$2, 31, 8, 969);
+    			add_location(input1, file$2, 38, 15, 1172);
+    			add_location(label1, file$2, 38, 8, 1165);
     			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$2, 26, 4, 613);
-    			add_location(main, file$2, 25, 0, 601);
+    			add_location(div, file$2, 33, 4, 809);
+    			add_location(main, file$2, 32, 0, 797);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1624,6 +1818,11 @@ var app = (function () {
     		}
     	};
 
+    	onDestroy(() => {
+    		cv_out.cancelScheduledValues(ctx.currentTime);
+    		cv_out.setValueAtTime(max_cv.value, ctx.currentTime);
+    	});
+
     	$$self.$$.on_mount.push(function () {
     		if (ctx === undefined && !('ctx' in $$props || $$self.$$.bound[$$self.$$.props['ctx']])) {
     			console.warn("<ADSR> was created without expected prop 'ctx'");
@@ -1666,6 +1865,7 @@ var app = (function () {
     	};
 
     	$$self.$capture_state = () => ({
+    		onDestroy,
     		ctx,
     		trigger,
     		cv_out,
@@ -1780,16 +1980,16 @@ var app = (function () {
     			label = element("label");
     			input_1 = element("input");
     			t2 = text("Frequency");
-    			add_location(h2, file$1, 19, 8, 441);
+    			add_location(h2, file$1, 21, 8, 496);
     			attr_dev(input_1, "type", "range");
     			attr_dev(input_1, "min", "0");
     			attr_dev(input_1, "max", "18000");
     			attr_dev(input_1, "step", "0.001");
-    			add_location(input_1, file$1, 20, 15, 473);
-    			add_location(label, file$1, 20, 8, 466);
+    			add_location(input_1, file$1, 22, 15, 528);
+    			add_location(label, file$1, 22, 8, 521);
     			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$1, 18, 4, 426);
-    			add_location(main, file$1, 17, 0, 414);
+    			add_location(div, file$1, 20, 4, 481);
+    			add_location(main, file$1, 19, 0, 469);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1807,8 +2007,8 @@ var app = (function () {
     			if (!mounted) {
     				dispose = [
     					action_destroyer(/*handle*/ ctx[1].call(null, window)),
-    					listen_dev(input_1, "change", /*input_1_change_input_handler*/ ctx[4]),
-    					listen_dev(input_1, "input", /*input_1_change_input_handler*/ ctx[4])
+    					listen_dev(input_1, "change", /*input_1_change_input_handler*/ ctx[5]),
+    					listen_dev(input_1, "input", /*input_1_change_input_handler*/ ctx[5])
     				];
 
     				mounted = true;
@@ -1844,11 +2044,11 @@ var app = (function () {
     	validate_slots('VCF', slots, []);
     	let { ctx } = $$props;
     	let { input } = $$props;
-    	let max_cv = { value: 1000 };
+    	let max_cv = { value: 18000 };
     	const dispatch = createEventDispatcher();
     	var filterNode = ctx.createBiquadFilter();
 
-    	const handle = () => dispatch('signal', {
+    	const handle = () => dispatch('connect', {
     		output: filterNode,
     		cv_in: filterNode.frequency,
     		max_cv
@@ -1894,7 +2094,7 @@ var app = (function () {
     		if ('ctx' in $$props) $$invalidate(2, ctx = $$props.ctx);
     		if ('input' in $$props) $$invalidate(3, input = $$props.input);
     		if ('max_cv' in $$props) $$invalidate(0, max_cv = $$props.max_cv);
-    		if ('filterNode' in $$props) $$invalidate(6, filterNode = $$props.filterNode);
+    		if ('filterNode' in $$props) $$invalidate(4, filterNode = $$props.filterNode);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -1902,12 +2102,16 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*input*/ 8) {
+    		if ($$self.$$.dirty & /*max_cv*/ 1) {
+    			$$invalidate(4, filterNode.frequency.value = max_cv.value, filterNode);
+    		}
+
+    		if ($$self.$$.dirty & /*input, filterNode*/ 24) {
     			if (input) input.connect(filterNode);
     		}
     	};
 
-    	return [max_cv, handle, ctx, input, input_1_change_input_handler];
+    	return [max_cv, handle, ctx, input, filterNode, input_1_change_input_handler];
     }
 
     class VCF extends SvelteComponentDev {
@@ -1943,202 +2147,364 @@ var app = (function () {
     /* src\App.svelte generated by Svelte v3.59.2 */
     const file = "src\\App.svelte";
 
+    // (61:1) {#if vcf.hasEnv}
+    function create_if_block_1(ctx) {
+    	let adsr;
+    	let updating_ctx;
+    	let updating_trigger;
+    	let updating_cv_out;
+    	let updating_max_cv;
+    	let current;
+
+    	function adsr_ctx_binding(value) {
+    		/*adsr_ctx_binding*/ ctx[8](value);
+    	}
+
+    	function adsr_trigger_binding(value) {
+    		/*adsr_trigger_binding*/ ctx[9](value);
+    	}
+
+    	function adsr_cv_out_binding(value) {
+    		/*adsr_cv_out_binding*/ ctx[10](value);
+    	}
+
+    	function adsr_max_cv_binding(value) {
+    		/*adsr_max_cv_binding*/ ctx[11](value);
+    	}
+
+    	let adsr_props = {};
+
+    	if (/*ctx*/ ctx[0] !== void 0) {
+    		adsr_props.ctx = /*ctx*/ ctx[0];
+    	}
+
+    	if (/*midi*/ ctx[2].trigger !== void 0) {
+    		adsr_props.trigger = /*midi*/ ctx[2].trigger;
+    	}
+
+    	if (/*vcf*/ ctx[3].cv !== void 0) {
+    		adsr_props.cv_out = /*vcf*/ ctx[3].cv;
+    	}
+
+    	if (/*vcf*/ ctx[3].cvmax !== void 0) {
+    		adsr_props.max_cv = /*vcf*/ ctx[3].cvmax;
+    	}
+
+    	adsr = new ADSR({ props: adsr_props, $$inline: true });
+    	binding_callbacks.push(() => bind(adsr, 'ctx', adsr_ctx_binding));
+    	binding_callbacks.push(() => bind(adsr, 'trigger', adsr_trigger_binding));
+    	binding_callbacks.push(() => bind(adsr, 'cv_out', adsr_cv_out_binding));
+    	binding_callbacks.push(() => bind(adsr, 'max_cv', adsr_max_cv_binding));
+
+    	const block = {
+    		c: function create() {
+    			create_component(adsr.$$.fragment);
+    		},
+    		m: function mount(target, anchor) {
+    			mount_component(adsr, target, anchor);
+    			current = true;
+    		},
+    		p: function update(ctx, dirty) {
+    			const adsr_changes = {};
+
+    			if (!updating_ctx && dirty & /*ctx*/ 1) {
+    				updating_ctx = true;
+    				adsr_changes.ctx = /*ctx*/ ctx[0];
+    				add_flush_callback(() => updating_ctx = false);
+    			}
+
+    			if (!updating_trigger && dirty & /*midi*/ 4) {
+    				updating_trigger = true;
+    				adsr_changes.trigger = /*midi*/ ctx[2].trigger;
+    				add_flush_callback(() => updating_trigger = false);
+    			}
+
+    			if (!updating_cv_out && dirty & /*vcf*/ 8) {
+    				updating_cv_out = true;
+    				adsr_changes.cv_out = /*vcf*/ ctx[3].cv;
+    				add_flush_callback(() => updating_cv_out = false);
+    			}
+
+    			if (!updating_max_cv && dirty & /*vcf*/ 8) {
+    				updating_max_cv = true;
+    				adsr_changes.max_cv = /*vcf*/ ctx[3].cvmax;
+    				add_flush_callback(() => updating_max_cv = false);
+    			}
+
+    			adsr.$set(adsr_changes);
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(adsr.$$.fragment, local);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(adsr.$$.fragment, local);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			destroy_component(adsr, detaching);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block_1.name,
+    		type: "if",
+    		source: "(61:1) {#if vcf.hasEnv}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (67:1) {#if vca.hasEnv}
+    function create_if_block(ctx) {
+    	let adsr;
+    	let updating_ctx;
+    	let updating_trigger;
+    	let updating_cv_out;
+    	let updating_max_cv;
+    	let current;
+
+    	function adsr_ctx_binding_1(value) {
+    		/*adsr_ctx_binding_1*/ ctx[15](value);
+    	}
+
+    	function adsr_trigger_binding_1(value) {
+    		/*adsr_trigger_binding_1*/ ctx[16](value);
+    	}
+
+    	function adsr_cv_out_binding_1(value) {
+    		/*adsr_cv_out_binding_1*/ ctx[17](value);
+    	}
+
+    	function adsr_max_cv_binding_1(value) {
+    		/*adsr_max_cv_binding_1*/ ctx[18](value);
+    	}
+
+    	let adsr_props = {};
+
+    	if (/*ctx*/ ctx[0] !== void 0) {
+    		adsr_props.ctx = /*ctx*/ ctx[0];
+    	}
+
+    	if (/*midi*/ ctx[2].trigger !== void 0) {
+    		adsr_props.trigger = /*midi*/ ctx[2].trigger;
+    	}
+
+    	if (/*vca*/ ctx[4].cv !== void 0) {
+    		adsr_props.cv_out = /*vca*/ ctx[4].cv;
+    	}
+
+    	if (/*vca*/ ctx[4].cvmax !== void 0) {
+    		adsr_props.max_cv = /*vca*/ ctx[4].cvmax;
+    	}
+
+    	adsr = new ADSR({ props: adsr_props, $$inline: true });
+    	binding_callbacks.push(() => bind(adsr, 'ctx', adsr_ctx_binding_1));
+    	binding_callbacks.push(() => bind(adsr, 'trigger', adsr_trigger_binding_1));
+    	binding_callbacks.push(() => bind(adsr, 'cv_out', adsr_cv_out_binding_1));
+    	binding_callbacks.push(() => bind(adsr, 'max_cv', adsr_max_cv_binding_1));
+
+    	const block = {
+    		c: function create() {
+    			create_component(adsr.$$.fragment);
+    		},
+    		m: function mount(target, anchor) {
+    			mount_component(adsr, target, anchor);
+    			current = true;
+    		},
+    		p: function update(ctx, dirty) {
+    			const adsr_changes = {};
+
+    			if (!updating_ctx && dirty & /*ctx*/ 1) {
+    				updating_ctx = true;
+    				adsr_changes.ctx = /*ctx*/ ctx[0];
+    				add_flush_callback(() => updating_ctx = false);
+    			}
+
+    			if (!updating_trigger && dirty & /*midi*/ 4) {
+    				updating_trigger = true;
+    				adsr_changes.trigger = /*midi*/ ctx[2].trigger;
+    				add_flush_callback(() => updating_trigger = false);
+    			}
+
+    			if (!updating_cv_out && dirty & /*vca*/ 16) {
+    				updating_cv_out = true;
+    				adsr_changes.cv_out = /*vca*/ ctx[4].cv;
+    				add_flush_callback(() => updating_cv_out = false);
+    			}
+
+    			if (!updating_max_cv && dirty & /*vca*/ 16) {
+    				updating_max_cv = true;
+    				adsr_changes.max_cv = /*vca*/ ctx[4].cvmax;
+    				add_flush_callback(() => updating_max_cv = false);
+    			}
+
+    			adsr.$set(adsr_changes);
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(adsr.$$.fragment, local);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(adsr.$$.fragment, local);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			destroy_component(adsr, detaching);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block.name,
+    		type: "if",
+    		source: "(67:1) {#if vca.hasEnv}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
     function create_fragment(ctx) {
     	let main;
-    	let midi;
+    	let switch_instance;
     	let t0;
-    	let vco;
+    	let vco_1;
     	let updating_ctx;
     	let updating_voctIn;
     	let t1;
     	let br0;
     	let t2;
-    	let adsr0;
-    	let updating_ctx_1;
-    	let updating_trigger;
-    	let updating_cv_out;
-    	let updating_max_cv;
+    	let input0;
     	let t3;
-    	let vcf;
-    	let updating_ctx_2;
-    	let updating_input;
     	let t4;
-    	let br1;
+    	let vcf_1;
+    	let updating_ctx_1;
+    	let updating_input;
     	let t5;
-    	let adsr1;
-    	let updating_ctx_3;
-    	let updating_trigger_1;
-    	let updating_cv_out_1;
-    	let updating_max_cv_1;
+    	let br1;
     	let t6;
-    	let vca;
-    	let updating_ctx_4;
-    	let updating_input_1;
+    	let input1;
     	let t7;
-    	let br2;
     	let t8;
+    	let vca_1;
+    	let updating_ctx_2;
+    	let updating_input_1;
+    	let t9;
+    	let br2;
+    	let t10;
     	let output;
-    	let updating_ctx_5;
+    	let updating_ctx_3;
     	let updating_input_2;
     	let current;
-    	midi = new MIDI({ $$inline: true });
-    	midi.$on("signal", /*handleMIDI*/ ctx[11]);
+    	let mounted;
+    	let dispose;
+    	var switch_value = /*midi*/ ctx[2].comp;
 
-    	function vco_ctx_binding(value) {
-    		/*vco_ctx_binding*/ ctx[14](value);
+    	function switch_props(ctx) {
+    		return { $$inline: true };
     	}
 
-    	function vco_voctIn_binding(value) {
-    		/*vco_voctIn_binding*/ ctx[15](value);
+    	if (switch_value) {
+    		switch_instance = construct_svelte_component_dev(switch_value, switch_props());
+
+    		switch_instance.$on("input", function () {
+    			if (is_function(/*midi*/ ctx[2].handle)) /*midi*/ ctx[2].handle.apply(this, arguments);
+    		});
     	}
 
-    	let vco_props = {};
+    	function vco_1_ctx_binding(value) {
+    		/*vco_1_ctx_binding*/ ctx[5](value);
+    	}
+
+    	function vco_1_voctIn_binding(value) {
+    		/*vco_1_voctIn_binding*/ ctx[6](value);
+    	}
+
+    	let vco_1_props = {};
 
     	if (/*ctx*/ ctx[0] !== void 0) {
-    		vco_props.ctx = /*ctx*/ ctx[0];
+    		vco_1_props.ctx = /*ctx*/ ctx[0];
     	}
 
-    	if (/*voct*/ ctx[4] !== void 0) {
-    		vco_props.voctIn = /*voct*/ ctx[4];
+    	if (/*midi*/ ctx[2].voct !== void 0) {
+    		vco_1_props.voctIn = /*midi*/ ctx[2].voct;
     	}
 
-    	vco = new VCO({ props: vco_props, $$inline: true });
-    	binding_callbacks.push(() => bind(vco, 'ctx', vco_ctx_binding));
-    	binding_callbacks.push(() => bind(vco, 'voctIn', vco_voctIn_binding));
-    	vco.$on("signal", /*handleVCO*/ ctx[10]);
+    	vco_1 = new VCO({ props: vco_1_props, $$inline: true });
+    	binding_callbacks.push(() => bind(vco_1, 'ctx', vco_1_ctx_binding));
+    	binding_callbacks.push(() => bind(vco_1, 'voctIn', vco_1_voctIn_binding));
 
-    	function adsr0_ctx_binding(value) {
-    		/*adsr0_ctx_binding*/ ctx[16](value);
+    	vco_1.$on("connect", function () {
+    		if (is_function(/*vco*/ ctx[1].handle)) /*vco*/ ctx[1].handle.apply(this, arguments);
+    	});
+
+    	let if_block0 = /*vcf*/ ctx[3].hasEnv && create_if_block_1(ctx);
+
+    	function vcf_1_ctx_binding(value) {
+    		/*vcf_1_ctx_binding*/ ctx[12](value);
     	}
 
-    	function adsr0_trigger_binding(value) {
-    		/*adsr0_trigger_binding*/ ctx[17](value);
+    	function vcf_1_input_binding(value) {
+    		/*vcf_1_input_binding*/ ctx[13](value);
     	}
 
-    	function adsr0_cv_out_binding(value) {
-    		/*adsr0_cv_out_binding*/ ctx[18](value);
-    	}
-
-    	function adsr0_max_cv_binding(value) {
-    		/*adsr0_max_cv_binding*/ ctx[19](value);
-    	}
-
-    	let adsr0_props = {};
+    	let vcf_1_props = {};
 
     	if (/*ctx*/ ctx[0] !== void 0) {
-    		adsr0_props.ctx = /*ctx*/ ctx[0];
+    		vcf_1_props.ctx = /*ctx*/ ctx[0];
     	}
 
-    	if (/*trigger*/ ctx[6] !== void 0) {
-    		adsr0_props.trigger = /*trigger*/ ctx[6];
+    	if (/*vco*/ ctx[1].output !== void 0) {
+    		vcf_1_props.input = /*vco*/ ctx[1].output;
     	}
 
-    	if (/*vcfInputCv*/ ctx[8] !== void 0) {
-    		adsr0_props.cv_out = /*vcfInputCv*/ ctx[8];
+    	vcf_1 = new VCF({ props: vcf_1_props, $$inline: true });
+    	binding_callbacks.push(() => bind(vcf_1, 'ctx', vcf_1_ctx_binding));
+    	binding_callbacks.push(() => bind(vcf_1, 'input', vcf_1_input_binding));
+
+    	vcf_1.$on("connect", function () {
+    		if (is_function(/*vcf*/ ctx[3].handle)) /*vcf*/ ctx[3].handle.apply(this, arguments);
+    	});
+
+    	let if_block1 = /*vca*/ ctx[4].hasEnv && create_if_block(ctx);
+
+    	function vca_1_ctx_binding(value) {
+    		/*vca_1_ctx_binding*/ ctx[19](value);
     	}
 
-    	if (/*vcfInputMax*/ ctx[9] !== void 0) {
-    		adsr0_props.max_cv = /*vcfInputMax*/ ctx[9];
+    	function vca_1_input_binding(value) {
+    		/*vca_1_input_binding*/ ctx[20](value);
     	}
 
-    	adsr0 = new ADSR({ props: adsr0_props, $$inline: true });
-    	binding_callbacks.push(() => bind(adsr0, 'ctx', adsr0_ctx_binding));
-    	binding_callbacks.push(() => bind(adsr0, 'trigger', adsr0_trigger_binding));
-    	binding_callbacks.push(() => bind(adsr0, 'cv_out', adsr0_cv_out_binding));
-    	binding_callbacks.push(() => bind(adsr0, 'max_cv', adsr0_max_cv_binding));
-
-    	function vcf_ctx_binding(value) {
-    		/*vcf_ctx_binding*/ ctx[20](value);
-    	}
-
-    	function vcf_input_binding(value) {
-    		/*vcf_input_binding*/ ctx[21](value);
-    	}
-
-    	let vcf_props = {};
+    	let vca_1_props = {};
 
     	if (/*ctx*/ ctx[0] !== void 0) {
-    		vcf_props.ctx = /*ctx*/ ctx[0];
+    		vca_1_props.ctx = /*ctx*/ ctx[0];
     	}
 
-    	if (/*vcaOutput1*/ ctx[1] !== void 0) {
-    		vcf_props.input = /*vcaOutput1*/ ctx[1];
+    	if (/*vcf*/ ctx[3].output !== void 0) {
+    		vca_1_props.input = /*vcf*/ ctx[3].output;
     	}
 
-    	vcf = new VCF({ props: vcf_props, $$inline: true });
-    	binding_callbacks.push(() => bind(vcf, 'ctx', vcf_ctx_binding));
-    	binding_callbacks.push(() => bind(vcf, 'input', vcf_input_binding));
-    	vcf.$on("signal", /*handleVCF*/ ctx[13]);
+    	vca_1 = new VCA({ props: vca_1_props, $$inline: true });
+    	binding_callbacks.push(() => bind(vca_1, 'ctx', vca_1_ctx_binding));
+    	binding_callbacks.push(() => bind(vca_1, 'input', vca_1_input_binding));
 
-    	function adsr1_ctx_binding(value) {
-    		/*adsr1_ctx_binding*/ ctx[22](value);
-    	}
-
-    	function adsr1_trigger_binding(value) {
-    		/*adsr1_trigger_binding*/ ctx[23](value);
-    	}
-
-    	function adsr1_cv_out_binding(value) {
-    		/*adsr1_cv_out_binding*/ ctx[24](value);
-    	}
-
-    	function adsr1_max_cv_binding(value) {
-    		/*adsr1_max_cv_binding*/ ctx[25](value);
-    	}
-
-    	let adsr1_props = {};
-
-    	if (/*ctx*/ ctx[0] !== void 0) {
-    		adsr1_props.ctx = /*ctx*/ ctx[0];
-    	}
-
-    	if (/*trigger*/ ctx[6] !== void 0) {
-    		adsr1_props.trigger = /*trigger*/ ctx[6];
-    	}
-
-    	if (/*vcaInputCv*/ ctx[3] !== void 0) {
-    		adsr1_props.cv_out = /*vcaInputCv*/ ctx[3];
-    	}
-
-    	if (/*vcaInputMax*/ ctx[5] !== void 0) {
-    		adsr1_props.max_cv = /*vcaInputMax*/ ctx[5];
-    	}
-
-    	adsr1 = new ADSR({ props: adsr1_props, $$inline: true });
-    	binding_callbacks.push(() => bind(adsr1, 'ctx', adsr1_ctx_binding));
-    	binding_callbacks.push(() => bind(adsr1, 'trigger', adsr1_trigger_binding));
-    	binding_callbacks.push(() => bind(adsr1, 'cv_out', adsr1_cv_out_binding));
-    	binding_callbacks.push(() => bind(adsr1, 'max_cv', adsr1_max_cv_binding));
-
-    	function vca_ctx_binding(value) {
-    		/*vca_ctx_binding*/ ctx[26](value);
-    	}
-
-    	function vca_input_binding(value) {
-    		/*vca_input_binding*/ ctx[27](value);
-    	}
-
-    	let vca_props = {};
-
-    	if (/*ctx*/ ctx[0] !== void 0) {
-    		vca_props.ctx = /*ctx*/ ctx[0];
-    	}
-
-    	if (/*vcoOutput*/ ctx[2] !== void 0) {
-    		vca_props.input = /*vcoOutput*/ ctx[2];
-    	}
-
-    	vca = new VCA({ props: vca_props, $$inline: true });
-    	binding_callbacks.push(() => bind(vca, 'ctx', vca_ctx_binding));
-    	binding_callbacks.push(() => bind(vca, 'input', vca_input_binding));
-    	vca.$on("signal", /*handleVCA*/ ctx[12]);
+    	vca_1.$on("connect", function () {
+    		if (is_function(/*vca*/ ctx[4].handle)) /*vca*/ ctx[4].handle.apply(this, arguments);
+    	});
 
     	function output_ctx_binding(value) {
-    		/*output_ctx_binding*/ ctx[28](value);
+    		/*output_ctx_binding*/ ctx[21](value);
     	}
 
     	function output_input_binding(value) {
-    		/*output_input_binding*/ ctx[29](value);
+    		/*output_input_binding*/ ctx[22](value);
     	}
 
     	let output_props = {};
@@ -2147,8 +2513,8 @@ var app = (function () {
     		output_props.ctx = /*ctx*/ ctx[0];
     	}
 
-    	if (/*vcfOutput*/ ctx[7] !== void 0) {
-    		output_props.input = /*vcfOutput*/ ctx[7];
+    	if (/*vca*/ ctx[4].output !== void 0) {
+    		output_props.input = /*vca*/ ctx[4].output;
     	}
 
     	output = new Output({ props: output_props, $$inline: true });
@@ -2158,168 +2524,222 @@ var app = (function () {
     	const block = {
     		c: function create() {
     			main = element("main");
-    			create_component(midi.$$.fragment);
+    			if (switch_instance) create_component(switch_instance.$$.fragment);
     			t0 = space();
-    			create_component(vco.$$.fragment);
+    			create_component(vco_1.$$.fragment);
     			t1 = space();
     			br0 = element("br");
     			t2 = space();
-    			create_component(adsr0.$$.fragment);
+    			input0 = element("input");
     			t3 = space();
-    			create_component(vcf.$$.fragment);
+    			if (if_block0) if_block0.c();
     			t4 = space();
-    			br1 = element("br");
+    			create_component(vcf_1.$$.fragment);
     			t5 = space();
-    			create_component(adsr1.$$.fragment);
+    			br1 = element("br");
     			t6 = space();
-    			create_component(vca.$$.fragment);
+    			input1 = element("input");
     			t7 = space();
-    			br2 = element("br");
+    			if (if_block1) if_block1.c();
     			t8 = space();
+    			create_component(vca_1.$$.fragment);
+    			t9 = space();
+    			br2 = element("br");
+    			t10 = space();
     			create_component(output.$$.fragment);
-    			add_location(br0, file, 49, 1, 1135);
-    			add_location(br1, file, 52, 1, 1291);
-    			add_location(br2, file, 55, 1, 1446);
+    			add_location(br0, file, 58, 1, 1260);
+    			attr_dev(input0, "type", "checkbox");
+    			add_location(input0, file, 59, 1, 1267);
+    			add_location(br1, file, 64, 1, 1509);
+    			attr_dev(input1, "type", "checkbox");
+    			add_location(input1, file, 65, 1, 1516);
+    			add_location(br2, file, 70, 1, 1758);
     			attr_dev(main, "class", "svelte-1h6otfa");
-    			add_location(main, file, 46, 0, 1032);
+    			add_location(main, file, 55, 0, 1121);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
-    			mount_component(midi, main, null);
+    			if (switch_instance) mount_component(switch_instance, main, null);
     			append_dev(main, t0);
-    			mount_component(vco, main, null);
+    			mount_component(vco_1, main, null);
     			append_dev(main, t1);
     			append_dev(main, br0);
     			append_dev(main, t2);
-    			mount_component(adsr0, main, null);
+    			append_dev(main, input0);
+    			input0.checked = /*vcf*/ ctx[3].hasEnv;
     			append_dev(main, t3);
-    			mount_component(vcf, main, null);
+    			if (if_block0) if_block0.m(main, null);
     			append_dev(main, t4);
-    			append_dev(main, br1);
+    			mount_component(vcf_1, main, null);
     			append_dev(main, t5);
-    			mount_component(adsr1, main, null);
+    			append_dev(main, br1);
     			append_dev(main, t6);
-    			mount_component(vca, main, null);
+    			append_dev(main, input1);
+    			input1.checked = /*vca*/ ctx[4].hasEnv;
     			append_dev(main, t7);
-    			append_dev(main, br2);
+    			if (if_block1) if_block1.m(main, null);
     			append_dev(main, t8);
+    			mount_component(vca_1, main, null);
+    			append_dev(main, t9);
+    			append_dev(main, br2);
+    			append_dev(main, t10);
     			mount_component(output, main, null);
     			current = true;
-    		},
-    		p: function update(ctx, dirty) {
-    			const vco_changes = {};
 
-    			if (!updating_ctx && dirty[0] & /*ctx*/ 1) {
+    			if (!mounted) {
+    				dispose = [
+    					listen_dev(input0, "change", /*input0_change_handler*/ ctx[7]),
+    					listen_dev(input1, "change", /*input1_change_handler*/ ctx[14])
+    				];
+
+    				mounted = true;
+    			}
+    		},
+    		p: function update(new_ctx, [dirty]) {
+    			ctx = new_ctx;
+
+    			if (dirty & /*midi*/ 4 && switch_value !== (switch_value = /*midi*/ ctx[2].comp)) {
+    				if (switch_instance) {
+    					group_outros();
+    					const old_component = switch_instance;
+
+    					transition_out(old_component.$$.fragment, 1, 0, () => {
+    						destroy_component(old_component, 1);
+    					});
+
+    					check_outros();
+    				}
+
+    				if (switch_value) {
+    					switch_instance = construct_svelte_component_dev(switch_value, switch_props());
+
+    					switch_instance.$on("input", function () {
+    						if (is_function(/*midi*/ ctx[2].handle)) /*midi*/ ctx[2].handle.apply(this, arguments);
+    					});
+
+    					create_component(switch_instance.$$.fragment);
+    					transition_in(switch_instance.$$.fragment, 1);
+    					mount_component(switch_instance, main, t0);
+    				} else {
+    					switch_instance = null;
+    				}
+    			}
+
+    			const vco_1_changes = {};
+
+    			if (!updating_ctx && dirty & /*ctx*/ 1) {
     				updating_ctx = true;
-    				vco_changes.ctx = /*ctx*/ ctx[0];
+    				vco_1_changes.ctx = /*ctx*/ ctx[0];
     				add_flush_callback(() => updating_ctx = false);
     			}
 
-    			if (!updating_voctIn && dirty[0] & /*voct*/ 16) {
+    			if (!updating_voctIn && dirty & /*midi*/ 4) {
     				updating_voctIn = true;
-    				vco_changes.voctIn = /*voct*/ ctx[4];
+    				vco_1_changes.voctIn = /*midi*/ ctx[2].voct;
     				add_flush_callback(() => updating_voctIn = false);
     			}
 
-    			vco.$set(vco_changes);
-    			const adsr0_changes = {};
+    			vco_1.$set(vco_1_changes);
 
-    			if (!updating_ctx_1 && dirty[0] & /*ctx*/ 1) {
+    			if (dirty & /*vcf*/ 8) {
+    				input0.checked = /*vcf*/ ctx[3].hasEnv;
+    			}
+
+    			if (/*vcf*/ ctx[3].hasEnv) {
+    				if (if_block0) {
+    					if_block0.p(ctx, dirty);
+
+    					if (dirty & /*vcf*/ 8) {
+    						transition_in(if_block0, 1);
+    					}
+    				} else {
+    					if_block0 = create_if_block_1(ctx);
+    					if_block0.c();
+    					transition_in(if_block0, 1);
+    					if_block0.m(main, t4);
+    				}
+    			} else if (if_block0) {
+    				group_outros();
+
+    				transition_out(if_block0, 1, 1, () => {
+    					if_block0 = null;
+    				});
+
+    				check_outros();
+    			}
+
+    			const vcf_1_changes = {};
+
+    			if (!updating_ctx_1 && dirty & /*ctx*/ 1) {
     				updating_ctx_1 = true;
-    				adsr0_changes.ctx = /*ctx*/ ctx[0];
+    				vcf_1_changes.ctx = /*ctx*/ ctx[0];
     				add_flush_callback(() => updating_ctx_1 = false);
     			}
 
-    			if (!updating_trigger && dirty[0] & /*trigger*/ 64) {
-    				updating_trigger = true;
-    				adsr0_changes.trigger = /*trigger*/ ctx[6];
-    				add_flush_callback(() => updating_trigger = false);
-    			}
-
-    			if (!updating_cv_out && dirty[0] & /*vcfInputCv*/ 256) {
-    				updating_cv_out = true;
-    				adsr0_changes.cv_out = /*vcfInputCv*/ ctx[8];
-    				add_flush_callback(() => updating_cv_out = false);
-    			}
-
-    			if (!updating_max_cv && dirty[0] & /*vcfInputMax*/ 512) {
-    				updating_max_cv = true;
-    				adsr0_changes.max_cv = /*vcfInputMax*/ ctx[9];
-    				add_flush_callback(() => updating_max_cv = false);
-    			}
-
-    			adsr0.$set(adsr0_changes);
-    			const vcf_changes = {};
-
-    			if (!updating_ctx_2 && dirty[0] & /*ctx*/ 1) {
-    				updating_ctx_2 = true;
-    				vcf_changes.ctx = /*ctx*/ ctx[0];
-    				add_flush_callback(() => updating_ctx_2 = false);
-    			}
-
-    			if (!updating_input && dirty[0] & /*vcaOutput1*/ 2) {
+    			if (!updating_input && dirty & /*vco*/ 2) {
     				updating_input = true;
-    				vcf_changes.input = /*vcaOutput1*/ ctx[1];
+    				vcf_1_changes.input = /*vco*/ ctx[1].output;
     				add_flush_callback(() => updating_input = false);
     			}
 
-    			vcf.$set(vcf_changes);
-    			const adsr1_changes = {};
+    			vcf_1.$set(vcf_1_changes);
 
-    			if (!updating_ctx_3 && dirty[0] & /*ctx*/ 1) {
-    				updating_ctx_3 = true;
-    				adsr1_changes.ctx = /*ctx*/ ctx[0];
-    				add_flush_callback(() => updating_ctx_3 = false);
+    			if (dirty & /*vca*/ 16) {
+    				input1.checked = /*vca*/ ctx[4].hasEnv;
     			}
 
-    			if (!updating_trigger_1 && dirty[0] & /*trigger*/ 64) {
-    				updating_trigger_1 = true;
-    				adsr1_changes.trigger = /*trigger*/ ctx[6];
-    				add_flush_callback(() => updating_trigger_1 = false);
+    			if (/*vca*/ ctx[4].hasEnv) {
+    				if (if_block1) {
+    					if_block1.p(ctx, dirty);
+
+    					if (dirty & /*vca*/ 16) {
+    						transition_in(if_block1, 1);
+    					}
+    				} else {
+    					if_block1 = create_if_block(ctx);
+    					if_block1.c();
+    					transition_in(if_block1, 1);
+    					if_block1.m(main, t8);
+    				}
+    			} else if (if_block1) {
+    				group_outros();
+
+    				transition_out(if_block1, 1, 1, () => {
+    					if_block1 = null;
+    				});
+
+    				check_outros();
     			}
 
-    			if (!updating_cv_out_1 && dirty[0] & /*vcaInputCv*/ 8) {
-    				updating_cv_out_1 = true;
-    				adsr1_changes.cv_out = /*vcaInputCv*/ ctx[3];
-    				add_flush_callback(() => updating_cv_out_1 = false);
+    			const vca_1_changes = {};
+
+    			if (!updating_ctx_2 && dirty & /*ctx*/ 1) {
+    				updating_ctx_2 = true;
+    				vca_1_changes.ctx = /*ctx*/ ctx[0];
+    				add_flush_callback(() => updating_ctx_2 = false);
     			}
 
-    			if (!updating_max_cv_1 && dirty[0] & /*vcaInputMax*/ 32) {
-    				updating_max_cv_1 = true;
-    				adsr1_changes.max_cv = /*vcaInputMax*/ ctx[5];
-    				add_flush_callback(() => updating_max_cv_1 = false);
-    			}
-
-    			adsr1.$set(adsr1_changes);
-    			const vca_changes = {};
-
-    			if (!updating_ctx_4 && dirty[0] & /*ctx*/ 1) {
-    				updating_ctx_4 = true;
-    				vca_changes.ctx = /*ctx*/ ctx[0];
-    				add_flush_callback(() => updating_ctx_4 = false);
-    			}
-
-    			if (!updating_input_1 && dirty[0] & /*vcoOutput*/ 4) {
+    			if (!updating_input_1 && dirty & /*vcf*/ 8) {
     				updating_input_1 = true;
-    				vca_changes.input = /*vcoOutput*/ ctx[2];
+    				vca_1_changes.input = /*vcf*/ ctx[3].output;
     				add_flush_callback(() => updating_input_1 = false);
     			}
 
-    			vca.$set(vca_changes);
+    			vca_1.$set(vca_1_changes);
     			const output_changes = {};
 
-    			if (!updating_ctx_5 && dirty[0] & /*ctx*/ 1) {
-    				updating_ctx_5 = true;
+    			if (!updating_ctx_3 && dirty & /*ctx*/ 1) {
+    				updating_ctx_3 = true;
     				output_changes.ctx = /*ctx*/ ctx[0];
-    				add_flush_callback(() => updating_ctx_5 = false);
+    				add_flush_callback(() => updating_ctx_3 = false);
     			}
 
-    			if (!updating_input_2 && dirty[0] & /*vcfOutput*/ 128) {
+    			if (!updating_input_2 && dirty & /*vca*/ 16) {
     				updating_input_2 = true;
-    				output_changes.input = /*vcfOutput*/ ctx[7];
+    				output_changes.input = /*vca*/ ctx[4].output;
     				add_flush_callback(() => updating_input_2 = false);
     			}
 
@@ -2327,34 +2747,36 @@ var app = (function () {
     		},
     		i: function intro(local) {
     			if (current) return;
-    			transition_in(midi.$$.fragment, local);
-    			transition_in(vco.$$.fragment, local);
-    			transition_in(adsr0.$$.fragment, local);
-    			transition_in(vcf.$$.fragment, local);
-    			transition_in(adsr1.$$.fragment, local);
-    			transition_in(vca.$$.fragment, local);
+    			if (switch_instance) transition_in(switch_instance.$$.fragment, local);
+    			transition_in(vco_1.$$.fragment, local);
+    			transition_in(if_block0);
+    			transition_in(vcf_1.$$.fragment, local);
+    			transition_in(if_block1);
+    			transition_in(vca_1.$$.fragment, local);
     			transition_in(output.$$.fragment, local);
     			current = true;
     		},
     		o: function outro(local) {
-    			transition_out(midi.$$.fragment, local);
-    			transition_out(vco.$$.fragment, local);
-    			transition_out(adsr0.$$.fragment, local);
-    			transition_out(vcf.$$.fragment, local);
-    			transition_out(adsr1.$$.fragment, local);
-    			transition_out(vca.$$.fragment, local);
+    			if (switch_instance) transition_out(switch_instance.$$.fragment, local);
+    			transition_out(vco_1.$$.fragment, local);
+    			transition_out(if_block0);
+    			transition_out(vcf_1.$$.fragment, local);
+    			transition_out(if_block1);
+    			transition_out(vca_1.$$.fragment, local);
     			transition_out(output.$$.fragment, local);
     			current = false;
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(main);
-    			destroy_component(midi);
-    			destroy_component(vco);
-    			destroy_component(adsr0);
-    			destroy_component(vcf);
-    			destroy_component(adsr1);
-    			destroy_component(vca);
+    			if (switch_instance) destroy_component(switch_instance);
+    			destroy_component(vco_1);
+    			if (if_block0) if_block0.d();
+    			destroy_component(vcf_1);
+    			if (if_block1) if_block1.d();
+    			destroy_component(vca_1);
     			destroy_component(output);
+    			mounted = false;
+    			run_all(dispose);
     		}
     	};
 
@@ -2374,38 +2796,46 @@ var app = (function () {
     	validate_slots('App', slots, []);
     	window.AudioContext = window.AudioContext || window.webkitAudioContext;
     	var ctx = new AudioContext();
-    	let vcaOutput1;
-    	let vcaOutput2;
-    	let vcoOutput;
-    	let vcaInputCv;
-    	let voct;
-    	let vcacv1;
-    	let vcaInputMax;
-    	let vcacv2;
-    	let trigger;
-    	let vcfOutput;
-    	let vcfInputCv;
-    	let vcfInputMax;
 
-    	const handleVCO = event => {
-    		$$invalidate(2, vcoOutput = event.detail.output);
+    	const vco = {
+    		output: null,
+    		handle: event => {
+    			$$invalidate(1, vco.output = event.detail.output, vco);
+    		}
     	};
 
-    	const handleMIDI = event => {
-    		$$invalidate(4, voct = event.detail.output);
-    		$$invalidate(6, trigger = event.detail.trigger);
+    	const midi = {
+    		comp: MIDI,
+    		voct: null,
+    		trigger: null,
+    		handle: event => {
+    			$$invalidate(2, midi.voct = event.detail.output, midi);
+    			$$invalidate(2, midi.trigger = event.detail.trigger, midi);
+    		}
     	};
 
-    	const handleVCA = event => {
-    		$$invalidate(1, vcaOutput1 = event.detail.output);
-    		$$invalidate(3, vcaInputCv = event.detail.cv_in);
-    		$$invalidate(5, vcaInputMax = event.detail.max_cv);
+    	const vcf = {
+    		output: null,
+    		cv: null,
+    		cvmax: null,
+    		hasEnv: false,
+    		handle: event => {
+    			$$invalidate(3, vcf.output = event.detail.output, vcf);
+    			$$invalidate(3, vcf.cv = event.detail.cv_in, vcf);
+    			$$invalidate(3, vcf.cvmax = event.detail.max_cv, vcf);
+    		}
     	};
 
-    	const handleVCF = event => {
-    		$$invalidate(7, vcfOutput = event.detail.output);
-    		$$invalidate(8, vcfInputCv = event.detail.cv_in);
-    		$$invalidate(9, vcfInputMax = event.detail.max_cv);
+    	const vca = {
+    		output: null,
+    		cv: null,
+    		cvmax: null,
+    		hasEnv: false,
+    		handle: event => {
+    			$$invalidate(4, vca.output = event.detail.output, vca);
+    			$$invalidate(4, vca.cv = event.detail.cv_in, vca);
+    			$$invalidate(4, vca.cvmax = event.detail.max_cv, vca);
+    		}
     	};
 
     	const writable_props = [];
@@ -2414,74 +2844,102 @@ var app = (function () {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<App> was created with unknown prop '${key}'`);
     	});
 
-    	function vco_ctx_binding(value) {
+    	function vco_1_ctx_binding(value) {
     		ctx = value;
     		$$invalidate(0, ctx);
     	}
 
-    	function vco_voctIn_binding(value) {
-    		voct = value;
-    		$$invalidate(4, voct);
+    	function vco_1_voctIn_binding(value) {
+    		if ($$self.$$.not_equal(midi.voct, value)) {
+    			midi.voct = value;
+    			$$invalidate(2, midi);
+    		}
     	}
 
-    	function adsr0_ctx_binding(value) {
+    	function input0_change_handler() {
+    		vcf.hasEnv = this.checked;
+    		$$invalidate(3, vcf);
+    	}
+
+    	function adsr_ctx_binding(value) {
     		ctx = value;
     		$$invalidate(0, ctx);
     	}
 
-    	function adsr0_trigger_binding(value) {
-    		trigger = value;
-    		$$invalidate(6, trigger);
+    	function adsr_trigger_binding(value) {
+    		if ($$self.$$.not_equal(midi.trigger, value)) {
+    			midi.trigger = value;
+    			$$invalidate(2, midi);
+    		}
     	}
 
-    	function adsr0_cv_out_binding(value) {
-    		vcfInputCv = value;
-    		$$invalidate(8, vcfInputCv);
+    	function adsr_cv_out_binding(value) {
+    		if ($$self.$$.not_equal(vcf.cv, value)) {
+    			vcf.cv = value;
+    			$$invalidate(3, vcf);
+    		}
     	}
 
-    	function adsr0_max_cv_binding(value) {
-    		vcfInputMax = value;
-    		$$invalidate(9, vcfInputMax);
+    	function adsr_max_cv_binding(value) {
+    		if ($$self.$$.not_equal(vcf.cvmax, value)) {
+    			vcf.cvmax = value;
+    			$$invalidate(3, vcf);
+    		}
     	}
 
-    	function vcf_ctx_binding(value) {
+    	function vcf_1_ctx_binding(value) {
     		ctx = value;
     		$$invalidate(0, ctx);
     	}
 
-    	function vcf_input_binding(value) {
-    		vcaOutput1 = value;
-    		$$invalidate(1, vcaOutput1);
+    	function vcf_1_input_binding(value) {
+    		if ($$self.$$.not_equal(vco.output, value)) {
+    			vco.output = value;
+    			$$invalidate(1, vco);
+    		}
     	}
 
-    	function adsr1_ctx_binding(value) {
+    	function input1_change_handler() {
+    		vca.hasEnv = this.checked;
+    		$$invalidate(4, vca);
+    	}
+
+    	function adsr_ctx_binding_1(value) {
     		ctx = value;
     		$$invalidate(0, ctx);
     	}
 
-    	function adsr1_trigger_binding(value) {
-    		trigger = value;
-    		$$invalidate(6, trigger);
+    	function adsr_trigger_binding_1(value) {
+    		if ($$self.$$.not_equal(midi.trigger, value)) {
+    			midi.trigger = value;
+    			$$invalidate(2, midi);
+    		}
     	}
 
-    	function adsr1_cv_out_binding(value) {
-    		vcaInputCv = value;
-    		$$invalidate(3, vcaInputCv);
+    	function adsr_cv_out_binding_1(value) {
+    		if ($$self.$$.not_equal(vca.cv, value)) {
+    			vca.cv = value;
+    			$$invalidate(4, vca);
+    		}
     	}
 
-    	function adsr1_max_cv_binding(value) {
-    		vcaInputMax = value;
-    		$$invalidate(5, vcaInputMax);
+    	function adsr_max_cv_binding_1(value) {
+    		if ($$self.$$.not_equal(vca.cvmax, value)) {
+    			vca.cvmax = value;
+    			$$invalidate(4, vca);
+    		}
     	}
 
-    	function vca_ctx_binding(value) {
+    	function vca_1_ctx_binding(value) {
     		ctx = value;
     		$$invalidate(0, ctx);
     	}
 
-    	function vca_input_binding(value) {
-    		vcoOutput = value;
-    		$$invalidate(2, vcoOutput);
+    	function vca_1_input_binding(value) {
+    		if ($$self.$$.not_equal(vcf.output, value)) {
+    			vcf.output = value;
+    			$$invalidate(3, vcf);
+    		}
     	}
 
     	function output_ctx_binding(value) {
@@ -2490,11 +2948,14 @@ var app = (function () {
     	}
 
     	function output_input_binding(value) {
-    		vcfOutput = value;
-    		$$invalidate(7, vcfOutput);
+    		if ($$self.$$.not_equal(vca.output, value)) {
+    			vca.output = value;
+    			$$invalidate(4, vca);
+    		}
     	}
 
     	$$self.$capture_state = () => ({
+    		Component,
     		MIDI,
     		VCO,
     		Output,
@@ -2502,38 +2963,14 @@ var app = (function () {
     		ADSR,
     		VCF,
     		ctx,
-    		vcaOutput1,
-    		vcaOutput2,
-    		vcoOutput,
-    		vcaInputCv,
-    		voct,
-    		vcacv1,
-    		vcaInputMax,
-    		vcacv2,
-    		trigger,
-    		vcfOutput,
-    		vcfInputCv,
-    		vcfInputMax,
-    		handleVCO,
-    		handleMIDI,
-    		handleVCA,
-    		handleVCF
+    		vco,
+    		midi,
+    		vcf,
+    		vca
     	});
 
     	$$self.$inject_state = $$props => {
     		if ('ctx' in $$props) $$invalidate(0, ctx = $$props.ctx);
-    		if ('vcaOutput1' in $$props) $$invalidate(1, vcaOutput1 = $$props.vcaOutput1);
-    		if ('vcaOutput2' in $$props) vcaOutput2 = $$props.vcaOutput2;
-    		if ('vcoOutput' in $$props) $$invalidate(2, vcoOutput = $$props.vcoOutput);
-    		if ('vcaInputCv' in $$props) $$invalidate(3, vcaInputCv = $$props.vcaInputCv);
-    		if ('voct' in $$props) $$invalidate(4, voct = $$props.voct);
-    		if ('vcacv1' in $$props) vcacv1 = $$props.vcacv1;
-    		if ('vcaInputMax' in $$props) $$invalidate(5, vcaInputMax = $$props.vcaInputMax);
-    		if ('vcacv2' in $$props) vcacv2 = $$props.vcacv2;
-    		if ('trigger' in $$props) $$invalidate(6, trigger = $$props.trigger);
-    		if ('vcfOutput' in $$props) $$invalidate(7, vcfOutput = $$props.vcfOutput);
-    		if ('vcfInputCv' in $$props) $$invalidate(8, vcfInputCv = $$props.vcfInputCv);
-    		if ('vcfInputMax' in $$props) $$invalidate(9, vcfInputMax = $$props.vcfInputMax);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -2542,33 +2979,26 @@ var app = (function () {
 
     	return [
     		ctx,
-    		vcaOutput1,
-    		vcoOutput,
-    		vcaInputCv,
-    		voct,
-    		vcaInputMax,
-    		trigger,
-    		vcfOutput,
-    		vcfInputCv,
-    		vcfInputMax,
-    		handleVCO,
-    		handleMIDI,
-    		handleVCA,
-    		handleVCF,
-    		vco_ctx_binding,
-    		vco_voctIn_binding,
-    		adsr0_ctx_binding,
-    		adsr0_trigger_binding,
-    		adsr0_cv_out_binding,
-    		adsr0_max_cv_binding,
-    		vcf_ctx_binding,
-    		vcf_input_binding,
-    		adsr1_ctx_binding,
-    		adsr1_trigger_binding,
-    		adsr1_cv_out_binding,
-    		adsr1_max_cv_binding,
-    		vca_ctx_binding,
-    		vca_input_binding,
+    		vco,
+    		midi,
+    		vcf,
+    		vca,
+    		vco_1_ctx_binding,
+    		vco_1_voctIn_binding,
+    		input0_change_handler,
+    		adsr_ctx_binding,
+    		adsr_trigger_binding,
+    		adsr_cv_out_binding,
+    		adsr_max_cv_binding,
+    		vcf_1_ctx_binding,
+    		vcf_1_input_binding,
+    		input1_change_handler,
+    		adsr_ctx_binding_1,
+    		adsr_trigger_binding_1,
+    		adsr_cv_out_binding_1,
+    		adsr_max_cv_binding_1,
+    		vca_1_ctx_binding,
+    		vca_1_input_binding,
     		output_ctx_binding,
     		output_input_binding
     	];
@@ -2577,7 +3007,7 @@ var app = (function () {
     class App extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance, create_fragment, safe_not_equal, {}, null, [-1, -1]);
+    		init(this, options, instance, create_fragment, safe_not_equal, {});
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
