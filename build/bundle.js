@@ -685,7 +685,7 @@ var app = (function () {
     	let t2;
     	let h3;
     	let t3;
-    	let t4_value = /*newOct*/ ctx[0] + /*newoctUp*/ ctx[2] + "";
+    	let t4_value = /*newOct*/ ctx[0] + /*newOctUp*/ ctx[2] + "";
     	let t4;
     	let mounted;
     	let dispose;
@@ -702,12 +702,12 @@ var app = (function () {
     			h3 = element("h3");
     			t3 = text(/*note*/ ctx[1]);
     			t4 = text(t4_value);
-    			add_location(h2, file$6, 161, 4, 4372);
-    			add_location(br, file$6, 163, 4, 4485);
-    			add_location(h3, file$6, 164, 4, 4600);
+    			add_location(h2, file$6, 151, 4, 4136);
+    			add_location(br, file$6, 153, 4, 4249);
+    			add_location(h3, file$6, 154, 4, 4364);
     			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$6, 160, 0, 4361);
-    			add_location(main, file$6, 159, 0, 4353);
+    			add_location(div, file$6, 150, 0, 4125);
+    			add_location(main, file$6, 149, 0, 4117);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -724,20 +724,24 @@ var app = (function () {
     			append_dev(h3, t4);
 
     			if (!mounted) {
-    				dispose = listen_dev(window, "keydown", prevent_default(/*onKeyDown*/ ctx[3]), false, true, false, false);
+    				dispose = [
+    					listen_dev(window, "keydown", prevent_default(/*onKeyDown*/ ctx[3]), false, true, false, false),
+    					listen_dev(window, "keyup", prevent_default(/*onKeyUp*/ ctx[4]), false, true, false, false)
+    				];
+
     				mounted = true;
     			}
     		},
     		p: function update(ctx, [dirty]) {
     			if (dirty & /*note*/ 2) set_data_dev(t3, /*note*/ ctx[1]);
-    			if (dirty & /*newOct, newoctUp*/ 5 && t4_value !== (t4_value = /*newOct*/ ctx[0] + /*newoctUp*/ ctx[2] + "")) set_data_dev(t4, t4_value);
+    			if (dirty & /*newOct, newOctUp*/ 5 && t4_value !== (t4_value = /*newOct*/ ctx[0] + /*newOctUp*/ ctx[2] + "")) set_data_dev(t4, t4_value);
     		},
     		i: noop,
     		o: noop,
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(main);
     			mounted = false;
-    			dispose();
+    			run_all(dispose);
     		}
     	};
 
@@ -756,24 +760,24 @@ var app = (function () {
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('MIDI', slots, []);
     	const dispatch = createEventDispatcher();
-    	let trigger = false;
-    	let freqChanged = false;
-    	let octave = 4;
-    	let newOct = 4;
-    	let note = 'A';
-    	let octUp = 0;
-    	let newoctUp = 0;
+    	let octChanged = false; // Whether key input was an octave change (no note is triggered)
+    	let octave = 4; // Updates when octave is changed
+    	let newOct = 4; // Only updates when a new note is played
     	let frequency = 440;
-    	const handle = () => dispatch('input', { output: Math.log2(frequency), trigger });
+    	let trigger = false;
+    	let note = 'A'; // The note to be displayed
+    	let octUp = 0;
+    	let newOctUp = 0;
 
     	function onKeyDown(e) {
-    		if (e.repeat) return;
-    		freqChanged = false;
+    		if (e.repeat) return; // Prevents rapid trigger firing when key held down
+    		octChanged = false;
     		octUp = 0;
 
     		switch (e.keyCode) {
     			case 61:
     				//=
+    				octChanged = true;
     				if (octave < 10) {
     					octave += 1;
     					frequency *= 2;
@@ -781,6 +785,7 @@ var app = (function () {
     				break;
     			case 173:
     				//-
+    				octChanged = true;
     				if (octave > -2) {
     					octave -= 1;
     					frequency /= 2;
@@ -789,114 +794,97 @@ var app = (function () {
     			case 90:
     				//Z
     				frequency = 261.63;
-    				freqChanged = true;
     				$$invalidate(1, note = 'C');
     				break;
     			case 83:
     				//S
     				frequency = 277.18;
-    				freqChanged = true;
     				$$invalidate(1, note = 'C#/Db');
     				break;
     			case 88:
     				//X
     				frequency = 293.66;
-    				freqChanged = true;
     				$$invalidate(1, note = 'D');
     				break;
     			case 68:
     				//D
     				frequency = 311.13;
-    				freqChanged = true;
     				$$invalidate(1, note = 'D#/Eb');
     				break;
     			case 67:
     				//C
     				frequency = 329.63;
-    				freqChanged = true;
     				$$invalidate(1, note = 'E');
     				break;
     			case 86:
     				//V
     				frequency = 349.23;
-    				freqChanged = true;
     				$$invalidate(1, note = 'F');
     				break;
     			case 71:
     				//G
     				frequency = 369.99;
-    				freqChanged = true;
     				$$invalidate(1, note = 'F#/Gb');
     				break;
     			case 66:
     				//B
     				frequency = 392.00;
-    				freqChanged = true;
     				$$invalidate(1, note = 'G');
     				break;
     			case 72:
     				//H
     				frequency = 415.30;
-    				freqChanged = true;
     				$$invalidate(1, note = 'G#/Ab');
     				break;
     			case 78:
     				//N
     				frequency = 440.00;
-    				freqChanged = true;
     				$$invalidate(1, note = 'A');
     				break;
     			case 74:
     				//J
     				frequency = 466.16;
-    				freqChanged = true;
     				$$invalidate(1, note = 'A#/Bb');
     				break;
     			case 77:
     				//M
     				frequency = 493.88;
-    				freqChanged = true;
     				$$invalidate(1, note = 'B');
     				break;
     			case 188:
     				//,
     				frequency = 523.25;
-    				freqChanged = true;
     				$$invalidate(1, note = 'C');
     				octUp = 1;
     				break;
     			case 76:
     				//L
     				frequency = 554.37;
-    				freqChanged = true;
     				$$invalidate(1, note = 'C#/Db');
     				octUp = 1;
     				break;
     			case 190:
     				//.
     				frequency = 587.33;
-    				freqChanged = true;
     				$$invalidate(1, note = 'D');
     				octUp = 1;
     				break;
     			case 59:
     				//;
     				frequency = 622.25;
-    				freqChanged = true;
     				$$invalidate(1, note = 'D#/Eb');
     				octUp = 1;
     				break;
     			case 191:
     				///
     				frequency = 659.25;
-    				freqChanged = true;
     				$$invalidate(1, note = 'E');
     				octUp = 1;
     				break;
     			case 32:
     				//Space
-    				trigger = !trigger;
-    				dispatch('signal', {
+    				trigger = true;
+    				dispatch('input', {
     					output: null, //C4
     					//D4
     					//E4
@@ -905,7 +893,7 @@ var app = (function () {
     				return;
     		}
 
-    		if (freqChanged) {
+    		if (!octChanged) {
     			if (octave > 4) {
     				for (let i = 4; i < octave; i++) {
     					frequency *= 2;
@@ -916,12 +904,16 @@ var app = (function () {
     				}
     			}
 
-    			trigger = !trigger;
+    			trigger = true;
     			$$invalidate(0, newOct = octave);
-    			$$invalidate(2, newoctUp = octUp);
+    			$$invalidate(2, newOctUp = octUp);
+    			dispatch('input', { output: Math.log2(frequency), trigger });
     		}
+    	}
 
-    		handle();
+    	function onKeyUp(e) {
+    		trigger = false;
+    		dispatch('input', { output: null, trigger });
     	}
 
     	const writable_props = [];
@@ -933,34 +925,34 @@ var app = (function () {
     	$$self.$capture_state = () => ({
     		createEventDispatcher,
     		dispatch,
-    		trigger,
-    		freqChanged,
+    		octChanged,
     		octave,
     		newOct,
+    		frequency,
+    		trigger,
     		note,
     		octUp,
-    		newoctUp,
-    		frequency,
-    		handle,
-    		onKeyDown
+    		newOctUp,
+    		onKeyDown,
+    		onKeyUp
     	});
 
     	$$self.$inject_state = $$props => {
-    		if ('trigger' in $$props) trigger = $$props.trigger;
-    		if ('freqChanged' in $$props) freqChanged = $$props.freqChanged;
+    		if ('octChanged' in $$props) octChanged = $$props.octChanged;
     		if ('octave' in $$props) octave = $$props.octave;
     		if ('newOct' in $$props) $$invalidate(0, newOct = $$props.newOct);
+    		if ('frequency' in $$props) frequency = $$props.frequency;
+    		if ('trigger' in $$props) trigger = $$props.trigger;
     		if ('note' in $$props) $$invalidate(1, note = $$props.note);
     		if ('octUp' in $$props) octUp = $$props.octUp;
-    		if ('newoctUp' in $$props) $$invalidate(2, newoctUp = $$props.newoctUp);
-    		if ('frequency' in $$props) frequency = $$props.frequency;
+    		if ('newOctUp' in $$props) $$invalidate(2, newOctUp = $$props.newOctUp);
     	};
 
     	if ($$props && "$$inject" in $$props) {
     		$$self.$inject_state($$props.$$inject);
     	}
 
-    	return [newOct, note, newoctUp, onKeyDown];
+    	return [newOct, note, newOctUp, onKeyDown, onKeyUp];
     }
 
     class MIDI extends SvelteComponentDev {
@@ -1326,17 +1318,17 @@ var app = (function () {
     			t3 = space();
     			button = element("button");
     			t4 = text(/*muteUnmute*/ ctx[1]);
-    			add_location(h2, file$4, 30, 8, 583);
+    			add_location(h2, file$4, 30, 8, 609);
     			attr_dev(input_1, "type", "range");
     			attr_dev(input_1, "min", "0");
     			attr_dev(input_1, "max", "2");
     			attr_dev(input_1, "step", "0.001");
-    			add_location(input_1, file$4, 31, 15, 615);
-    			add_location(label, file$4, 31, 8, 608);
-    			add_location(button, file$4, 32, 8, 719);
+    			add_location(input_1, file$4, 31, 15, 641);
+    			add_location(label, file$4, 31, 8, 634);
+    			add_location(button, file$4, 32, 8, 745);
     			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$4, 29, 4, 568);
-    			add_location(main, file$4, 28, 0, 556);
+    			add_location(div, file$4, 29, 4, 594);
+    			add_location(main, file$4, 28, 0, 582);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1397,6 +1389,7 @@ var app = (function () {
     	let { ctx } = $$props;
     	let { input } = $$props;
     	var gainNode = ctx.createGain();
+    	gainNode.gain.value = 0.2;
     	var playing = false;
     	var muteUnmute = 'Unmute';
 
@@ -1721,22 +1714,22 @@ var app = (function () {
     			label1 = element("label");
     			input1 = element("input");
     			t4 = text("Release");
-    			add_location(h2, file$2, 34, 8, 824);
+    			add_location(h2, file$2, 34, 8, 812);
     			attr_dev(input0, "type", "range");
     			attr_dev(input0, "min", "0");
     			attr_dev(input0, "max", "1");
     			attr_dev(input0, "step", "0.001");
-    			add_location(input0, file$2, 35, 15, 858);
-    			add_location(label0, file$2, 35, 8, 851);
+    			add_location(input0, file$2, 35, 15, 846);
+    			add_location(label0, file$2, 35, 8, 839);
     			attr_dev(input1, "type", "range");
     			attr_dev(input1, "min", "0");
     			attr_dev(input1, "max", "1");
     			attr_dev(input1, "step", "0.001");
-    			add_location(input1, file$2, 38, 15, 1172);
-    			add_location(label1, file$2, 38, 8, 1165);
+    			add_location(input1, file$2, 38, 15, 1160);
+    			add_location(label1, file$2, 38, 8, 1153);
     			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$2, 33, 4, 809);
-    			add_location(main, file$2, 32, 0, 797);
+    			add_location(div, file$2, 33, 4, 797);
+    			add_location(main, file$2, 32, 0, 785);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1894,7 +1887,7 @@ var app = (function () {
 
     	$$self.$$.update = () => {
     		if ($$self.$$.dirty & /*trigger*/ 8) {
-    			if (trigger || !trigger) fireEnv();
+    			if (trigger) fireEnv();
     		}
     	};
 
@@ -1964,11 +1957,26 @@ var app = (function () {
     	let div;
     	let h2;
     	let t1;
-    	let label;
-    	let input_1;
+    	let label0;
+    	let input0;
     	let t2;
+    	let t3;
+    	let section;
+    	let label1;
+    	let input1;
+    	let t4;
+    	let t5;
+    	let label2;
+    	let input2;
+    	let t6;
+    	let t7;
+    	let label3;
+    	let input3;
+    	let t8;
+    	let binding_group;
     	let mounted;
     	let dispose;
+    	binding_group = init_binding_group(/*$$binding_groups*/ ctx[8][0]);
 
     	const block = {
     		c: function create() {
@@ -1977,19 +1985,49 @@ var app = (function () {
     			h2 = element("h2");
     			h2.textContent = "Filter";
     			t1 = space();
-    			label = element("label");
-    			input_1 = element("input");
+    			label0 = element("label");
+    			input0 = element("input");
     			t2 = text("Frequency");
-    			add_location(h2, file$1, 21, 8, 496);
-    			attr_dev(input_1, "type", "range");
-    			attr_dev(input_1, "min", "0");
-    			attr_dev(input_1, "max", "18000");
-    			attr_dev(input_1, "step", "0.001");
-    			add_location(input_1, file$1, 22, 15, 528);
-    			add_location(label, file$1, 22, 8, 521);
+    			t3 = space();
+    			section = element("section");
+    			label1 = element("label");
+    			input1 = element("input");
+    			t4 = text(" Lowpass");
+    			t5 = space();
+    			label2 = element("label");
+    			input2 = element("input");
+    			t6 = text(" Highpass");
+    			t7 = space();
+    			label3 = element("label");
+    			input3 = element("input");
+    			t8 = text(" Bandpass");
+    			add_location(h2, file$1, 25, 8, 601);
+    			attr_dev(input0, "type", "range");
+    			attr_dev(input0, "min", "2.78135971352466");
+    			attr_dev(input0, "max", "14.78135971352466");
+    			attr_dev(input0, "step", "0.0001");
+    			add_location(input0, file$1, 26, 15, 633);
+    			add_location(label0, file$1, 26, 8, 626);
+    			attr_dev(input1, "type", "radio");
+    			input1.__value = "lowpass";
+    			input1.value = input1.__value;
+    			add_location(input1, file$1, 29, 16, 807);
+    			add_location(label1, file$1, 28, 12, 782);
+    			attr_dev(input2, "type", "radio");
+    			input2.__value = "highpass";
+    			input2.value = input2.__value;
+    			add_location(input2, file$1, 32, 16, 943);
+    			add_location(label2, file$1, 31, 12, 918);
+    			attr_dev(input3, "type", "radio");
+    			input3.__value = "bandpass";
+    			input3.value = input3.__value;
+    			add_location(input3, file$1, 35, 16, 1081);
+    			add_location(label3, file$1, 34, 12, 1056);
+    			add_location(section, file$1, 27, 8, 759);
     			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$1, 20, 4, 481);
-    			add_location(main, file$1, 19, 0, 469);
+    			add_location(div, file$1, 24, 4, 586);
+    			add_location(main, file$1, 23, 0, 574);
+    			binding_group.p(input1, input2, input3);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1999,30 +2037,62 @@ var app = (function () {
     			append_dev(main, div);
     			append_dev(div, h2);
     			append_dev(div, t1);
-    			append_dev(div, label);
-    			append_dev(label, input_1);
-    			set_input_value(input_1, /*max_cv*/ ctx[0].value);
-    			append_dev(label, t2);
+    			append_dev(div, label0);
+    			append_dev(label0, input0);
+    			set_input_value(input0, /*voct*/ ctx[0]);
+    			append_dev(label0, t2);
+    			append_dev(div, t3);
+    			append_dev(div, section);
+    			append_dev(section, label1);
+    			append_dev(label1, input1);
+    			input1.checked = input1.__value === /*filterNode*/ ctx[1].type;
+    			append_dev(label1, t4);
+    			append_dev(section, t5);
+    			append_dev(section, label2);
+    			append_dev(label2, input2);
+    			input2.checked = input2.__value === /*filterNode*/ ctx[1].type;
+    			append_dev(label2, t6);
+    			append_dev(section, t7);
+    			append_dev(section, label3);
+    			append_dev(label3, input3);
+    			input3.checked = input3.__value === /*filterNode*/ ctx[1].type;
+    			append_dev(label3, t8);
 
     			if (!mounted) {
     				dispose = [
-    					action_destroyer(/*handle*/ ctx[1].call(null, window)),
-    					listen_dev(input_1, "change", /*input_1_change_input_handler*/ ctx[5]),
-    					listen_dev(input_1, "input", /*input_1_change_input_handler*/ ctx[5])
+    					action_destroyer(/*handle*/ ctx[2].call(null, window)),
+    					listen_dev(input0, "change", /*input0_change_input_handler*/ ctx[6]),
+    					listen_dev(input0, "input", /*input0_change_input_handler*/ ctx[6]),
+    					listen_dev(input1, "change", /*input1_change_handler*/ ctx[7]),
+    					listen_dev(input2, "change", /*input2_change_handler*/ ctx[9]),
+    					listen_dev(input3, "change", /*input3_change_handler*/ ctx[10])
     				];
 
     				mounted = true;
     			}
     		},
     		p: function update(ctx, [dirty]) {
-    			if (dirty & /*max_cv*/ 1) {
-    				set_input_value(input_1, /*max_cv*/ ctx[0].value);
+    			if (dirty & /*voct*/ 1) {
+    				set_input_value(input0, /*voct*/ ctx[0]);
+    			}
+
+    			if (dirty & /*filterNode*/ 2) {
+    				input1.checked = input1.__value === /*filterNode*/ ctx[1].type;
+    			}
+
+    			if (dirty & /*filterNode*/ 2) {
+    				input2.checked = input2.__value === /*filterNode*/ ctx[1].type;
+    			}
+
+    			if (dirty & /*filterNode*/ 2) {
+    				input3.checked = input3.__value === /*filterNode*/ ctx[1].type;
     			}
     		},
     		i: noop,
     		o: noop,
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(main);
+    			binding_group.r();
     			mounted = false;
     			run_all(dispose);
     		}
@@ -2044,6 +2114,7 @@ var app = (function () {
     	validate_slots('VCF', slots, []);
     	let { ctx } = $$props;
     	let { input } = $$props;
+    	let voct = Math.log2(18000);
     	let max_cv = { value: 18000 };
     	const dispatch = createEventDispatcher();
     	var filterNode = ctx.createBiquadFilter();
@@ -2070,20 +2141,38 @@ var app = (function () {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<VCF> was created with unknown prop '${key}'`);
     	});
 
-    	function input_1_change_input_handler() {
-    		max_cv.value = to_number(this.value);
-    		$$invalidate(0, max_cv);
+    	const $$binding_groups = [[]];
+
+    	function input0_change_input_handler() {
+    		voct = to_number(this.value);
+    		$$invalidate(0, voct);
+    	}
+
+    	function input1_change_handler() {
+    		filterNode.type = this.__value;
+    		$$invalidate(1, filterNode);
+    	}
+
+    	function input2_change_handler() {
+    		filterNode.type = this.__value;
+    		$$invalidate(1, filterNode);
+    	}
+
+    	function input3_change_handler() {
+    		filterNode.type = this.__value;
+    		$$invalidate(1, filterNode);
     	}
 
     	$$self.$$set = $$props => {
-    		if ('ctx' in $$props) $$invalidate(2, ctx = $$props.ctx);
-    		if ('input' in $$props) $$invalidate(3, input = $$props.input);
+    		if ('ctx' in $$props) $$invalidate(3, ctx = $$props.ctx);
+    		if ('input' in $$props) $$invalidate(4, input = $$props.input);
     	};
 
     	$$self.$capture_state = () => ({
     		createEventDispatcher,
     		ctx,
     		input,
+    		voct,
     		max_cv,
     		dispatch,
     		filterNode,
@@ -2091,10 +2180,11 @@ var app = (function () {
     	});
 
     	$$self.$inject_state = $$props => {
-    		if ('ctx' in $$props) $$invalidate(2, ctx = $$props.ctx);
-    		if ('input' in $$props) $$invalidate(3, input = $$props.input);
-    		if ('max_cv' in $$props) $$invalidate(0, max_cv = $$props.max_cv);
-    		if ('filterNode' in $$props) $$invalidate(4, filterNode = $$props.filterNode);
+    		if ('ctx' in $$props) $$invalidate(3, ctx = $$props.ctx);
+    		if ('input' in $$props) $$invalidate(4, input = $$props.input);
+    		if ('voct' in $$props) $$invalidate(0, voct = $$props.voct);
+    		if ('max_cv' in $$props) $$invalidate(5, max_cv = $$props.max_cv);
+    		if ('filterNode' in $$props) $$invalidate(1, filterNode = $$props.filterNode);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -2102,22 +2192,38 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*max_cv*/ 1) {
-    			$$invalidate(4, filterNode.frequency.value = max_cv.value, filterNode);
+    		if ($$self.$$.dirty & /*voct*/ 1) {
+    			$$invalidate(5, max_cv.value = Math.pow(2, voct), max_cv);
     		}
 
-    		if ($$self.$$.dirty & /*input, filterNode*/ 24) {
+    		if ($$self.$$.dirty & /*filterNode, max_cv, ctx*/ 42) {
+    			filterNode.frequency.setValueAtTime(max_cv.value, ctx.currentTime);
+    		}
+
+    		if ($$self.$$.dirty & /*input, filterNode*/ 18) {
     			if (input) input.connect(filterNode);
     		}
     	};
 
-    	return [max_cv, handle, ctx, input, filterNode, input_1_change_input_handler];
+    	return [
+    		voct,
+    		filterNode,
+    		handle,
+    		ctx,
+    		input,
+    		max_cv,
+    		input0_change_input_handler,
+    		input1_change_handler,
+    		$$binding_groups,
+    		input2_change_handler,
+    		input3_change_handler
+    	];
     }
 
     class VCF extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$1, create_fragment$1, safe_not_equal, { ctx: 2, input: 3 });
+    		init(this, options, instance$1, create_fragment$1, safe_not_equal, { ctx: 3, input: 4 });
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
@@ -2147,7 +2253,7 @@ var app = (function () {
     /* src\App.svelte generated by Svelte v3.59.2 */
     const file = "src\\App.svelte";
 
-    // (61:1) {#if vcf.hasEnv}
+    // (62:1) {#if vcf.hasEnv}
     function create_if_block_1(ctx) {
     	let adsr;
     	let updating_ctx;
@@ -2157,19 +2263,19 @@ var app = (function () {
     	let current;
 
     	function adsr_ctx_binding(value) {
-    		/*adsr_ctx_binding*/ ctx[8](value);
+    		/*adsr_ctx_binding*/ ctx[10](value);
     	}
 
     	function adsr_trigger_binding(value) {
-    		/*adsr_trigger_binding*/ ctx[9](value);
+    		/*adsr_trigger_binding*/ ctx[11](value);
     	}
 
     	function adsr_cv_out_binding(value) {
-    		/*adsr_cv_out_binding*/ ctx[10](value);
+    		/*adsr_cv_out_binding*/ ctx[12](value);
     	}
 
     	function adsr_max_cv_binding(value) {
-    		/*adsr_max_cv_binding*/ ctx[11](value);
+    		/*adsr_max_cv_binding*/ ctx[13](value);
     	}
 
     	let adsr_props = {};
@@ -2251,14 +2357,14 @@ var app = (function () {
     		block,
     		id: create_if_block_1.name,
     		type: "if",
-    		source: "(61:1) {#if vcf.hasEnv}",
+    		source: "(62:1) {#if vcf.hasEnv}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (67:1) {#if vca.hasEnv}
+    // (68:1) {#if vca.hasEnv}
     function create_if_block(ctx) {
     	let adsr;
     	let updating_ctx;
@@ -2268,19 +2374,19 @@ var app = (function () {
     	let current;
 
     	function adsr_ctx_binding_1(value) {
-    		/*adsr_ctx_binding_1*/ ctx[15](value);
+    		/*adsr_ctx_binding_1*/ ctx[17](value);
     	}
 
     	function adsr_trigger_binding_1(value) {
-    		/*adsr_trigger_binding_1*/ ctx[16](value);
+    		/*adsr_trigger_binding_1*/ ctx[18](value);
     	}
 
     	function adsr_cv_out_binding_1(value) {
-    		/*adsr_cv_out_binding_1*/ ctx[17](value);
+    		/*adsr_cv_out_binding_1*/ ctx[19](value);
     	}
 
     	function adsr_max_cv_binding_1(value) {
-    		/*adsr_max_cv_binding_1*/ ctx[18](value);
+    		/*adsr_max_cv_binding_1*/ ctx[20](value);
     	}
 
     	let adsr_props = {};
@@ -2362,7 +2468,7 @@ var app = (function () {
     		block,
     		id: create_if_block.name,
     		type: "if",
-    		source: "(67:1) {#if vca.hasEnv}",
+    		source: "(68:1) {#if vca.hasEnv}",
     		ctx
     	});
 
@@ -2371,38 +2477,64 @@ var app = (function () {
 
     function create_fragment(ctx) {
     	let main;
-    	let switch_instance;
-    	let t0;
-    	let vco_1;
+    	let output;
     	let updating_ctx;
-    	let updating_voctIn;
-    	let t1;
-    	let br0;
-    	let t2;
-    	let input0;
-    	let t3;
-    	let t4;
-    	let vcf_1;
-    	let updating_ctx_1;
     	let updating_input;
+    	let t0;
+    	let switch_instance;
+    	let t1;
+    	let vco_1;
+    	let updating_ctx_1;
+    	let updating_voctIn;
+    	let t2;
+    	let br0;
+    	let t3;
+    	let label0;
+    	let input0;
+    	let t4;
     	let t5;
-    	let br1;
     	let t6;
-    	let input1;
-    	let t7;
-    	let t8;
-    	let vca_1;
+    	let vcf_1;
     	let updating_ctx_2;
     	let updating_input_1;
+    	let t7;
+    	let br1;
+    	let t8;
+    	let label1;
+    	let input1;
     	let t9;
-    	let br2;
     	let t10;
-    	let output;
+    	let t11;
+    	let vca_1;
     	let updating_ctx_3;
     	let updating_input_2;
+    	let t12;
+    	let br2;
     	let current;
     	let mounted;
     	let dispose;
+
+    	function output_ctx_binding(value) {
+    		/*output_ctx_binding*/ ctx[5](value);
+    	}
+
+    	function output_input_binding(value) {
+    		/*output_input_binding*/ ctx[6](value);
+    	}
+
+    	let output_props = {};
+
+    	if (/*ctx*/ ctx[0] !== void 0) {
+    		output_props.ctx = /*ctx*/ ctx[0];
+    	}
+
+    	if (/*vca*/ ctx[4].output !== void 0) {
+    		output_props.input = /*vca*/ ctx[4].output;
+    	}
+
+    	output = new Output({ props: output_props, $$inline: true });
+    	binding_callbacks.push(() => bind(output, 'ctx', output_ctx_binding));
+    	binding_callbacks.push(() => bind(output, 'input', output_input_binding));
     	var switch_value = /*midi*/ ctx[2].comp;
 
     	function switch_props(ctx) {
@@ -2418,11 +2550,11 @@ var app = (function () {
     	}
 
     	function vco_1_ctx_binding(value) {
-    		/*vco_1_ctx_binding*/ ctx[5](value);
+    		/*vco_1_ctx_binding*/ ctx[7](value);
     	}
 
     	function vco_1_voctIn_binding(value) {
-    		/*vco_1_voctIn_binding*/ ctx[6](value);
+    		/*vco_1_voctIn_binding*/ ctx[8](value);
     	}
 
     	let vco_1_props = {};
@@ -2446,11 +2578,11 @@ var app = (function () {
     	let if_block0 = /*vcf*/ ctx[3].hasEnv && create_if_block_1(ctx);
 
     	function vcf_1_ctx_binding(value) {
-    		/*vcf_1_ctx_binding*/ ctx[12](value);
+    		/*vcf_1_ctx_binding*/ ctx[14](value);
     	}
 
     	function vcf_1_input_binding(value) {
-    		/*vcf_1_input_binding*/ ctx[13](value);
+    		/*vcf_1_input_binding*/ ctx[15](value);
     	}
 
     	let vcf_1_props = {};
@@ -2474,11 +2606,11 @@ var app = (function () {
     	let if_block1 = /*vca*/ ctx[4].hasEnv && create_if_block(ctx);
 
     	function vca_1_ctx_binding(value) {
-    		/*vca_1_ctx_binding*/ ctx[19](value);
+    		/*vca_1_ctx_binding*/ ctx[21](value);
     	}
 
     	function vca_1_input_binding(value) {
-    		/*vca_1_input_binding*/ ctx[20](value);
+    		/*vca_1_input_binding*/ ctx[22](value);
     	}
 
     	let vca_1_props = {};
@@ -2499,61 +2631,45 @@ var app = (function () {
     		if (is_function(/*vca*/ ctx[4].handle)) /*vca*/ ctx[4].handle.apply(this, arguments);
     	});
 
-    	function output_ctx_binding(value) {
-    		/*output_ctx_binding*/ ctx[21](value);
-    	}
-
-    	function output_input_binding(value) {
-    		/*output_input_binding*/ ctx[22](value);
-    	}
-
-    	let output_props = {};
-
-    	if (/*ctx*/ ctx[0] !== void 0) {
-    		output_props.ctx = /*ctx*/ ctx[0];
-    	}
-
-    	if (/*vca*/ ctx[4].output !== void 0) {
-    		output_props.input = /*vca*/ ctx[4].output;
-    	}
-
-    	output = new Output({ props: output_props, $$inline: true });
-    	binding_callbacks.push(() => bind(output, 'ctx', output_ctx_binding));
-    	binding_callbacks.push(() => bind(output, 'input', output_input_binding));
-
     	const block = {
     		c: function create() {
     			main = element("main");
-    			if (switch_instance) create_component(switch_instance.$$.fragment);
-    			t0 = space();
-    			create_component(vco_1.$$.fragment);
-    			t1 = space();
-    			br0 = element("br");
-    			t2 = space();
-    			input0 = element("input");
-    			t3 = space();
-    			if (if_block0) if_block0.c();
-    			t4 = space();
-    			create_component(vcf_1.$$.fragment);
-    			t5 = space();
-    			br1 = element("br");
-    			t6 = space();
-    			input1 = element("input");
-    			t7 = space();
-    			if (if_block1) if_block1.c();
-    			t8 = space();
-    			create_component(vca_1.$$.fragment);
-    			t9 = space();
-    			br2 = element("br");
-    			t10 = space();
     			create_component(output.$$.fragment);
-    			add_location(br0, file, 58, 1, 1260);
+    			t0 = space();
+    			if (switch_instance) create_component(switch_instance.$$.fragment);
+    			t1 = space();
+    			create_component(vco_1.$$.fragment);
+    			t2 = space();
+    			br0 = element("br");
+    			t3 = space();
+    			label0 = element("label");
+    			input0 = element("input");
+    			t4 = text("Envelope");
+    			t5 = space();
+    			if (if_block0) if_block0.c();
+    			t6 = space();
+    			create_component(vcf_1.$$.fragment);
+    			t7 = space();
+    			br1 = element("br");
+    			t8 = space();
+    			label1 = element("label");
+    			input1 = element("input");
+    			t9 = text("Envelope");
+    			t10 = space();
+    			if (if_block1) if_block1.c();
+    			t11 = space();
+    			create_component(vca_1.$$.fragment);
+    			t12 = space();
+    			br2 = element("br");
+    			add_location(br0, file, 59, 1, 1306);
     			attr_dev(input0, "type", "checkbox");
-    			add_location(input0, file, 59, 1, 1267);
-    			add_location(br1, file, 64, 1, 1509);
+    			add_location(input0, file, 60, 8, 1320);
+    			add_location(label0, file, 60, 1, 1313);
+    			add_location(br1, file, 65, 1, 1578);
     			attr_dev(input1, "type", "checkbox");
-    			add_location(input1, file, 65, 1, 1516);
-    			add_location(br2, file, 70, 1, 1758);
+    			add_location(input1, file, 66, 8, 1592);
+    			add_location(label1, file, 66, 1, 1585);
+    			add_location(br2, file, 71, 1, 1850);
     			attr_dev(main, "class", "svelte-1h6otfa");
     			add_location(main, file, 55, 0, 1121);
     		},
@@ -2562,37 +2678,41 @@ var app = (function () {
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
-    			if (switch_instance) mount_component(switch_instance, main, null);
-    			append_dev(main, t0);
-    			mount_component(vco_1, main, null);
-    			append_dev(main, t1);
-    			append_dev(main, br0);
-    			append_dev(main, t2);
-    			append_dev(main, input0);
-    			input0.checked = /*vcf*/ ctx[3].hasEnv;
-    			append_dev(main, t3);
-    			if (if_block0) if_block0.m(main, null);
-    			append_dev(main, t4);
-    			mount_component(vcf_1, main, null);
-    			append_dev(main, t5);
-    			append_dev(main, br1);
-    			append_dev(main, t6);
-    			append_dev(main, input1);
-    			input1.checked = /*vca*/ ctx[4].hasEnv;
-    			append_dev(main, t7);
-    			if (if_block1) if_block1.m(main, null);
-    			append_dev(main, t8);
-    			mount_component(vca_1, main, null);
-    			append_dev(main, t9);
-    			append_dev(main, br2);
-    			append_dev(main, t10);
     			mount_component(output, main, null);
+    			append_dev(main, t0);
+    			if (switch_instance) mount_component(switch_instance, main, null);
+    			append_dev(main, t1);
+    			mount_component(vco_1, main, null);
+    			append_dev(main, t2);
+    			append_dev(main, br0);
+    			append_dev(main, t3);
+    			append_dev(main, label0);
+    			append_dev(label0, input0);
+    			input0.checked = /*vcf*/ ctx[3].hasEnv;
+    			append_dev(label0, t4);
+    			append_dev(main, t5);
+    			if (if_block0) if_block0.m(main, null);
+    			append_dev(main, t6);
+    			mount_component(vcf_1, main, null);
+    			append_dev(main, t7);
+    			append_dev(main, br1);
+    			append_dev(main, t8);
+    			append_dev(main, label1);
+    			append_dev(label1, input1);
+    			input1.checked = /*vca*/ ctx[4].hasEnv;
+    			append_dev(label1, t9);
+    			append_dev(main, t10);
+    			if (if_block1) if_block1.m(main, null);
+    			append_dev(main, t11);
+    			mount_component(vca_1, main, null);
+    			append_dev(main, t12);
+    			append_dev(main, br2);
     			current = true;
 
     			if (!mounted) {
     				dispose = [
-    					listen_dev(input0, "change", /*input0_change_handler*/ ctx[7]),
-    					listen_dev(input1, "change", /*input1_change_handler*/ ctx[14])
+    					listen_dev(input0, "change", /*input0_change_handler*/ ctx[9]),
+    					listen_dev(input1, "change", /*input1_change_handler*/ ctx[16])
     				];
 
     				mounted = true;
@@ -2600,6 +2720,21 @@ var app = (function () {
     		},
     		p: function update(new_ctx, [dirty]) {
     			ctx = new_ctx;
+    			const output_changes = {};
+
+    			if (!updating_ctx && dirty & /*ctx*/ 1) {
+    				updating_ctx = true;
+    				output_changes.ctx = /*ctx*/ ctx[0];
+    				add_flush_callback(() => updating_ctx = false);
+    			}
+
+    			if (!updating_input && dirty & /*vca*/ 16) {
+    				updating_input = true;
+    				output_changes.input = /*vca*/ ctx[4].output;
+    				add_flush_callback(() => updating_input = false);
+    			}
+
+    			output.$set(output_changes);
 
     			if (dirty & /*midi*/ 4 && switch_value !== (switch_value = /*midi*/ ctx[2].comp)) {
     				if (switch_instance) {
@@ -2622,7 +2757,7 @@ var app = (function () {
 
     					create_component(switch_instance.$$.fragment);
     					transition_in(switch_instance.$$.fragment, 1);
-    					mount_component(switch_instance, main, t0);
+    					mount_component(switch_instance, main, t1);
     				} else {
     					switch_instance = null;
     				}
@@ -2630,10 +2765,10 @@ var app = (function () {
 
     			const vco_1_changes = {};
 
-    			if (!updating_ctx && dirty & /*ctx*/ 1) {
-    				updating_ctx = true;
+    			if (!updating_ctx_1 && dirty & /*ctx*/ 1) {
+    				updating_ctx_1 = true;
     				vco_1_changes.ctx = /*ctx*/ ctx[0];
-    				add_flush_callback(() => updating_ctx = false);
+    				add_flush_callback(() => updating_ctx_1 = false);
     			}
 
     			if (!updating_voctIn && dirty & /*midi*/ 4) {
@@ -2659,7 +2794,7 @@ var app = (function () {
     					if_block0 = create_if_block_1(ctx);
     					if_block0.c();
     					transition_in(if_block0, 1);
-    					if_block0.m(main, t4);
+    					if_block0.m(main, t6);
     				}
     			} else if (if_block0) {
     				group_outros();
@@ -2673,16 +2808,16 @@ var app = (function () {
 
     			const vcf_1_changes = {};
 
-    			if (!updating_ctx_1 && dirty & /*ctx*/ 1) {
-    				updating_ctx_1 = true;
+    			if (!updating_ctx_2 && dirty & /*ctx*/ 1) {
+    				updating_ctx_2 = true;
     				vcf_1_changes.ctx = /*ctx*/ ctx[0];
-    				add_flush_callback(() => updating_ctx_1 = false);
+    				add_flush_callback(() => updating_ctx_2 = false);
     			}
 
-    			if (!updating_input && dirty & /*vco*/ 2) {
-    				updating_input = true;
+    			if (!updating_input_1 && dirty & /*vco*/ 2) {
+    				updating_input_1 = true;
     				vcf_1_changes.input = /*vco*/ ctx[1].output;
-    				add_flush_callback(() => updating_input = false);
+    				add_flush_callback(() => updating_input_1 = false);
     			}
 
     			vcf_1.$set(vcf_1_changes);
@@ -2702,7 +2837,7 @@ var app = (function () {
     					if_block1 = create_if_block(ctx);
     					if_block1.c();
     					transition_in(if_block1, 1);
-    					if_block1.m(main, t8);
+    					if_block1.m(main, t11);
     				}
     			} else if (if_block1) {
     				group_outros();
@@ -2716,65 +2851,50 @@ var app = (function () {
 
     			const vca_1_changes = {};
 
-    			if (!updating_ctx_2 && dirty & /*ctx*/ 1) {
-    				updating_ctx_2 = true;
-    				vca_1_changes.ctx = /*ctx*/ ctx[0];
-    				add_flush_callback(() => updating_ctx_2 = false);
-    			}
-
-    			if (!updating_input_1 && dirty & /*vcf*/ 8) {
-    				updating_input_1 = true;
-    				vca_1_changes.input = /*vcf*/ ctx[3].output;
-    				add_flush_callback(() => updating_input_1 = false);
-    			}
-
-    			vca_1.$set(vca_1_changes);
-    			const output_changes = {};
-
     			if (!updating_ctx_3 && dirty & /*ctx*/ 1) {
     				updating_ctx_3 = true;
-    				output_changes.ctx = /*ctx*/ ctx[0];
+    				vca_1_changes.ctx = /*ctx*/ ctx[0];
     				add_flush_callback(() => updating_ctx_3 = false);
     			}
 
-    			if (!updating_input_2 && dirty & /*vca*/ 16) {
+    			if (!updating_input_2 && dirty & /*vcf*/ 8) {
     				updating_input_2 = true;
-    				output_changes.input = /*vca*/ ctx[4].output;
+    				vca_1_changes.input = /*vcf*/ ctx[3].output;
     				add_flush_callback(() => updating_input_2 = false);
     			}
 
-    			output.$set(output_changes);
+    			vca_1.$set(vca_1_changes);
     		},
     		i: function intro(local) {
     			if (current) return;
+    			transition_in(output.$$.fragment, local);
     			if (switch_instance) transition_in(switch_instance.$$.fragment, local);
     			transition_in(vco_1.$$.fragment, local);
     			transition_in(if_block0);
     			transition_in(vcf_1.$$.fragment, local);
     			transition_in(if_block1);
     			transition_in(vca_1.$$.fragment, local);
-    			transition_in(output.$$.fragment, local);
     			current = true;
     		},
     		o: function outro(local) {
+    			transition_out(output.$$.fragment, local);
     			if (switch_instance) transition_out(switch_instance.$$.fragment, local);
     			transition_out(vco_1.$$.fragment, local);
     			transition_out(if_block0);
     			transition_out(vcf_1.$$.fragment, local);
     			transition_out(if_block1);
     			transition_out(vca_1.$$.fragment, local);
-    			transition_out(output.$$.fragment, local);
     			current = false;
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(main);
+    			destroy_component(output);
     			if (switch_instance) destroy_component(switch_instance);
     			destroy_component(vco_1);
     			if (if_block0) if_block0.d();
     			destroy_component(vcf_1);
     			if (if_block1) if_block1.d();
     			destroy_component(vca_1);
-    			destroy_component(output);
     			mounted = false;
     			run_all(dispose);
     		}
@@ -2843,6 +2963,18 @@ var app = (function () {
     	Object.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<App> was created with unknown prop '${key}'`);
     	});
+
+    	function output_ctx_binding(value) {
+    		ctx = value;
+    		$$invalidate(0, ctx);
+    	}
+
+    	function output_input_binding(value) {
+    		if ($$self.$$.not_equal(vca.output, value)) {
+    			vca.output = value;
+    			$$invalidate(4, vca);
+    		}
+    	}
 
     	function vco_1_ctx_binding(value) {
     		ctx = value;
@@ -2942,18 +3074,6 @@ var app = (function () {
     		}
     	}
 
-    	function output_ctx_binding(value) {
-    		ctx = value;
-    		$$invalidate(0, ctx);
-    	}
-
-    	function output_input_binding(value) {
-    		if ($$self.$$.not_equal(vca.output, value)) {
-    			vca.output = value;
-    			$$invalidate(4, vca);
-    		}
-    	}
-
     	$$self.$capture_state = () => ({
     		Component,
     		MIDI,
@@ -2983,6 +3103,8 @@ var app = (function () {
     		midi,
     		vcf,
     		vca,
+    		output_ctx_binding,
+    		output_input_binding,
     		vco_1_ctx_binding,
     		vco_1_voctIn_binding,
     		input0_change_handler,
@@ -2998,9 +3120,7 @@ var app = (function () {
     		adsr_cv_out_binding_1,
     		adsr_max_cv_binding_1,
     		vca_1_ctx_binding,
-    		vca_1_input_binding,
-    		output_ctx_binding,
-    		output_input_binding
+    		vca_1_input_binding
     	];
     }
 
