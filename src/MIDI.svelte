@@ -3,35 +3,36 @@
 
     const dispatch = createEventDispatcher();
 
-    let trigger = false;
-    let freqChanged = false;
+    let octChanged = false; // Whether key input was an octave change (no note is triggered)
 
-    let octave = 4;
-    let newOct = 4;
-
-    let note = 'A';
-    let octUp = 0;
-    let newoctUp = 0;
+    let octave = 4; // Updates when octave is changed
+    let newOct = 4; // Only updates when a new note is played
 
     let frequency = 440;
-
-    const handle = () => dispatch('input', {output: Math.log2(frequency), trigger: trigger });
+    let trigger = false;
+    
+    let note = 'A'; // The note to be displayed
+    
+    let octUp = 0;
+    let newOctUp = 0;
 
     function onKeyDown(e) {
 
-        if (e.repeat) return
+        if (e.repeat) return // Prevents rapid trigger firing when key held down
         
-        freqChanged = false;
+        octChanged = false;
         octUp = 0;
 
         switch(e.keyCode) {
             case 61: //=
+                octChanged = true;
                 if (octave < 10) {
                     octave += 1;
                     frequency *= 2;
                 }
                 break;
             case 173: //-
+                octChanged = true;
                 if (octave > -2) {
                     octave -= 1;
                     frequency /= 2;
@@ -40,102 +41,85 @@
             
             case 90: //Z
                 frequency = 261.63; //C4
-                freqChanged = true;
                 note = 'C';
                 break;
             case 83: //S
                 frequency = 277.18;
-                freqChanged = true;
                 note = 'C#/Db';
                 break;
             case 88: //X
                 frequency = 293.66; //D4
-                freqChanged = true;
                 note = 'D';
                 break;
             case 68: //D
                 frequency = 311.13;
-                freqChanged = true;
                 note = 'D#/Eb';
                 break;
             case 67: //C
                 frequency = 329.63; //E4
-                freqChanged = true;
                 note = 'E';
                 break;
             case 86: //V
                 frequency = 349.23;
-                freqChanged = true;
                 note = 'F';
                 break;
             case 71: //G
                 frequency = 369.99;
-                freqChanged = true;
                 note = 'F#/Gb';
                 break;
             case 66: //B
                 frequency = 392.00;
-                freqChanged = true;
                 note = 'G';
                 break;
             case 72: //H
                 frequency = 415.30;
-                freqChanged = true;
                 note = 'G#/Ab';
                 break;
             case 78: //N
                 frequency = 440.00;
-                freqChanged = true;
                 note = 'A';
                 break;
             case 74: //J
                 frequency = 466.16;
-                freqChanged = true;
                 note = 'A#/Bb';
                 break;
             case 77: //M
                 frequency = 493.88;
-                freqChanged = true;
                 note = 'B';
                 break;
             case 188: //,
                 frequency = 523.25;
-                freqChanged = true;
                 note = 'C';
                 octUp = 1;
                 break;
             case 76: //L
                 frequency = 554.37;
-                freqChanged = true;
                 note = 'C#/Db';
                 octUp = 1;
                 break;
             case 190: //.
                 frequency = 587.33;
-                freqChanged = true;
                 note = 'D';
                 octUp = 1;
                 break;
             case 59: //;
                 frequency = 622.25;
-                freqChanged = true;
                 note = 'D#/Eb';
                 octUp = 1;
                 break;
             case 191: ///
                 frequency = 659.25;
-                freqChanged = true;
                 note = 'E';
                 octUp = 1;
                 break;
 
             case 32: //Space
-                trigger = !trigger;
-                dispatch('signal', {output: null, trigger: trigger });
+                trigger = true;
+                dispatch('input', {output: null, trigger: trigger });
                 return;
         }
 
-        if (freqChanged) {
+        if (!octChanged) {
             if (octave > 4) {
                 for (let i=4; i < octave; i++) {
                     frequency *= 2;
@@ -146,14 +130,20 @@
                 }
             }
 
-            trigger = !trigger;
+            trigger = true;
 
             newOct = octave;
-            newoctUp = octUp;
+            newOctUp = octUp;
 
+            dispatch('input', {output: Math.log2(frequency), trigger: trigger });
         }
 
-        handle();
+        
+    }
+
+    function onKeyUp(e) {
+        trigger = false;
+        dispatch('input', {output: null, trigger: trigger });
     }
 </script>
 
@@ -162,7 +152,7 @@
     <h2>MIDI</h2>
     Play notes by pressing keys on keyboard. Row Z-/ is white notes, row A-' is black notes.
     <br>Press - to lower octave and = to raise octave. Press space to trigger envelope without giving note input.
-    <h3>{note}{newOct+newoctUp}</h3>
+    <h3>{note}{newOct+newOctUp}</h3>
 </div> 
 </main>
 
@@ -172,4 +162,4 @@
     }
 </style>
 
-<svelte:window on:keydown|preventDefault={onKeyDown} />
+<svelte:window on:keydown|preventDefault={onKeyDown} on:keyup|preventDefault={onKeyUp} />

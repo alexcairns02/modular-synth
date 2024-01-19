@@ -54,22 +54,22 @@
 </script>
 
 <main>
+	<Output bind:ctx bind:input={vca.output} />
 	<svelte:component this={midi.comp} on:input={midi.handle} />
 	<VCO bind:ctx bind:voctIn={midi.voct} on:connect={vco.handle} />
 	<br>
-	<input type='checkbox' bind:checked={vcf.hasEnv} />
+	<label><input type='checkbox' bind:checked={vcf.hasEnv} />Envelope</label>
 	{#if vcf.hasEnv}
 		<ADSR bind:ctx bind:trigger={midi.trigger} bind:cv_out={vcf.cv} bind:max_cv={vcf.cvmax} />
 	{/if}
 	<VCF bind:ctx bind:input={vco.output} on:connect={vcf.handle} />
 	<br>
-	<input type='checkbox' bind:checked={vca.hasEnv} />
+	<label><input type='checkbox' bind:checked={vca.hasEnv} />Envelope</label>
 	{#if vca.hasEnv}
 		<ADSR bind:ctx bind:trigger={midi.trigger} bind:cv_out={vca.cv} bind:max_cv={vca.cvmax} />
 	{/if}
 	<VCA bind:ctx bind:input={vcf.output} on:connect={vca.handle} />
 	<br>
-	<Output bind:ctx bind:input={vca.output} />
 </main>
 
 <style>

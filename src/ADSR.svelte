@@ -21,7 +21,7 @@
         }
     }
 
-    $: if (trigger || !trigger) fireEnv();
+    $: if (trigger) fireEnv();
 
     onDestroy(() => {
         cv_out.cancelScheduledValues(ctx.currentTime);

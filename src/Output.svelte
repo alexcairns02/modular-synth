@@ -3,7 +3,7 @@
     export var input;
 
     var gainNode = ctx.createGain();
-    
+    gainNode.gain.value = 0.2;
 
     $: if (input) {
         input.connect(gainNode);
