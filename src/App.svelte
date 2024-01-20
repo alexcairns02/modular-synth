@@ -1,5 +1,4 @@
 <script>
-	import Component from 'svelte-tag';
 
 	import MIDI from './MIDI.svelte';
 	import VCO from './VCO.svelte';
@@ -7,6 +6,7 @@
 	import VCA from './VCA.svelte';
 	import ADSR from './ADSR.svelte';
 	import VCF from './VCF.svelte';
+	import Mixer from './Mixer.svelte';
 
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
     var ctx = new AudioContext();
@@ -15,6 +15,13 @@
 		output: null,
 		handle: (event) => {
 			vco.output = event.detail.output;
+		}
+	}
+	
+	const vco2 = {
+		output: null,
+		handle: (event) => {
+			vco2.output = event.detail.output;
 		}
 	}
 
@@ -51,18 +58,27 @@
 			vca.cvmax = event.detail.max_cv;
 		}
 	}
+
+	const mixer = {
+		output: null,
+		handle: (event) => {
+			mixer.output = event.detail.output;
+		}
+	}
 </script>
 
 <main>
 	<Output bind:ctx bind:input={vca.output} />
 	<svelte:component this={midi.comp} on:input={midi.handle} />
 	<VCO bind:ctx bind:voctIn={midi.voct} on:connect={vco.handle} />
+	<VCO bind:ctx bind:voctIn={midi.voct} on:connect={vco2.handle} />
+	<Mixer bind:ctx bind:in0={vco.output} bind:in1={vco2.output} on:connect={mixer.handle} />
 	<br>
 	<label><input type='checkbox' bind:checked={vcf.hasEnv} />Envelope</label>
 	{#if vcf.hasEnv}
 		<ADSR bind:ctx bind:trigger={midi.trigger} bind:cv_out={vcf.cv} bind:max_cv={vcf.cvmax} />
 	{/if}
-	<VCF bind:ctx bind:input={vco.output} on:connect={vcf.handle} />
+	<VCF bind:ctx bind:input={mixer.output} on:connect={vcf.handle} />
 	<br>
 	<label><input type='checkbox' bind:checked={vca.hasEnv} />Envelope</label>
 	{#if vca.hasEnv}

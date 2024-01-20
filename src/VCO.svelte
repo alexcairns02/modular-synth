@@ -8,11 +8,13 @@
 
     let voct = Math.log2(440);
 
+    let cv = 0;
+
 	let oscNode = ctx.createOscillator();
 
     $: if (voctIn != null) voct = voctIn;
 
-    $: oscNode.frequency.value = Math.pow(2, voct);
+    $: oscNode.frequency.value = Math.pow(2, voct + cv);
     
     oscNode.start(0);
 
@@ -23,6 +25,7 @@
 <div>
     <h2>Oscillator</h2>
     <label><input bind:value={voct} type='range' min='2.78135971352466' max='14.78135971352466' step='0.0001'>Frequency</label>
+    <label><input bind:value={cv} type='range' min='-2' max='2' step='0.083333333333333'>Step</label>
     <section>
         <label>
             <input type='radio' value='sine' bind:group={oscNode.type} /> Sine

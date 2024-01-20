@@ -5,6 +5,8 @@
 
     let octChanged = false; // Whether key input was an octave change (no note is triggered)
 
+    let keyPressed = false;
+
     let octave = 4; // Updates when octave is changed
     let newOct = 4; // Only updates when a new note is played
 
@@ -22,6 +24,8 @@
         
         octChanged = false;
         octUp = 0;
+
+        keyPressed = true;
 
         switch(e.keyCode) {
             case 61: //=
@@ -117,9 +121,13 @@
                 trigger = true;
                 dispatch('input', {output: null, trigger: trigger });
                 return;
+
+            default:
+                keyPressed = false;
+                break;
         }
 
-        if (!octChanged) {
+        if (!octChanged && keyPressed) {
             if (octave > 4) {
                 for (let i=4; i < octave; i++) {
                     frequency *= 2;
@@ -142,8 +150,11 @@
     }
 
     function onKeyUp(e) {
-        trigger = false;
-        dispatch('input', {output: null, trigger: trigger });
+        if (trigger) {
+            trigger = false;
+            keyPressed = false;
+            dispatch('input', {output: null, trigger: trigger });
+        }
     }
 </script>
 

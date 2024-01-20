@@ -4,10 +4,10 @@
 
     var gainNode = ctx.createGain();
     gainNode.gain.value = 0.2;
+    gainNode.connect(ctx.destination);
 
     $: if (input) {
         input.connect(gainNode);
-        gainNode.connect(ctx.destination);
     }
 
     var playing = false;
