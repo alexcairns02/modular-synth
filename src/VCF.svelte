@@ -46,7 +46,7 @@
         <button on:click={update}>Update</button>
         <label><select bind:value={module.input}>
         {#each Object.entries($modules) as [id, m]}
-            {#if m.output}
+            {#if m.output && id != moduleId}
             <option value={m.output}>{id}</option>
             {/if}
         {/each}

@@ -9,7 +9,7 @@
 
     let notePlaying = false;
 
-    let moduleOut;
+    let moduleOut = null;
 
     let attack = 1;
     let decay = 1;
@@ -66,7 +66,7 @@
 </script>
 
 <main>
-    <div>
+    <div class="main">
         <h1>{moduleId}</h1>
         <h2>Envelope</h2>
         <button on:click={update}>Update</button>
@@ -78,17 +78,24 @@
         {/each}
         <option value={null}></option>
         </select>Output</label>
-        <label><input bind:value={attack} type='range' min='0' max='1' step='0.001'>Attack</label>
-        <label><input bind:value={decay} type='range' min='0' max='1' step='0.001'>Decay</label>
-        <label><input bind:value={sustain} type='range' min='0' max='1' step='0.001'>Sustain</label>
-        <label><input bind:value={release} type='range' min='0' max='1' step='0.001'>Release</label>
+        <div class="params">
+            <label><input bind:value={attack} type='range' min='0' max='10' step='0.001'>Attack ({attack}s)</label>
+            <label><input bind:value={decay} type='range' min='0' max='10' step='0.001'>Decay ({decay}s)</label>
+            <label><input bind:value={sustain} type='range' min='0' max='1' step='0.001'>Sustain ({sustain})</label>
+            <label><input bind:value={release} type='range' min='0' max='10' step='0.001'>Release ({release}s)</label>
+        </div>
     </div>
     <br>
 </main>
 
 <style>
-    div {
+    .main {
         border-style: solid;
+    }
+
+    .params {
+        margin-left: 20%;
+        text-align: left;
     }
 </style>
 
