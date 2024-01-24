@@ -300,6 +300,19 @@ var app = (function () {
     }
     const outroing = new Set();
     let outros;
+    function group_outros() {
+        outros = {
+            r: 0,
+            c: [],
+            p: outros // parent group
+        };
+    }
+    function check_outros() {
+        if (!outros.r) {
+            run_all(outros.c);
+        }
+        outros = outros.p;
+    }
     function transition_in(block, local) {
         if (block && block.i) {
             outroing.delete(block);
@@ -522,6 +535,25 @@ var app = (function () {
         for (const slot_key of Object.keys(slot)) {
             if (!~keys.indexOf(slot_key)) {
                 console.warn(`<${name}> received an unexpected slot "${slot_key}".`);
+            }
+        }
+    }
+    function construct_svelte_component_dev(component, props) {
+        const error_message = 'this={...} of <svelte:component> should specify a Svelte component.';
+        try {
+            const instance = new component(props);
+            if (!instance.$$ || !instance.$set || !instance.$on || !instance.$destroy) {
+                throw new Error(error_message);
+            }
+            return instance;
+        }
+        catch (err) {
+            const { message } = err;
+            if (typeof message === 'string' && message.indexOf('is not a constructor') !== -1) {
+                throw new Error(error_message);
+            }
+            else {
+                throw err;
             }
         }
     }
@@ -1280,7 +1312,7 @@ var app = (function () {
     const { Object: Object_1$4 } = globals;
     const file$5 = "src\\Output.svelte";
 
-    function get_each_context$4(ctx, list, i) {
+    function get_each_context$5(ctx, list, i) {
     	const child_ctx = ctx.slice();
     	child_ctx[12] = list[i][0];
     	child_ctx[13] = list[i][1];
@@ -1331,7 +1363,7 @@ var app = (function () {
     }
 
     // (45:8) {#each Object.entries($modules) as [id, m]}
-    function create_each_block$4(ctx) {
+    function create_each_block$5(ctx) {
     	let if_block_anchor;
     	let if_block = /*m*/ ctx[13].output && create_if_block$4(ctx);
 
@@ -1366,7 +1398,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_each_block$4.name,
+    		id: create_each_block$5.name,
     		type: "each",
     		source: "(45:8) {#each Object.entries($modules) as [id, m]}",
     		ctx
@@ -1402,7 +1434,7 @@ var app = (function () {
     	let each_blocks = [];
 
     	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block$4(get_each_context$4(ctx, each_value, i));
+    		each_blocks[i] = create_each_block$5(get_each_context$5(ctx, each_value, i));
     	}
 
     	const block = {
@@ -1504,12 +1536,12 @@ var app = (function () {
     				let i;
 
     				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context$4(ctx, each_value, i);
+    					const child_ctx = get_each_context$5(ctx, each_value, i);
 
     					if (each_blocks[i]) {
     						each_blocks[i].p(child_ctx, dirty);
     					} else {
-    						each_blocks[i] = create_each_block$4(child_ctx);
+    						each_blocks[i] = create_each_block$5(child_ctx);
     						each_blocks[i].c();
     						each_blocks[i].m(select, option);
     					}
@@ -1676,14 +1708,14 @@ var app = (function () {
     const { Object: Object_1$3 } = globals;
     const file$4 = "src\\VCA.svelte";
 
-    function get_each_context$3(ctx, list, i) {
+    function get_each_context$4(ctx, list, i) {
     	const child_ctx = ctx.slice();
     	child_ctx[11] = list[i][0];
     	child_ctx[12] = list[i][1];
     	return child_ctx;
     }
 
-    // (45:8) {#if m.output}
+    // (45:8) {#if m.output && id != moduleId}
     function create_if_block$3(ctx) {
     	let option;
     	let t_value = /*id*/ ctx[11] + "";
@@ -1696,7 +1728,7 @@ var app = (function () {
     			t = text(t_value);
     			option.__value = option_value_value = /*m*/ ctx[12].output;
     			option.value = option.__value;
-    			add_location(option, file$4, 45, 8, 1111);
+    			add_location(option, file$4, 45, 8, 1129);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, option, anchor);
@@ -1719,7 +1751,7 @@ var app = (function () {
     		block,
     		id: create_if_block$3.name,
     		type: "if",
-    		source: "(45:8) {#if m.output}",
+    		source: "(45:8) {#if m.output && id != moduleId}",
     		ctx
     	});
 
@@ -1727,9 +1759,9 @@ var app = (function () {
     }
 
     // (44:4) {#each Object.entries($modules) as [id, m]}
-    function create_each_block$3(ctx) {
+    function create_each_block$4(ctx) {
     	let if_block_anchor;
-    	let if_block = /*m*/ ctx[12].output && create_if_block$3(ctx);
+    	let if_block = /*m*/ ctx[12].output && /*id*/ ctx[11] != /*moduleId*/ ctx[3] && create_if_block$3(ctx);
 
     	const block = {
     		c: function create() {
@@ -1741,7 +1773,7 @@ var app = (function () {
     			insert_dev(target, if_block_anchor, anchor);
     		},
     		p: function update(ctx, dirty) {
-    			if (/*m*/ ctx[12].output) {
+    			if (/*m*/ ctx[12].output && /*id*/ ctx[11] != /*moduleId*/ ctx[3]) {
     				if (if_block) {
     					if_block.p(ctx, dirty);
     				} else {
@@ -1762,7 +1794,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_each_block$3.name,
+    		id: create_each_block$4.name,
     		type: "each",
     		source: "(44:4) {#each Object.entries($modules) as [id, m]}",
     		ctx
@@ -1797,7 +1829,7 @@ var app = (function () {
     	let each_blocks = [];
 
     	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block$3(get_each_context$3(ctx, each_value, i));
+    		each_blocks[i] = create_each_block$4(get_each_context$4(ctx, each_value, i));
     	}
 
     	const block = {
@@ -1833,7 +1865,7 @@ var app = (function () {
     			add_location(button, file$4, 41, 4, 940);
     			option.__value = null;
     			option.value = option.__value;
-    			add_location(option, file$4, 48, 4, 1183);
+    			add_location(option, file$4, 48, 4, 1201);
     			if (/*module*/ ctx[0].input === void 0) add_render_callback(() => /*select_change_handler*/ ctx[7].call(select));
     			add_location(select, file$4, 42, 11, 994);
     			add_location(label0, file$4, 42, 4, 987);
@@ -1841,11 +1873,11 @@ var app = (function () {
     			attr_dev(input, "min", "0");
     			attr_dev(input, "max", "1");
     			attr_dev(input, "step", "0.001");
-    			add_location(input, file$4, 50, 11, 1254);
-    			add_location(label1, file$4, 50, 4, 1247);
+    			add_location(input, file$4, 50, 11, 1272);
+    			add_location(label1, file$4, 50, 4, 1265);
     			attr_dev(div, "class", "svelte-49prnq");
     			add_location(div, file$4, 38, 0, 880);
-    			add_location(br, file$4, 52, 0, 1351);
+    			add_location(br, file$4, 52, 0, 1369);
     			add_location(main, file$4, 37, 0, 872);
     		},
     		l: function claim(nodes) {
@@ -1892,18 +1924,18 @@ var app = (function () {
     			}
     		},
     		p: function update(ctx, [dirty]) {
-    			if (dirty & /*Object, $modules*/ 4) {
+    			if (dirty & /*Object, $modules, moduleId*/ 12) {
     				each_value = Object.entries(/*$modules*/ ctx[2]);
     				validate_each_argument(each_value);
     				let i;
 
     				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context$3(ctx, each_value, i);
+    					const child_ctx = get_each_context$4(ctx, each_value, i);
 
     					if (each_blocks[i]) {
     						each_blocks[i].p(child_ctx, dirty);
     					} else {
-    						each_blocks[i] = create_each_block$3(child_ctx);
+    						each_blocks[i] = create_each_block$4(child_ctx);
     						each_blocks[i].c();
     						each_blocks[i].m(select, option);
     					}
@@ -2068,7 +2100,7 @@ var app = (function () {
     const { Object: Object_1$2 } = globals;
     const file$3 = "src\\ADSR.svelte";
 
-    function get_each_context$2(ctx, list, i) {
+    function get_each_context$3(ctx, list, i) {
     	const child_ctx = ctx.slice();
     	child_ctx[22] = list[i][0];
     	child_ctx[23] = list[i][1];
@@ -2088,7 +2120,7 @@ var app = (function () {
     			t = text(t_value);
     			option.__value = option_value_value = /*m*/ ctx[23];
     			option.value = option.__value;
-    			add_location(option, file$3, 75, 12, 2127);
+    			add_location(option, file$3, 75, 12, 2147);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, option, anchor);
@@ -2119,7 +2151,7 @@ var app = (function () {
     }
 
     // (74:8) {#each Object.entries($modules) as [id, m]}
-    function create_each_block$2(ctx) {
+    function create_each_block$3(ctx) {
     	let if_block_anchor;
     	let if_block = /*m*/ ctx[23].cv_in && /*m*/ ctx[23].max_cv && create_if_block$2(ctx);
 
@@ -2154,7 +2186,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_each_block$2.name,
+    		id: create_each_block$3.name,
     		type: "each",
     		source: "(74:8) {#each Object.entries($modules) as [id, m]}",
     		ctx
@@ -2165,7 +2197,7 @@ var app = (function () {
 
     function create_fragment$3(ctx) {
     	let main;
-    	let div;
+    	let div1;
     	let h1;
     	let t1;
     	let h2;
@@ -2177,22 +2209,31 @@ var app = (function () {
     	let option;
     	let t6;
     	let t7;
+    	let div0;
     	let label1;
     	let input0;
     	let t8;
     	let t9;
-    	let label2;
-    	let input1;
     	let t10;
     	let t11;
-    	let label3;
-    	let input2;
+    	let label2;
+    	let input1;
     	let t12;
     	let t13;
-    	let label4;
-    	let input3;
     	let t14;
     	let t15;
+    	let label3;
+    	let input2;
+    	let t16;
+    	let t17;
+    	let t18;
+    	let t19;
+    	let label4;
+    	let input3;
+    	let t20;
+    	let t21;
+    	let t22;
+    	let t23;
     	let br;
     	let mounted;
     	let dispose;
@@ -2201,13 +2242,13 @@ var app = (function () {
     	let each_blocks = [];
 
     	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block$2(get_each_context$2(ctx, each_value, i));
+    		each_blocks[i] = create_each_block$3(get_each_context$3(ctx, each_value, i));
     	}
 
     	const block = {
     		c: function create() {
     			main = element("main");
-    			div = element("div");
+    			div1 = element("div");
     			h1 = element("h1");
     			h1.textContent = `${/*moduleId*/ ctx[6]}`;
     			t1 = space();
@@ -2227,74 +2268,85 @@ var app = (function () {
     			option = element("option");
     			t6 = text("Output");
     			t7 = space();
+    			div0 = element("div");
     			label1 = element("label");
     			input0 = element("input");
-    			t8 = text("Attack");
-    			t9 = space();
+    			t8 = text("Attack (");
+    			t9 = text(/*attack*/ ctx[1]);
+    			t10 = text("s)");
+    			t11 = space();
     			label2 = element("label");
     			input1 = element("input");
-    			t10 = text("Decay");
-    			t11 = space();
+    			t12 = text("Decay (");
+    			t13 = text(/*decay*/ ctx[2]);
+    			t14 = text("s)");
+    			t15 = space();
     			label3 = element("label");
     			input2 = element("input");
-    			t12 = text("Sustain");
-    			t13 = space();
+    			t16 = text("Sustain (");
+    			t17 = text(/*sustain*/ ctx[3]);
+    			t18 = text(")");
+    			t19 = space();
     			label4 = element("label");
     			input3 = element("input");
-    			t14 = text("Release");
-    			t15 = space();
+    			t20 = text("Release (");
+    			t21 = text(/*release*/ ctx[4]);
+    			t22 = text("s)");
+    			t23 = space();
     			br = element("br");
-    			add_location(h1, file$3, 69, 8, 1876);
-    			add_location(h2, file$3, 70, 8, 1905);
-    			add_location(button, file$3, 71, 8, 1932);
+    			add_location(h1, file$3, 69, 8, 1896);
+    			add_location(h2, file$3, 70, 8, 1925);
+    			add_location(button, file$3, 71, 8, 1952);
     			option.__value = null;
     			option.value = option.__value;
-    			add_location(option, file$3, 78, 8, 2204);
+    			add_location(option, file$3, 78, 8, 2224);
     			if (/*moduleOut*/ ctx[0] === void 0) add_render_callback(() => /*select_change_handler*/ ctx[10].call(select));
-    			add_location(select, file$3, 72, 15, 1990);
-    			add_location(label0, file$3, 72, 8, 1983);
+    			add_location(select, file$3, 72, 15, 2010);
+    			add_location(label0, file$3, 72, 8, 2003);
     			attr_dev(input0, "type", "range");
     			attr_dev(input0, "min", "0");
-    			attr_dev(input0, "max", "1");
+    			attr_dev(input0, "max", "10");
     			attr_dev(input0, "step", "0.001");
-    			add_location(input0, file$3, 80, 15, 2284);
-    			add_location(label1, file$3, 80, 8, 2277);
+    			add_location(input0, file$3, 81, 19, 2338);
+    			add_location(label1, file$3, 81, 12, 2331);
     			attr_dev(input1, "type", "range");
     			attr_dev(input1, "min", "0");
-    			attr_dev(input1, "max", "1");
+    			attr_dev(input1, "max", "10");
     			attr_dev(input1, "step", "0.001");
-    			add_location(input1, file$3, 81, 15, 2384);
-    			add_location(label2, file$3, 81, 8, 2377);
+    			add_location(input1, file$3, 82, 19, 2455);
+    			add_location(label2, file$3, 82, 12, 2448);
     			attr_dev(input2, "type", "range");
     			attr_dev(input2, "min", "0");
     			attr_dev(input2, "max", "1");
     			attr_dev(input2, "step", "0.001");
-    			add_location(input2, file$3, 82, 15, 2482);
-    			add_location(label3, file$3, 82, 8, 2475);
+    			add_location(input2, file$3, 83, 19, 2569);
+    			add_location(label3, file$3, 83, 12, 2562);
     			attr_dev(input3, "type", "range");
     			attr_dev(input3, "min", "0");
-    			attr_dev(input3, "max", "1");
+    			attr_dev(input3, "max", "10");
     			attr_dev(input3, "step", "0.001");
-    			add_location(input3, file$3, 83, 15, 2584);
-    			add_location(label4, file$3, 83, 8, 2577);
-    			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$3, 68, 4, 1861);
-    			add_location(br, file$3, 85, 4, 2687);
-    			add_location(main, file$3, 67, 0, 1849);
+    			add_location(input3, file$3, 84, 19, 2687);
+    			add_location(label4, file$3, 84, 12, 2680);
+    			attr_dev(div0, "class", "params svelte-1bez2y1");
+    			add_location(div0, file$3, 80, 8, 2297);
+    			attr_dev(div1, "class", "main svelte-1bez2y1");
+    			add_location(div1, file$3, 68, 4, 1868);
+    			add_location(br, file$3, 87, 4, 2820);
+    			add_location(main, file$3, 67, 0, 1856);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
-    			append_dev(main, div);
-    			append_dev(div, h1);
-    			append_dev(div, t1);
-    			append_dev(div, h2);
-    			append_dev(div, t3);
-    			append_dev(div, button);
-    			append_dev(div, t5);
-    			append_dev(div, label0);
+    			append_dev(main, div1);
+    			append_dev(div1, h1);
+    			append_dev(div1, t1);
+    			append_dev(div1, h2);
+    			append_dev(div1, t3);
+    			append_dev(div1, button);
+    			append_dev(div1, t5);
+    			append_dev(div1, label0);
     			append_dev(label0, select);
 
     			for (let i = 0; i < each_blocks.length; i += 1) {
@@ -2306,27 +2358,36 @@ var app = (function () {
     			append_dev(select, option);
     			select_option(select, /*moduleOut*/ ctx[0], true);
     			append_dev(label0, t6);
-    			append_dev(div, t7);
-    			append_dev(div, label1);
+    			append_dev(div1, t7);
+    			append_dev(div1, div0);
+    			append_dev(div0, label1);
     			append_dev(label1, input0);
     			set_input_value(input0, /*attack*/ ctx[1]);
     			append_dev(label1, t8);
-    			append_dev(div, t9);
-    			append_dev(div, label2);
+    			append_dev(label1, t9);
+    			append_dev(label1, t10);
+    			append_dev(div0, t11);
+    			append_dev(div0, label2);
     			append_dev(label2, input1);
     			set_input_value(input1, /*decay*/ ctx[2]);
-    			append_dev(label2, t10);
-    			append_dev(div, t11);
-    			append_dev(div, label3);
+    			append_dev(label2, t12);
+    			append_dev(label2, t13);
+    			append_dev(label2, t14);
+    			append_dev(div0, t15);
+    			append_dev(div0, label3);
     			append_dev(label3, input2);
     			set_input_value(input2, /*sustain*/ ctx[3]);
-    			append_dev(label3, t12);
-    			append_dev(div, t13);
-    			append_dev(div, label4);
+    			append_dev(label3, t16);
+    			append_dev(label3, t17);
+    			append_dev(label3, t18);
+    			append_dev(div0, t19);
+    			append_dev(div0, label4);
     			append_dev(label4, input3);
     			set_input_value(input3, /*release*/ ctx[4]);
-    			append_dev(label4, t14);
-    			append_dev(main, t15);
+    			append_dev(label4, t20);
+    			append_dev(label4, t21);
+    			append_dev(label4, t22);
+    			append_dev(main, t23);
     			append_dev(main, br);
 
     			if (!mounted) {
@@ -2353,12 +2414,12 @@ var app = (function () {
     				let i;
 
     				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context$2(ctx, each_value, i);
+    					const child_ctx = get_each_context$3(ctx, each_value, i);
 
     					if (each_blocks[i]) {
     						each_blocks[i].p(child_ctx, dirty);
     					} else {
-    						each_blocks[i] = create_each_block$2(child_ctx);
+    						each_blocks[i] = create_each_block$3(child_ctx);
     						each_blocks[i].c();
     						each_blocks[i].m(select, option);
     					}
@@ -2379,17 +2440,25 @@ var app = (function () {
     				set_input_value(input0, /*attack*/ ctx[1]);
     			}
 
+    			if (dirty & /*attack*/ 2) set_data_dev(t9, /*attack*/ ctx[1]);
+
     			if (dirty & /*decay*/ 4) {
     				set_input_value(input1, /*decay*/ ctx[2]);
     			}
+
+    			if (dirty & /*decay*/ 4) set_data_dev(t13, /*decay*/ ctx[2]);
 
     			if (dirty & /*sustain*/ 8) {
     				set_input_value(input2, /*sustain*/ ctx[3]);
     			}
 
+    			if (dirty & /*sustain*/ 8) set_data_dev(t17, /*sustain*/ ctx[3]);
+
     			if (dirty & /*release*/ 16) {
     				set_input_value(input3, /*release*/ ctx[4]);
     			}
+
+    			if (dirty & /*release*/ 16) set_data_dev(t21, /*release*/ ctx[4]);
     		},
     		i: noop,
     		o: noop,
@@ -2432,7 +2501,7 @@ var app = (function () {
     	set_store_value(noModules, $noModules++, $noModules);
     	const module = $modules[moduleId];
     	let notePlaying = false;
-    	let moduleOut;
+    	let moduleOut = null;
     	let attack = 1;
     	let decay = 1;
     	let sustain = 1;
@@ -2604,14 +2673,14 @@ var app = (function () {
     const { Object: Object_1$1 } = globals;
     const file$2 = "src\\VCF.svelte";
 
-    function get_each_context$1(ctx, list, i) {
+    function get_each_context$2(ctx, list, i) {
     	const child_ctx = ctx.slice();
     	child_ctx[16] = list[i][0];
     	child_ctx[17] = list[i][1];
     	return child_ctx;
     }
 
-    // (49:12) {#if m.output}
+    // (49:12) {#if m.output && id != moduleId}
     function create_if_block$1(ctx) {
     	let option;
     	let t_value = /*id*/ ctx[16] + "";
@@ -2624,7 +2693,7 @@ var app = (function () {
     			t = text(t_value);
     			option.__value = option_value_value = /*m*/ ctx[17].output;
     			option.value = option.__value;
-    			add_location(option, file$2, 49, 12, 1254);
+    			add_location(option, file$2, 49, 12, 1272);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, option, anchor);
@@ -2647,7 +2716,7 @@ var app = (function () {
     		block,
     		id: create_if_block$1.name,
     		type: "if",
-    		source: "(49:12) {#if m.output}",
+    		source: "(49:12) {#if m.output && id != moduleId}",
     		ctx
     	});
 
@@ -2655,9 +2724,9 @@ var app = (function () {
     }
 
     // (48:8) {#each Object.entries($modules) as [id, m]}
-    function create_each_block$1(ctx) {
+    function create_each_block$2(ctx) {
     	let if_block_anchor;
-    	let if_block = /*m*/ ctx[17].output && create_if_block$1(ctx);
+    	let if_block = /*m*/ ctx[17].output && /*id*/ ctx[16] != /*moduleId*/ ctx[4] && create_if_block$1(ctx);
 
     	const block = {
     		c: function create() {
@@ -2669,7 +2738,7 @@ var app = (function () {
     			insert_dev(target, if_block_anchor, anchor);
     		},
     		p: function update(ctx, dirty) {
-    			if (/*m*/ ctx[17].output) {
+    			if (/*m*/ ctx[17].output && /*id*/ ctx[16] != /*moduleId*/ ctx[4]) {
     				if (if_block) {
     					if_block.p(ctx, dirty);
     				} else {
@@ -2690,7 +2759,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_each_block$1.name,
+    		id: create_each_block$2.name,
     		type: "each",
     		source: "(48:8) {#each Object.entries($modules) as [id, m]}",
     		ctx
@@ -2739,7 +2808,7 @@ var app = (function () {
     	let each_blocks = [];
 
     	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block$1(get_each_context$1(ctx, each_value, i));
+    		each_blocks[i] = create_each_block$2(get_each_context$2(ctx, each_value, i));
     	}
 
     	binding_group = init_binding_group(/*$$binding_groups*/ ctx[12][0]);
@@ -2790,7 +2859,7 @@ var app = (function () {
     			add_location(button, file$2, 45, 8, 1067);
     			option.__value = null;
     			option.value = option.__value;
-    			add_location(option, file$2, 52, 8, 1338);
+    			add_location(option, file$2, 52, 8, 1356);
     			if (/*module*/ ctx[0].input === void 0) add_render_callback(() => /*select_change_handler*/ ctx[9].call(select));
     			add_location(select, file$2, 46, 15, 1125);
     			add_location(label0, file$2, 46, 8, 1118);
@@ -2798,27 +2867,27 @@ var app = (function () {
     			attr_dev(input0, "min", "2.78135971352466");
     			attr_dev(input0, "max", "14.78135971352466");
     			attr_dev(input0, "step", "0.0001");
-    			add_location(input0, file$2, 54, 15, 1417);
-    			add_location(label1, file$2, 54, 8, 1410);
+    			add_location(input0, file$2, 54, 15, 1435);
+    			add_location(label1, file$2, 54, 8, 1428);
     			attr_dev(input1, "type", "radio");
     			input1.__value = "lowpass";
     			input1.value = input1.__value;
-    			add_location(input1, file$2, 56, 19, 1573);
-    			add_location(label2, file$2, 56, 12, 1566);
+    			add_location(input1, file$2, 56, 19, 1591);
+    			add_location(label2, file$2, 56, 12, 1584);
     			attr_dev(input2, "type", "radio");
     			input2.__value = "highpass";
     			input2.value = input2.__value;
-    			add_location(input2, file$2, 57, 19, 1677);
-    			add_location(label3, file$2, 57, 12, 1670);
+    			add_location(input2, file$2, 57, 19, 1695);
+    			add_location(label3, file$2, 57, 12, 1688);
     			attr_dev(input3, "type", "radio");
     			input3.__value = "bandpass";
     			input3.value = input3.__value;
-    			add_location(input3, file$2, 58, 19, 1783);
-    			add_location(label4, file$2, 58, 12, 1776);
-    			add_location(section, file$2, 55, 8, 1543);
+    			add_location(input3, file$2, 58, 19, 1801);
+    			add_location(label4, file$2, 58, 12, 1794);
+    			add_location(section, file$2, 55, 8, 1561);
     			attr_dev(div, "class", "svelte-49prnq");
     			add_location(div, file$2, 42, 4, 998);
-    			add_location(br, file$2, 61, 4, 1906);
+    			add_location(br, file$2, 61, 4, 1924);
     			add_location(main, file$2, 41, 0, 986);
     			binding_group.p(input1, input2, input3);
     		},
@@ -2885,18 +2954,18 @@ var app = (function () {
     			}
     		},
     		p: function update(ctx, [dirty]) {
-    			if (dirty & /*Object, $modules*/ 8) {
+    			if (dirty & /*Object, $modules, moduleId*/ 24) {
     				each_value = Object.entries(/*$modules*/ ctx[3]);
     				validate_each_argument(each_value);
     				let i;
 
     				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context$1(ctx, each_value, i);
+    					const child_ctx = get_each_context$2(ctx, each_value, i);
 
     					if (each_blocks[i]) {
     						each_blocks[i].p(child_ctx, dirty);
     					} else {
-    						each_blocks[i] = create_each_block$1(child_ctx);
+    						each_blocks[i] = create_each_block$2(child_ctx);
     						each_blocks[i].c();
     						each_blocks[i].m(select, option);
     					}
@@ -3106,7 +3175,7 @@ var app = (function () {
     const { Object: Object_1 } = globals;
     const file$1 = "src\\Mixer.svelte";
 
-    function get_each_context(ctx, list, i) {
+    function get_each_context$1(ctx, list, i) {
     	const child_ctx = ctx.slice();
     	child_ctx[9] = list[i];
     	child_ctx[10] = list;
@@ -3213,7 +3282,7 @@ var app = (function () {
     }
 
     // (39:4) {#each module.inputs as input, inpid}
-    function create_each_block(ctx) {
+    function create_each_block$1(ctx) {
     	let label;
     	let select;
     	let option;
@@ -3313,7 +3382,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_each_block.name,
+    		id: create_each_block$1.name,
     		type: "each",
     		source: "(39:4) {#each module.inputs as input, inpid}",
     		ctx
@@ -3340,7 +3409,7 @@ var app = (function () {
     	let each_blocks = [];
 
     	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
+    		each_blocks[i] = create_each_block$1(get_each_context$1(ctx, each_value, i));
     	}
 
     	const block = {
@@ -3405,12 +3474,12 @@ var app = (function () {
     				let i;
 
     				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context(ctx, each_value, i);
+    					const child_ctx = get_each_context$1(ctx, each_value, i);
 
     					if (each_blocks[i]) {
     						each_blocks[i].p(child_ctx, dirty);
     					} else {
-    						each_blocks[i] = create_each_block(child_ctx);
+    						each_blocks[i] = create_each_block$1(child_ctx);
     						each_blocks[i].c();
     						each_blocks[i].m(div, null);
     					}
@@ -3537,120 +3606,252 @@ var app = (function () {
     /* src\App.svelte generated by Svelte v3.59.2 */
     const file = "src\\App.svelte";
 
+    function get_each_context(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[9] = list[i];
+    	return child_ctx;
+    }
+
+    // (31:1) {#each modules as m}
+    function create_each_block(ctx) {
+    	let switch_instance;
+    	let switch_instance_anchor;
+    	let current;
+    	var switch_value = /*m*/ ctx[9];
+
+    	function switch_props(ctx) {
+    		return { $$inline: true };
+    	}
+
+    	if (switch_value) {
+    		switch_instance = construct_svelte_component_dev(switch_value, switch_props());
+    	}
+
+    	const block = {
+    		c: function create() {
+    			if (switch_instance) create_component(switch_instance.$$.fragment);
+    			switch_instance_anchor = empty();
+    		},
+    		m: function mount(target, anchor) {
+    			if (switch_instance) mount_component(switch_instance, target, anchor);
+    			insert_dev(target, switch_instance_anchor, anchor);
+    			current = true;
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty & /*modules*/ 1 && switch_value !== (switch_value = /*m*/ ctx[9])) {
+    				if (switch_instance) {
+    					group_outros();
+    					const old_component = switch_instance;
+
+    					transition_out(old_component.$$.fragment, 1, 0, () => {
+    						destroy_component(old_component, 1);
+    					});
+
+    					check_outros();
+    				}
+
+    				if (switch_value) {
+    					switch_instance = construct_svelte_component_dev(switch_value, switch_props());
+    					create_component(switch_instance.$$.fragment);
+    					transition_in(switch_instance.$$.fragment, 1);
+    					mount_component(switch_instance, switch_instance_anchor.parentNode, switch_instance_anchor);
+    				} else {
+    					switch_instance = null;
+    				}
+    			}
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			if (switch_instance) transition_in(switch_instance.$$.fragment, local);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			if (switch_instance) transition_out(switch_instance.$$.fragment, local);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(switch_instance_anchor);
+    			if (switch_instance) destroy_component(switch_instance, detaching);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_each_block.name,
+    		type: "each",
+    		source: "(31:1) {#each modules as m}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
     function create_fragment(ctx) {
     	let main;
-    	let midi;
-    	let t0;
-    	let output;
+    	let button0;
     	let t1;
-    	let vco0;
-    	let t2;
-    	let vco1;
+    	let button1;
     	let t3;
-    	let mixer;
-    	let t4;
-    	let adsr0;
+    	let button2;
     	let t5;
-    	let vcf;
-    	let t6;
-    	let adsr1;
+    	let button3;
     	let t7;
-    	let vca;
+    	let button4;
+    	let t9;
+    	let midi;
+    	let t10;
+    	let output;
+    	let t11;
     	let current;
+    	let mounted;
+    	let dispose;
     	midi = new MIDI({ $$inline: true });
     	output = new Output({ $$inline: true });
-    	vco0 = new VCO({ $$inline: true });
-    	vco1 = new VCO({ $$inline: true });
-    	mixer = new Mixer({ $$inline: true });
-    	adsr0 = new ADSR({ $$inline: true });
-    	vcf = new VCF({ $$inline: true });
-    	adsr1 = new ADSR({ $$inline: true });
-    	vca = new VCA({ $$inline: true });
+    	let each_value = /*modules*/ ctx[0];
+    	validate_each_argument(each_value);
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
+    	}
+
+    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
+    		each_blocks[i] = null;
+    	});
 
     	const block = {
     		c: function create() {
     			main = element("main");
-    			create_component(midi.$$.fragment);
-    			t0 = space();
-    			create_component(output.$$.fragment);
+    			button0 = element("button");
+    			button0.textContent = "Add Oscillator";
     			t1 = space();
-    			create_component(vco0.$$.fragment);
-    			t2 = space();
-    			create_component(vco1.$$.fragment);
+    			button1 = element("button");
+    			button1.textContent = "Add Mixer";
     			t3 = space();
-    			create_component(mixer.$$.fragment);
-    			t4 = space();
-    			create_component(adsr0.$$.fragment);
+    			button2 = element("button");
+    			button2.textContent = "Add Amplifier";
     			t5 = space();
-    			create_component(vcf.$$.fragment);
-    			t6 = space();
-    			create_component(adsr1.$$.fragment);
+    			button3 = element("button");
+    			button3.textContent = "Add Filter";
     			t7 = space();
-    			create_component(vca.$$.fragment);
+    			button4 = element("button");
+    			button4.textContent = "Add Envelope";
+    			t9 = space();
+    			create_component(midi.$$.fragment);
+    			t10 = space();
+    			create_component(output.$$.fragment);
+    			t11 = space();
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			add_location(button0, file, 23, 1, 562);
+    			add_location(button1, file, 24, 1, 628);
+    			add_location(button2, file, 25, 1, 691);
+    			add_location(button3, file, 26, 1, 756);
+    			add_location(button4, file, 27, 1, 818);
     			attr_dev(main, "class", "svelte-pet8xf");
-    			add_location(main, file, 15, 0, 448);
+    			add_location(main, file, 22, 0, 553);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
-    			mount_component(midi, main, null);
-    			append_dev(main, t0);
-    			mount_component(output, main, null);
+    			append_dev(main, button0);
     			append_dev(main, t1);
-    			mount_component(vco0, main, null);
-    			append_dev(main, t2);
-    			mount_component(vco1, main, null);
+    			append_dev(main, button1);
     			append_dev(main, t3);
-    			mount_component(mixer, main, null);
-    			append_dev(main, t4);
-    			mount_component(adsr0, main, null);
+    			append_dev(main, button2);
     			append_dev(main, t5);
-    			mount_component(vcf, main, null);
-    			append_dev(main, t6);
-    			mount_component(adsr1, main, null);
+    			append_dev(main, button3);
     			append_dev(main, t7);
-    			mount_component(vca, main, null);
+    			append_dev(main, button4);
+    			append_dev(main, t9);
+    			mount_component(midi, main, null);
+    			append_dev(main, t10);
+    			mount_component(output, main, null);
+    			append_dev(main, t11);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				if (each_blocks[i]) {
+    					each_blocks[i].m(main, null);
+    				}
+    			}
+
     			current = true;
+
+    			if (!mounted) {
+    				dispose = [
+    					listen_dev(button0, "click", /*click_handler*/ ctx[2], false, false, false, false),
+    					listen_dev(button1, "click", /*click_handler_1*/ ctx[3], false, false, false, false),
+    					listen_dev(button2, "click", /*click_handler_2*/ ctx[4], false, false, false, false),
+    					listen_dev(button3, "click", /*click_handler_3*/ ctx[5], false, false, false, false),
+    					listen_dev(button4, "click", /*click_handler_4*/ ctx[6], false, false, false, false)
+    				];
+
+    				mounted = true;
+    			}
     		},
-    		p: noop,
+    		p: function update(ctx, [dirty]) {
+    			if (dirty & /*modules*/ 1) {
+    				each_value = /*modules*/ ctx[0];
+    				validate_each_argument(each_value);
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    						transition_in(each_blocks[i], 1);
+    					} else {
+    						each_blocks[i] = create_each_block(child_ctx);
+    						each_blocks[i].c();
+    						transition_in(each_blocks[i], 1);
+    						each_blocks[i].m(main, null);
+    					}
+    				}
+
+    				group_outros();
+
+    				for (i = each_value.length; i < each_blocks.length; i += 1) {
+    					out(i);
+    				}
+
+    				check_outros();
+    			}
+    		},
     		i: function intro(local) {
     			if (current) return;
     			transition_in(midi.$$.fragment, local);
     			transition_in(output.$$.fragment, local);
-    			transition_in(vco0.$$.fragment, local);
-    			transition_in(vco1.$$.fragment, local);
-    			transition_in(mixer.$$.fragment, local);
-    			transition_in(adsr0.$$.fragment, local);
-    			transition_in(vcf.$$.fragment, local);
-    			transition_in(adsr1.$$.fragment, local);
-    			transition_in(vca.$$.fragment, local);
+
+    			for (let i = 0; i < each_value.length; i += 1) {
+    				transition_in(each_blocks[i]);
+    			}
+
     			current = true;
     		},
     		o: function outro(local) {
     			transition_out(midi.$$.fragment, local);
     			transition_out(output.$$.fragment, local);
-    			transition_out(vco0.$$.fragment, local);
-    			transition_out(vco1.$$.fragment, local);
-    			transition_out(mixer.$$.fragment, local);
-    			transition_out(adsr0.$$.fragment, local);
-    			transition_out(vcf.$$.fragment, local);
-    			transition_out(adsr1.$$.fragment, local);
-    			transition_out(vca.$$.fragment, local);
+    			each_blocks = each_blocks.filter(Boolean);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				transition_out(each_blocks[i]);
+    			}
+
     			current = false;
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(main);
     			destroy_component(midi);
     			destroy_component(output);
-    			destroy_component(vco0);
-    			destroy_component(vco1);
-    			destroy_component(mixer);
-    			destroy_component(adsr0);
-    			destroy_component(vcf);
-    			destroy_component(adsr1);
-    			destroy_component(vca);
+    			destroy_each(each_blocks, detaching);
+    			mounted = false;
+    			run_all(dispose);
     		}
     	};
 
@@ -3668,17 +3869,30 @@ var app = (function () {
     function instance($$self, $$props, $$invalidate) {
     	let $context;
     	validate_store(context, 'context');
-    	component_subscribe($$self, context, $$value => $$invalidate(0, $context = $$value));
+    	component_subscribe($$self, context, $$value => $$invalidate(7, $context = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('App', slots, []);
     	window.AudioContext = window.AudioContext || window.webkitAudioContext;
     	var ctx = new AudioContext();
     	set_store_value(context, $context = ctx, $context);
+    	var modules = [];
+
+    	const addModule = type => {
+    		modules.push(type);
+    		$$invalidate(0, modules);
+    	};
+
     	const writable_props = [];
 
     	Object.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<App> was created with unknown prop '${key}'`);
     	});
+
+    	const click_handler = () => addModule(VCO);
+    	const click_handler_1 = () => addModule(Mixer);
+    	const click_handler_2 = () => addModule(VCA);
+    	const click_handler_3 = () => addModule(VCF);
+    	const click_handler_4 = () => addModule(ADSR);
 
     	$$self.$capture_state = () => ({
     		context,
@@ -3690,18 +3904,29 @@ var app = (function () {
     		VCF,
     		Mixer,
     		ctx,
+    		modules,
+    		addModule,
     		$context
     	});
 
     	$$self.$inject_state = $$props => {
     		if ('ctx' in $$props) ctx = $$props.ctx;
+    		if ('modules' in $$props) $$invalidate(0, modules = $$props.modules);
     	};
 
     	if ($$props && "$$inject" in $$props) {
     		$$self.$inject_state($$props.$$inject);
     	}
 
-    	return [];
+    	return [
+    		modules,
+    		addModule,
+    		click_handler,
+    		click_handler_1,
+    		click_handler_2,
+    		click_handler_3,
+    		click_handler_4
+    	];
     }
 
     class App extends SvelteComponentDev {
