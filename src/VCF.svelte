@@ -1,8 +1,12 @@
 <script>
-    import { createEventDispatcher } from "svelte";
+    import { modules, context, noModules, midi } from './stores.js';
 
-    export let ctx;
-    export let input;
+    const moduleId = $noModules;
+    $modules[moduleId] = {};
+    $noModules++;
+    const module = $modules[moduleId];
+
+    module.input = null;
 
     let voct = Math.log2(18000);
 
@@ -10,33 +14,52 @@
 
     $: max_cv.value = Math.pow(2, voct);
 
-    const dispatch = createEventDispatcher();
+    var filterNode = $context.createBiquadFilter();
 
-    var filterNode = ctx.createBiquadFilter();
+    module.output = filterNode;
 
-    $: filterNode.frequency.setValueAtTime(max_cv.value, ctx.currentTime);
+    $: module.cv_in = filterNode.frequency;
+    $: module.max_cv = max_cv;
 
-    $: if (input) input.connect(filterNode);
+    var currentInput;
 
-    const handle = () => dispatch('connect', { output: filterNode, cv_in: filterNode.frequency, max_cv })
+    $: if (module.input) {
+        if (currentInput) currentInput.disconnect();
+        currentInput = module.input;
+        currentInput.connect(filterNode);
+    } else {
+        if (currentInput) currentInput.disconnect();
+        currentInput = null;
+    }
+
+    $: filterNode.frequency.setValueAtTime(max_cv.value, $context.currentTime);
+
+    const update = () => {
+        module.input = module.input;
+    }
 </script>
 
 <main>
     <div>
+        <h1>{moduleId}</h1>
         <h2>Filter</h2>
+        <button on:click={update}>Update</button>
+        <label><select bind:value={module.input}>
+        {#each Object.entries($modules) as [id, m]}
+            {#if m.output}
+            <option value={m.output}>{id}</option>
+            {/if}
+        {/each}
+        <option value={null}></option>
+        </select>Input</label>
         <label><input bind:value={voct} type='range' min='2.78135971352466' max='14.78135971352466' step='0.0001'>Frequency</label>
         <section>
-            <label>
-                <input type='radio' value='lowpass' bind:group={filterNode.type} /> Lowpass
-            </label>
-            <label>
-                <input type='radio' value='highpass' bind:group={filterNode.type} /> Highpass
-            </label>
-            <label>
-                <input type='radio' value='bandpass' bind:group={filterNode.type} /> Bandpass
-            </label>
+            <label><input type='radio' value='lowpass' bind:group={filterNode.type} /> Lowpass</label>
+            <label><input type='radio' value='highpass' bind:group={filterNode.type} /> Highpass</label>
+            <label><input type='radio' value='bandpass' bind:group={filterNode.type} /> Bandpass</label>
         </section>
     </div>
+    <br>
 </main>
 
 <style>
@@ -45,4 +68,4 @@
     }
 </style>
 
-<svelte:window use:handle />
+<svelte:window />

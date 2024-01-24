@@ -1,28 +1,53 @@
 <script>
-    import { createEventDispatcher } from "svelte";
+    import { modules, context, noModules } from './stores.js';
 
-    export let ctx;
-    export let in0;
-    export let in1;
-    export let in2;
-    export let in3;
+    const moduleId = $noModules;
+    $modules[moduleId] = {};
+    $noModules++;
+    const module = $modules[moduleId];
 
-    const dispatch = createEventDispatcher();
-
-    var gainNode = ctx.createGain();
+    var gainNode = $context.createGain();
     
-    $: if (in0) in0.connect(gainNode);
-    $: if (in1) in1.connect(gainNode);
-    $: if (in2) in2.connect(gainNode);
-    $: if (in3) in3.connect(gainNode);
+    module.output = gainNode;
 
-    const handle = () => dispatch('connect', { output: gainNode });
+    module.inputs = [null, null, null, null];
+
+    const currentInputs = [null, null, null, null];
+
+    $: module.inputs.forEach((input, id) => {
+        if (input) {
+            if (currentInputs[id]) currentInputs[id].output.disconnect();
+            currentInputs[id] = input;
+            currentInputs[id].output.connect(gainNode);
+        } else {
+            if (currentInputs[id]) currentInputs[id].output.disconnect();
+            currentInputs[id] = null;
+
+        }
+    });
+
+    const update = () => {
+        module.inputs = module.inputs;
+    }
 </script>
 
 <main>
 <div>
+    <h1>{moduleId}</h1>
     <h2>Mixer</h2>
+    <button on:click={update}>Update</button>
+    {#each module.inputs as input, inpid}
+        <label><select bind:value={input}>
+        {#each Object.entries($modules) as [id, m]}
+            {#if m.output && id != moduleId && (!module.inputs.includes(m) || m == input)}
+            <option value={m}>{id}</option>
+            {/if}
+        {/each}
+            <option value={null}></option>
+        </select>Input {inpid}</label>
+    {/each}
 </div>
+<br>
 </main>
 
 <style>
@@ -31,4 +56,4 @@
     }
 </style>
 
-<svelte:window use:handle />
+<svelte:window />

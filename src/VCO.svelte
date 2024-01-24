@@ -1,46 +1,40 @@
 <script>
-    import { createEventDispatcher } from "svelte";
+    import { modules, context, noModules, midi } from './stores.js';
 
-    export let ctx;
-    export let voctIn;
-
-    const dispatch = createEventDispatcher();
+    const moduleId = $noModules;
+    $modules[moduleId] = {};
+    $noModules++;
+    const module = $modules[moduleId];
 
     let voct = Math.log2(440);
 
-    let cv = 0;
+    let frequency = 0;
 
-	let oscNode = ctx.createOscillator();
+	let oscNode = $context.createOscillator();
+    
+    module.output = oscNode;
 
-    $: if (voctIn != null) voct = voctIn;
+    $: if ($midi.voct) voct = $midi.voct;
 
-    $: oscNode.frequency.value = Math.pow(2, voct + cv);
+    $: oscNode.frequency.value = Math.pow(2, voct + frequency);
     
     oscNode.start(0);
-
-    const handle = () => dispatch('connect', {output: oscNode});
 </script>
 
 <main>
 <div>
+    <h1>{moduleId}</h1>
     <h2>Oscillator</h2>
-    <label><input bind:value={voct} type='range' min='2.78135971352466' max='14.78135971352466' step='0.0001'>Frequency</label>
-    <label><input bind:value={cv} type='range' min='-2' max='2' step='0.083333333333333'>Step</label>
+    <label><input bind:value={voct} type='range' min='2.78135971352466' max='14.78135971352466' step='0.0001'>v/oct</label>
+    <label><input bind:value={frequency} type='range' min='-2' max='2' step='0.083333333333333'>Frequency</label>
     <section>
-        <label>
-            <input type='radio' value='sine' bind:group={oscNode.type} /> Sine
-        </label>
-        <label>
-            <input type='radio' value='triangle' bind:group={oscNode.type} /> Triangle
-        </label>
-        <label>
-            <input type='radio' value='sawtooth' bind:group={oscNode.type} /> Sawtooth
-        </label>
-        <label>
-            <input type='radio' value='square' bind:group={oscNode.type} /> Square
-        </label>
+        <label><input type='radio' value='sine' bind:group={oscNode.type} />Sine</label>
+        <label><input type='radio' value='triangle' bind:group={oscNode.type} />Triangle</label>
+        <label><input type='radio' value='sawtooth' bind:group={oscNode.type} />Sawtooth</label>
+        <label><input type='radio' value='square' bind:group={oscNode.type} />Square</label>
     </section>
 </div> 
+<br>
 </main>
 
 <style>
@@ -49,4 +43,4 @@
     }
 </style>
 
-<svelte:window use:handle />
+<svelte:window />

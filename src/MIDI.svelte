@@ -1,6 +1,7 @@
 <script>
     import { createEventDispatcher } from "svelte";
-
+    import { midi } from './stores.js';
+    
     const dispatch = createEventDispatcher();
 
     let octChanged = false; // Whether key input was an octave change (no note is triggered)
@@ -119,7 +120,9 @@
 
             case 32: //Space
                 trigger = true;
-                dispatch('input', {output: null, trigger: trigger });
+
+                $midi.voct = null;
+                $midi.trigger = trigger;
                 return;
 
             default:
@@ -143,7 +146,8 @@
             newOct = octave;
             newOctUp = octUp;
 
-            dispatch('input', {output: Math.log2(frequency), trigger: trigger });
+            $midi.voct = Math.log2(frequency);
+            $midi.trigger = trigger;
         }
 
         
@@ -153,7 +157,9 @@
         if (trigger) {
             trigger = false;
             keyPressed = false;
-            dispatch('input', {output: null, trigger: trigger });
+
+            $midi.voct = null;
+            $midi.trigger = trigger;
         }
     }
 </script>
@@ -163,13 +169,17 @@
     <h2>MIDI</h2>
     Play notes by pressing keys on keyboard. Row Z-/ is white notes, row A-' is black notes.
     <br>Press - to lower octave and = to raise octave. Press space to trigger envelope without giving note input.
-    <h3>{note}{newOct+newOctUp}</h3>
-</div> 
+    <h3 class:active={trigger}>{note}{newOct+newOctUp}</h3>
+</div>
+<br>
 </main>
 
 <style>
     div {
         border-style: solid;
+    }
+    .active {
+        color:red;
     }
 </style>
 

@@ -27,9 +27,31 @@ var app = (function () {
     function is_empty(obj) {
         return Object.keys(obj).length === 0;
     }
-    function action_destroyer(action_result) {
-        return action_result && is_function(action_result.destroy) ? action_result.destroy : noop;
+    function validate_store(store, name) {
+        if (store != null && typeof store.subscribe !== 'function') {
+            throw new Error(`'${name}' is not a store with a 'subscribe' method`);
+        }
     }
+    function subscribe(store, ...callbacks) {
+        if (store == null) {
+            return noop;
+        }
+        const unsub = store.subscribe(...callbacks);
+        return unsub.unsubscribe ? () => unsub.unsubscribe() : unsub;
+    }
+    function component_subscribe(component, store, callback) {
+        component.$$.on_destroy.push(subscribe(store, callback));
+    }
+    function set_store_value(store, ret, value) {
+        store.set(value);
+        return ret;
+    }
+
+    const globals = (typeof window !== 'undefined'
+        ? window
+        : typeof globalThis !== 'undefined'
+            ? globalThis
+            : global);
     function append(target, node) {
         target.appendChild(node);
     }
@@ -41,6 +63,12 @@ var app = (function () {
             node.parentNode.removeChild(node);
         }
     }
+    function destroy_each(iterations, detaching) {
+        for (let i = 0; i < iterations.length; i += 1) {
+            if (iterations[i])
+                iterations[i].d(detaching);
+        }
+    }
     function element(name) {
         return document.createElement(name);
     }
@@ -49,6 +77,9 @@ var app = (function () {
     }
     function space() {
         return text(' ');
+    }
+    function empty() {
+        return text('');
     }
     function listen(node, event, handler, options) {
         node.addEventListener(event, handler, options);
@@ -87,6 +118,25 @@ var app = (function () {
     }
     function set_input_value(input, value) {
         input.value = value == null ? '' : value;
+    }
+    function select_option(select, value, mounting) {
+        for (let i = 0; i < select.options.length; i += 1) {
+            const option = select.options[i];
+            if (option.__value === value) {
+                option.selected = true;
+                return;
+            }
+        }
+        if (!mounting || value !== undefined) {
+            select.selectedIndex = -1; // no option should be selected
+        }
+    }
+    function select_value(select) {
+        const selected_option = select.querySelector(':checked');
+        return selected_option && selected_option.__value;
+    }
+    function toggle_class(element, name, toggle) {
+        element.classList[toggle ? 'add' : 'remove'](name);
     }
     function custom_event(type, detail, { bubbles = false, cancelable = false } = {}) {
         const e = document.createEvent('CustomEvent');
@@ -157,9 +207,6 @@ var app = (function () {
     }
     function add_render_callback(fn) {
         render_callbacks.push(fn);
-    }
-    function add_flush_callback(fn) {
-        flush_callbacks.push(fn);
     }
     // flush() calls callbacks in this order:
     // 1. All beforeUpdate callbacks, in order: parents before children
@@ -253,19 +300,6 @@ var app = (function () {
     }
     const outroing = new Set();
     let outros;
-    function group_outros() {
-        outros = {
-            r: 0,
-            c: [],
-            p: outros // parent group
-        };
-    }
-    function check_outros() {
-        if (!outros.r) {
-            run_all(outros.c);
-        }
-        outros = outros.p;
-    }
     function transition_in(block, local) {
         if (block && block.i) {
             outroing.delete(block);
@@ -289,14 +323,6 @@ var app = (function () {
         }
         else if (callback) {
             callback();
-        }
-    }
-
-    function bind(component, name, callback) {
-        const index = component.$$.props[name];
-        if (index !== undefined) {
-            component.$$.bound[index] = callback;
-            callback(component.$$.ctx[index]);
         }
     }
     function create_component(block) {
@@ -472,6 +498,10 @@ var app = (function () {
         else
             dispatch_dev('SvelteDOMSetAttribute', { node, attribute, value });
     }
+    function prop_dev(node, property, value) {
+        node[property] = value;
+        dispatch_dev('SvelteDOMSetProperty', { node, property, value });
+    }
     function set_data_dev(text, data) {
         data = '' + data;
         if (text.data === data)
@@ -479,29 +509,19 @@ var app = (function () {
         dispatch_dev('SvelteDOMSetData', { node: text, data });
         text.data = data;
     }
+    function validate_each_argument(arg) {
+        if (typeof arg !== 'string' && !(arg && typeof arg === 'object' && 'length' in arg)) {
+            let msg = '{#each} only iterates over array-like objects.';
+            if (typeof Symbol === 'function' && arg && Symbol.iterator in arg) {
+                msg += ' You can use a spread to convert this iterable into an array.';
+            }
+            throw new Error(msg);
+        }
+    }
     function validate_slots(name, slot, keys) {
         for (const slot_key of Object.keys(slot)) {
             if (!~keys.indexOf(slot_key)) {
                 console.warn(`<${name}> received an unexpected slot "${slot_key}".`);
-            }
-        }
-    }
-    function construct_svelte_component_dev(component, props) {
-        const error_message = 'this={...} of <svelte:component> should specify a Svelte component.';
-        try {
-            const instance = new component(props);
-            if (!instance.$$ || !instance.$set || !instance.$on || !instance.$destroy) {
-                throw new Error(error_message);
-            }
-            return instance;
-        }
-        catch (err) {
-            const { message } = err;
-            if (typeof message === 'string' && message.indexOf('is not a constructor') !== -1) {
-                throw new Error(error_message);
-            }
-            else {
-                throw err;
             }
         }
     }
@@ -525,6 +545,62 @@ var app = (function () {
         $inject_state() { }
     }
 
+    const subscriber_queue = [];
+    /**
+     * Create a `Writable` store that allows both updating and reading by subscription.
+     * @param {*=}value initial value
+     * @param {StartStopNotifier=} start
+     */
+    function writable(value, start = noop) {
+        let stop;
+        const subscribers = new Set();
+        function set(new_value) {
+            if (safe_not_equal(value, new_value)) {
+                value = new_value;
+                if (stop) { // store is ready
+                    const run_queue = !subscriber_queue.length;
+                    for (const subscriber of subscribers) {
+                        subscriber[1]();
+                        subscriber_queue.push(subscriber, value);
+                    }
+                    if (run_queue) {
+                        for (let i = 0; i < subscriber_queue.length; i += 2) {
+                            subscriber_queue[i][0](subscriber_queue[i + 1]);
+                        }
+                        subscriber_queue.length = 0;
+                    }
+                }
+            }
+        }
+        function update(fn) {
+            set(fn(value));
+        }
+        function subscribe(run, invalidate = noop) {
+            const subscriber = [run, invalidate];
+            subscribers.add(subscriber);
+            if (subscribers.size === 1) {
+                stop = start(set) || noop;
+            }
+            run(value);
+            return () => {
+                subscribers.delete(subscriber);
+                if (subscribers.size === 0 && stop) {
+                    stop();
+                    stop = null;
+                }
+            };
+        }
+        return { set, update, subscribe };
+    }
+
+    const modules = writable({});
+
+    const midi = writable({voct: null, trigger: false});
+
+    const noModules = writable(0);
+
+    const context = writable(null);
+
     /* src\MIDI.svelte generated by Svelte v3.59.2 */
     const file$7 = "src\\MIDI.svelte";
 
@@ -533,12 +609,14 @@ var app = (function () {
     	let div;
     	let h2;
     	let t1;
-    	let br;
+    	let br0;
     	let t2;
     	let h3;
     	let t3;
-    	let t4_value = /*newOct*/ ctx[0] + /*newOctUp*/ ctx[2] + "";
+    	let t4_value = /*newOct*/ ctx[0] + /*newOctUp*/ ctx[3] + "";
     	let t4;
+    	let t5;
+    	let br1;
     	let mounted;
     	let dispose;
 
@@ -549,17 +627,22 @@ var app = (function () {
     			h2 = element("h2");
     			h2.textContent = "MIDI";
     			t1 = text("\r\n    Play notes by pressing keys on keyboard. Row Z-/ is white notes, row A-' is black notes.\r\n    ");
-    			br = element("br");
+    			br0 = element("br");
     			t2 = text("Press - to lower octave and = to raise octave. Press space to trigger envelope without giving note input.\r\n    ");
     			h3 = element("h3");
-    			t3 = text(/*note*/ ctx[1]);
+    			t3 = text(/*note*/ ctx[2]);
     			t4 = text(t4_value);
-    			add_location(h2, file$7, 162, 4, 4372);
-    			add_location(br, file$7, 164, 4, 4485);
-    			add_location(h3, file$7, 165, 4, 4600);
-    			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$7, 161, 0, 4361);
-    			add_location(main, file$7, 160, 0, 4353);
+    			t5 = space();
+    			br1 = element("br");
+    			add_location(h2, file$7, 168, 4, 4434);
+    			add_location(br0, file$7, 170, 4, 4547);
+    			attr_dev(h3, "class", "svelte-1y6qcrh");
+    			toggle_class(h3, "active", /*trigger*/ ctx[1]);
+    			add_location(h3, file$7, 171, 4, 4662);
+    			attr_dev(div, "class", "svelte-1y6qcrh");
+    			add_location(div, file$7, 167, 0, 4423);
+    			add_location(br1, file$7, 173, 0, 4727);
+    			add_location(main, file$7, 166, 0, 4415);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -569,24 +652,30 @@ var app = (function () {
     			append_dev(main, div);
     			append_dev(div, h2);
     			append_dev(div, t1);
-    			append_dev(div, br);
+    			append_dev(div, br0);
     			append_dev(div, t2);
     			append_dev(div, h3);
     			append_dev(h3, t3);
     			append_dev(h3, t4);
+    			append_dev(main, t5);
+    			append_dev(main, br1);
 
     			if (!mounted) {
     				dispose = [
-    					listen_dev(window, "keydown", prevent_default(/*onKeyDown*/ ctx[3]), false, true, false, false),
-    					listen_dev(window, "keyup", prevent_default(/*onKeyUp*/ ctx[4]), false, true, false, false)
+    					listen_dev(window, "keydown", prevent_default(/*onKeyDown*/ ctx[4]), false, true, false, false),
+    					listen_dev(window, "keyup", prevent_default(/*onKeyUp*/ ctx[5]), false, true, false, false)
     				];
 
     				mounted = true;
     			}
     		},
     		p: function update(ctx, [dirty]) {
-    			if (dirty & /*note*/ 2) set_data_dev(t3, /*note*/ ctx[1]);
-    			if (dirty & /*newOct, newOctUp*/ 5 && t4_value !== (t4_value = /*newOct*/ ctx[0] + /*newOctUp*/ ctx[2] + "")) set_data_dev(t4, t4_value);
+    			if (dirty & /*note*/ 4) set_data_dev(t3, /*note*/ ctx[2]);
+    			if (dirty & /*newOct, newOctUp*/ 9 && t4_value !== (t4_value = /*newOct*/ ctx[0] + /*newOctUp*/ ctx[3] + "")) set_data_dev(t4, t4_value);
+
+    			if (dirty & /*trigger*/ 2) {
+    				toggle_class(h3, "active", /*trigger*/ ctx[1]);
+    			}
     		},
     		i: noop,
     		o: noop,
@@ -609,6 +698,9 @@ var app = (function () {
     }
 
     function instance$7($$self, $$props, $$invalidate) {
+    	let $midi;
+    	validate_store(midi, 'midi');
+    	component_subscribe($$self, midi, $$value => $$invalidate(11, $midi = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('MIDI', slots, []);
     	const dispatch = createEventDispatcher();
@@ -648,107 +740,105 @@ var app = (function () {
     			case 90:
     				//Z
     				frequency = 261.63;
-    				$$invalidate(1, note = 'C');
+    				$$invalidate(2, note = 'C');
     				break;
     			case 83:
     				//S
     				frequency = 277.18;
-    				$$invalidate(1, note = 'C#/Db');
+    				$$invalidate(2, note = 'C#/Db');
     				break;
     			case 88:
     				//X
     				frequency = 293.66;
-    				$$invalidate(1, note = 'D');
+    				$$invalidate(2, note = 'D');
     				break;
     			case 68:
     				//D
     				frequency = 311.13;
-    				$$invalidate(1, note = 'D#/Eb');
+    				$$invalidate(2, note = 'D#/Eb');
     				break;
     			case 67:
     				//C
     				frequency = 329.63;
-    				$$invalidate(1, note = 'E');
+    				$$invalidate(2, note = 'E');
     				break;
     			case 86:
     				//V
     				frequency = 349.23;
-    				$$invalidate(1, note = 'F');
+    				$$invalidate(2, note = 'F');
     				break;
     			case 71:
     				//G
     				frequency = 369.99;
-    				$$invalidate(1, note = 'F#/Gb');
+    				$$invalidate(2, note = 'F#/Gb');
     				break;
     			case 66:
     				//B
     				frequency = 392.00;
-    				$$invalidate(1, note = 'G');
+    				$$invalidate(2, note = 'G');
     				break;
     			case 72:
     				//H
     				frequency = 415.30;
-    				$$invalidate(1, note = 'G#/Ab');
+    				$$invalidate(2, note = 'G#/Ab');
     				break;
     			case 78:
     				//N
     				frequency = 440.00;
-    				$$invalidate(1, note = 'A');
+    				$$invalidate(2, note = 'A');
     				break;
     			case 74:
     				//J
     				frequency = 466.16;
-    				$$invalidate(1, note = 'A#/Bb');
+    				$$invalidate(2, note = 'A#/Bb');
     				break;
     			case 77:
     				//M
     				frequency = 493.88;
-    				$$invalidate(1, note = 'B');
+    				$$invalidate(2, note = 'B');
     				break;
     			case 188:
     				//,
     				frequency = 523.25;
-    				$$invalidate(1, note = 'C');
+    				$$invalidate(2, note = 'C');
     				octUp = 1;
     				break;
     			case 76:
     				//L
     				frequency = 554.37;
-    				$$invalidate(1, note = 'C#/Db');
+    				$$invalidate(2, note = 'C#/Db');
     				octUp = 1;
     				break;
     			case 190:
     				//.
     				frequency = 587.33;
-    				$$invalidate(1, note = 'D');
+    				$$invalidate(2, note = 'D');
     				octUp = 1;
     				break;
     			case 59:
     				//;
     				frequency = 622.25;
-    				$$invalidate(1, note = 'D#/Eb');
+    				$$invalidate(2, note = 'D#/Eb');
     				octUp = 1;
     				break;
     			case 191:
     				///
     				frequency = 659.25;
-    				$$invalidate(1, note = 'E');
+    				$$invalidate(2, note = 'E');
     				octUp = 1;
     				break;
     			case 32:
     				//Space
-    				trigger = true;
-    				dispatch('input', {
-    					output: null, //C4
-    					//D4
-    					//E4
-    					trigger
-    				});
+    				$$invalidate(1, trigger = true);
+    				set_store_value(midi, $midi.voct = null, $midi);
+    				set_store_value(midi, $midi.trigger = trigger, $midi);
     				return;
     			default:
     				keyPressed = false;
     				break;
-    		}
+    		} //C4
+    		//D4
+    		//E4
 
     		if (!octChanged && keyPressed) {
     			if (octave > 4) {
@@ -761,18 +851,20 @@ var app = (function () {
     				}
     			}
 
-    			trigger = true;
+    			$$invalidate(1, trigger = true);
     			$$invalidate(0, newOct = octave);
-    			$$invalidate(2, newOctUp = octUp);
-    			dispatch('input', { output: Math.log2(frequency), trigger });
+    			$$invalidate(3, newOctUp = octUp);
+    			set_store_value(midi, $midi.voct = Math.log2(frequency), $midi);
+    			set_store_value(midi, $midi.trigger = trigger, $midi);
     		}
     	}
 
     	function onKeyUp(e) {
     		if (trigger) {
-    			trigger = false;
+    			$$invalidate(1, trigger = false);
     			keyPressed = false;
-    			dispatch('input', { output: null, trigger });
+    			set_store_value(midi, $midi.voct = null, $midi);
+    			set_store_value(midi, $midi.trigger = trigger, $midi);
     		}
     	}
 
@@ -784,6 +876,7 @@ var app = (function () {
 
     	$$self.$capture_state = () => ({
     		createEventDispatcher,
+    		midi,
     		dispatch,
     		octChanged,
     		keyPressed,
@@ -795,7 +888,8 @@ var app = (function () {
     		octUp,
     		newOctUp,
     		onKeyDown,
-    		onKeyUp
+    		onKeyUp,
+    		$midi
     	});
 
     	$$self.$inject_state = $$props => {
@@ -804,17 +898,17 @@ var app = (function () {
     		if ('octave' in $$props) octave = $$props.octave;
     		if ('newOct' in $$props) $$invalidate(0, newOct = $$props.newOct);
     		if ('frequency' in $$props) frequency = $$props.frequency;
-    		if ('trigger' in $$props) trigger = $$props.trigger;
-    		if ('note' in $$props) $$invalidate(1, note = $$props.note);
+    		if ('trigger' in $$props) $$invalidate(1, trigger = $$props.trigger);
+    		if ('note' in $$props) $$invalidate(2, note = $$props.note);
     		if ('octUp' in $$props) octUp = $$props.octUp;
-    		if ('newOctUp' in $$props) $$invalidate(2, newOctUp = $$props.newOctUp);
+    		if ('newOctUp' in $$props) $$invalidate(3, newOctUp = $$props.newOctUp);
     	};
 
     	if ($$props && "$$inject" in $$props) {
     		$$self.$inject_state($$props.$$inject);
     	}
 
-    	return [newOct, note, newOctUp, onKeyDown, onKeyUp];
+    	return [newOct, trigger, note, newOctUp, onKeyDown, onKeyUp];
     }
 
     class MIDI extends SvelteComponentDev {
@@ -837,105 +931,116 @@ var app = (function () {
     function create_fragment$6(ctx) {
     	let main;
     	let div;
-    	let h2;
+    	let h1;
     	let t1;
+    	let h2;
+    	let t3;
     	let label0;
     	let input0;
-    	let t2;
-    	let t3;
-    	let label1;
-    	let input1;
     	let t4;
     	let t5;
+    	let label1;
+    	let input1;
+    	let t6;
+    	let t7;
     	let section;
     	let label2;
     	let input2;
-    	let t6;
-    	let t7;
-    	let label3;
-    	let input3;
     	let t8;
     	let t9;
-    	let label4;
-    	let input4;
+    	let label3;
+    	let input3;
     	let t10;
     	let t11;
+    	let label4;
+    	let input4;
+    	let t12;
+    	let t13;
     	let label5;
     	let input5;
-    	let t12;
+    	let t14;
+    	let t15;
+    	let br;
     	let binding_group;
     	let mounted;
     	let dispose;
-    	binding_group = init_binding_group(/*$$binding_groups*/ ctx[9][0]);
+    	binding_group = init_binding_group(/*$$binding_groups*/ ctx[8][0]);
 
     	const block = {
     		c: function create() {
     			main = element("main");
     			div = element("div");
+    			h1 = element("h1");
+    			h1.textContent = `${/*moduleId*/ ctx[3]}`;
+    			t1 = space();
     			h2 = element("h2");
     			h2.textContent = "Oscillator";
-    			t1 = space();
+    			t3 = space();
     			label0 = element("label");
     			input0 = element("input");
-    			t2 = text("Frequency");
-    			t3 = space();
+    			t4 = text("v/oct");
+    			t5 = space();
     			label1 = element("label");
     			input1 = element("input");
-    			t4 = text("Step");
-    			t5 = space();
+    			t6 = text("Frequency");
+    			t7 = space();
     			section = element("section");
     			label2 = element("label");
     			input2 = element("input");
-    			t6 = text(" Sine");
-    			t7 = space();
+    			t8 = text("Sine");
+    			t9 = space();
     			label3 = element("label");
     			input3 = element("input");
-    			t8 = text(" Triangle");
-    			t9 = space();
+    			t10 = text("Triangle");
+    			t11 = space();
     			label4 = element("label");
     			input4 = element("input");
-    			t10 = text(" Sawtooth");
-    			t11 = space();
+    			t12 = text("Sawtooth");
+    			t13 = space();
     			label5 = element("label");
     			input5 = element("input");
-    			t12 = text(" Square");
-    			add_location(h2, file$6, 25, 4, 488);
+    			t14 = text("Square");
+    			t15 = space();
+    			br = element("br");
+    			add_location(h1, file$6, 25, 4, 521);
+    			add_location(h2, file$6, 26, 4, 546);
     			attr_dev(input0, "type", "range");
     			attr_dev(input0, "min", "2.78135971352466");
     			attr_dev(input0, "max", "14.78135971352466");
     			attr_dev(input0, "step", "0.0001");
-    			add_location(input0, file$6, 26, 11, 520);
-    			add_location(label0, file$6, 26, 4, 513);
+    			add_location(input0, file$6, 27, 11, 578);
+    			add_location(label0, file$6, 27, 4, 571);
     			attr_dev(input1, "type", "range");
     			attr_dev(input1, "min", "-2");
     			attr_dev(input1, "max", "2");
     			attr_dev(input1, "step", "0.083333333333333");
-    			add_location(input1, file$6, 27, 11, 649);
-    			add_location(label1, file$6, 27, 4, 642);
+    			add_location(input1, file$6, 28, 11, 703);
+    			add_location(label1, file$6, 28, 4, 696);
     			attr_dev(input2, "type", "radio");
     			input2.__value = "sine";
     			input2.value = input2.__value;
-    			add_location(input2, file$6, 30, 12, 785);
-    			add_location(label2, file$6, 29, 8, 764);
+    			add_location(input2, file$6, 30, 15, 837);
+    			add_location(label2, file$6, 30, 8, 830);
     			attr_dev(input3, "type", "radio");
     			input3.__value = "triangle";
     			input3.value = input3.__value;
-    			add_location(input3, file$6, 33, 12, 900);
-    			add_location(label3, file$6, 32, 8, 879);
+    			add_location(input3, file$6, 31, 15, 927);
+    			add_location(label3, file$6, 31, 8, 920);
     			attr_dev(input4, "type", "radio");
     			input4.__value = "sawtooth";
     			input4.value = input4.__value;
-    			add_location(input4, file$6, 36, 12, 1023);
-    			add_location(label4, file$6, 35, 8, 1002);
+    			add_location(input4, file$6, 32, 15, 1025);
+    			add_location(label4, file$6, 32, 8, 1018);
     			attr_dev(input5, "type", "radio");
     			input5.__value = "square";
     			input5.value = input5.__value;
-    			add_location(input5, file$6, 39, 12, 1146);
-    			add_location(label5, file$6, 38, 8, 1125);
-    			add_location(section, file$6, 28, 4, 745);
+    			add_location(input5, file$6, 33, 15, 1123);
+    			add_location(label5, file$6, 33, 8, 1116);
+    			add_location(section, file$6, 29, 4, 811);
     			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$6, 24, 0, 477);
-    			add_location(main, file$6, 23, 0, 469);
+    			add_location(div, file$6, 24, 0, 510);
+    			add_location(br, file$6, 36, 0, 1227);
+    			add_location(main, file$6, 23, 0, 502);
     			binding_group.p(input2, input3, input4, input5);
     		},
     		l: function claim(nodes) {
@@ -944,50 +1049,53 @@ var app = (function () {
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
     			append_dev(main, div);
-    			append_dev(div, h2);
+    			append_dev(div, h1);
     			append_dev(div, t1);
+    			append_dev(div, h2);
+    			append_dev(div, t3);
     			append_dev(div, label0);
     			append_dev(label0, input0);
     			set_input_value(input0, /*voct*/ ctx[0]);
-    			append_dev(label0, t2);
-    			append_dev(div, t3);
+    			append_dev(label0, t4);
+    			append_dev(div, t5);
     			append_dev(div, label1);
     			append_dev(label1, input1);
-    			set_input_value(input1, /*cv*/ ctx[1]);
-    			append_dev(label1, t4);
-    			append_dev(div, t5);
+    			set_input_value(input1, /*frequency*/ ctx[1]);
+    			append_dev(label1, t6);
+    			append_dev(div, t7);
     			append_dev(div, section);
     			append_dev(section, label2);
     			append_dev(label2, input2);
     			input2.checked = input2.__value === /*oscNode*/ ctx[2].type;
-    			append_dev(label2, t6);
-    			append_dev(section, t7);
+    			append_dev(label2, t8);
+    			append_dev(section, t9);
     			append_dev(section, label3);
     			append_dev(label3, input3);
     			input3.checked = input3.__value === /*oscNode*/ ctx[2].type;
-    			append_dev(label3, t8);
-    			append_dev(section, t9);
+    			append_dev(label3, t10);
+    			append_dev(section, t11);
     			append_dev(section, label4);
     			append_dev(label4, input4);
     			input4.checked = input4.__value === /*oscNode*/ ctx[2].type;
-    			append_dev(label4, t10);
-    			append_dev(section, t11);
+    			append_dev(label4, t12);
+    			append_dev(section, t13);
     			append_dev(section, label5);
     			append_dev(label5, input5);
     			input5.checked = input5.__value === /*oscNode*/ ctx[2].type;
-    			append_dev(label5, t12);
+    			append_dev(label5, t14);
+    			append_dev(main, t15);
+    			append_dev(main, br);
 
     			if (!mounted) {
     				dispose = [
-    					action_destroyer(/*handle*/ ctx[3].call(null, window)),
-    					listen_dev(input0, "change", /*input0_change_input_handler*/ ctx[6]),
-    					listen_dev(input0, "input", /*input0_change_input_handler*/ ctx[6]),
-    					listen_dev(input1, "change", /*input1_change_input_handler*/ ctx[7]),
-    					listen_dev(input1, "input", /*input1_change_input_handler*/ ctx[7]),
-    					listen_dev(input2, "change", /*input2_change_handler*/ ctx[8]),
-    					listen_dev(input3, "change", /*input3_change_handler*/ ctx[10]),
-    					listen_dev(input4, "change", /*input4_change_handler*/ ctx[11]),
-    					listen_dev(input5, "change", /*input5_change_handler*/ ctx[12])
+    					listen_dev(input0, "change", /*input0_change_input_handler*/ ctx[5]),
+    					listen_dev(input0, "input", /*input0_change_input_handler*/ ctx[5]),
+    					listen_dev(input1, "change", /*input1_change_input_handler*/ ctx[6]),
+    					listen_dev(input1, "input", /*input1_change_input_handler*/ ctx[6]),
+    					listen_dev(input2, "change", /*input2_change_handler*/ ctx[7]),
+    					listen_dev(input3, "change", /*input3_change_handler*/ ctx[9]),
+    					listen_dev(input4, "change", /*input4_change_handler*/ ctx[10]),
+    					listen_dev(input5, "change", /*input5_change_handler*/ ctx[11])
     				];
 
     				mounted = true;
@@ -998,8 +1106,8 @@ var app = (function () {
     				set_input_value(input0, /*voct*/ ctx[0]);
     			}
 
-    			if (dirty & /*cv*/ 2) {
-    				set_input_value(input1, /*cv*/ ctx[1]);
+    			if (dirty & /*frequency*/ 2) {
+    				set_input_value(input1, /*frequency*/ ctx[1]);
     			}
 
     			if (dirty & /*oscNode*/ 4) {
@@ -1040,28 +1148,30 @@ var app = (function () {
     }
 
     function instance$6($$self, $$props, $$invalidate) {
+    	let $midi;
+    	let $context;
+    	let $modules;
+    	let $noModules;
+    	validate_store(midi, 'midi');
+    	component_subscribe($$self, midi, $$value => $$invalidate(4, $midi = $$value));
+    	validate_store(context, 'context');
+    	component_subscribe($$self, context, $$value => $$invalidate(13, $context = $$value));
+    	validate_store(modules, 'modules');
+    	component_subscribe($$self, modules, $$value => $$invalidate(14, $modules = $$value));
+    	validate_store(noModules, 'noModules');
+    	component_subscribe($$self, noModules, $$value => $$invalidate(15, $noModules = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('VCO', slots, []);
-    	let { ctx } = $$props;
-    	let { voctIn } = $$props;
-    	const dispatch = createEventDispatcher();
+    	const moduleId = $noModules;
+    	set_store_value(modules, $modules[moduleId] = {}, $modules);
+    	set_store_value(noModules, $noModules++, $noModules);
+    	const module = $modules[moduleId];
     	let voct = Math.log2(440);
-    	let cv = 0;
-    	let oscNode = ctx.createOscillator();
+    	let frequency = 0;
+    	let oscNode = $context.createOscillator();
+    	module.output = oscNode;
     	oscNode.start(0);
-    	const handle = () => dispatch('connect', { output: oscNode });
-
-    	$$self.$$.on_mount.push(function () {
-    		if (ctx === undefined && !('ctx' in $$props || $$self.$$.bound[$$self.$$.props['ctx']])) {
-    			console.warn("<VCO> was created without expected prop 'ctx'");
-    		}
-
-    		if (voctIn === undefined && !('voctIn' in $$props || $$self.$$.bound[$$self.$$.props['voctIn']])) {
-    			console.warn("<VCO> was created without expected prop 'voctIn'");
-    		}
-    	});
-
-    	const writable_props = ['ctx', 'voctIn'];
+    	const writable_props = [];
 
     	Object.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<VCO> was created with unknown prop '${key}'`);
@@ -1071,55 +1181,53 @@ var app = (function () {
 
     	function input0_change_input_handler() {
     		voct = to_number(this.value);
-    		($$invalidate(0, voct), $$invalidate(5, voctIn));
+    		($$invalidate(0, voct), $$invalidate(4, $midi));
     	}
 
     	function input1_change_input_handler() {
-    		cv = to_number(this.value);
-    		$$invalidate(1, cv);
+    		frequency = to_number(this.value);
+    		$$invalidate(1, frequency);
     	}
 
     	function input2_change_handler() {
     		oscNode.type = this.__value;
-    		((($$invalidate(2, oscNode), $$invalidate(0, voct)), $$invalidate(1, cv)), $$invalidate(5, voctIn));
+    		((($$invalidate(2, oscNode), $$invalidate(0, voct)), $$invalidate(1, frequency)), $$invalidate(4, $midi));
     	}
 
     	function input3_change_handler() {
     		oscNode.type = this.__value;
-    		((($$invalidate(2, oscNode), $$invalidate(0, voct)), $$invalidate(1, cv)), $$invalidate(5, voctIn));
+    		((($$invalidate(2, oscNode), $$invalidate(0, voct)), $$invalidate(1, frequency)), $$invalidate(4, $midi));
     	}
 
     	function input4_change_handler() {
     		oscNode.type = this.__value;
-    		((($$invalidate(2, oscNode), $$invalidate(0, voct)), $$invalidate(1, cv)), $$invalidate(5, voctIn));
+    		((($$invalidate(2, oscNode), $$invalidate(0, voct)), $$invalidate(1, frequency)), $$invalidate(4, $midi));
     	}
 
     	function input5_change_handler() {
     		oscNode.type = this.__value;
-    		((($$invalidate(2, oscNode), $$invalidate(0, voct)), $$invalidate(1, cv)), $$invalidate(5, voctIn));
+    		((($$invalidate(2, oscNode), $$invalidate(0, voct)), $$invalidate(1, frequency)), $$invalidate(4, $midi));
     	}
 
-    	$$self.$$set = $$props => {
-    		if ('ctx' in $$props) $$invalidate(4, ctx = $$props.ctx);
-    		if ('voctIn' in $$props) $$invalidate(5, voctIn = $$props.voctIn);
-    	};
-
     	$$self.$capture_state = () => ({
-    		createEventDispatcher,
-    		ctx,
-    		voctIn,
-    		dispatch,
+    		modules,
+    		context,
+    		noModules,
+    		midi,
+    		moduleId,
+    		module,
     		voct,
-    		cv,
+    		frequency,
     		oscNode,
-    		handle
+    		$midi,
+    		$context,
+    		$modules,
+    		$noModules
     	});
 
     	$$self.$inject_state = $$props => {
-    		if ('ctx' in $$props) $$invalidate(4, ctx = $$props.ctx);
-    		if ('voctIn' in $$props) $$invalidate(5, voctIn = $$props.voctIn);
     		if ('voct' in $$props) $$invalidate(0, voct = $$props.voct);
-    		if ('cv' in $$props) $$invalidate(1, cv = $$props.cv);
+    		if ('frequency' in $$props) $$invalidate(1, frequency = $$props.frequency);
     		if ('oscNode' in $$props) $$invalidate(2, oscNode = $$props.oscNode);
     	};
 
@@ -1128,22 +1236,21 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*voctIn*/ 32) {
-    			if (voctIn != null) $$invalidate(0, voct = voctIn);
+    		if ($$self.$$.dirty & /*$midi*/ 16) {
+    			if ($midi.voct) $$invalidate(0, voct = $midi.voct);
     		}
 
-    		if ($$self.$$.dirty & /*voct, cv*/ 3) {
-    			$$invalidate(2, oscNode.frequency.value = Math.pow(2, voct + cv), oscNode);
+    		if ($$self.$$.dirty & /*voct, frequency*/ 3) {
+    			$$invalidate(2, oscNode.frequency.value = Math.pow(2, voct + frequency), oscNode);
     		}
     	};
 
     	return [
     		voct,
-    		cv,
+    		frequency,
     		oscNode,
-    		handle,
-    		ctx,
-    		voctIn,
+    		moduleId,
+    		$midi,
     		input0_change_input_handler,
     		input1_change_input_handler,
     		input2_change_handler,
@@ -1157,7 +1264,7 @@ var app = (function () {
     class VCO extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$6, create_fragment$6, safe_not_equal, { ctx: 4, voctIn: 5 });
+    		init(this, options, instance$6, create_fragment$6, safe_not_equal, {});
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
@@ -1166,66 +1273,185 @@ var app = (function () {
     			id: create_fragment$6.name
     		});
     	}
-
-    	get ctx() {
-    		throw new Error("<VCO>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set ctx(value) {
-    		throw new Error("<VCO>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get voctIn() {
-    		throw new Error("<VCO>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set voctIn(value) {
-    		throw new Error("<VCO>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
     }
 
     /* src\Output.svelte generated by Svelte v3.59.2 */
 
+    const { Object: Object_1$4 } = globals;
     const file$5 = "src\\Output.svelte";
+
+    function get_each_context$4(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[12] = list[i][0];
+    	child_ctx[13] = list[i][1];
+    	return child_ctx;
+    }
+
+    // (46:12) {#if m.output}
+    function create_if_block$4(ctx) {
+    	let option;
+    	let t_value = /*id*/ ctx[12] + "";
+    	let t;
+    	let option_value_value;
+
+    	const block = {
+    		c: function create() {
+    			option = element("option");
+    			t = text(t_value);
+    			option.__value = option_value_value = /*m*/ ctx[13].output;
+    			option.value = option.__value;
+    			add_location(option, file$5, 46, 12, 1189);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, option, anchor);
+    			append_dev(option, t);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty & /*$modules*/ 8 && t_value !== (t_value = /*id*/ ctx[12] + "")) set_data_dev(t, t_value);
+
+    			if (dirty & /*$modules*/ 8 && option_value_value !== (option_value_value = /*m*/ ctx[13].output)) {
+    				prop_dev(option, "__value", option_value_value);
+    				option.value = option.__value;
+    			}
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(option);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block$4.name,
+    		type: "if",
+    		source: "(46:12) {#if m.output}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (45:8) {#each Object.entries($modules) as [id, m]}
+    function create_each_block$4(ctx) {
+    	let if_block_anchor;
+    	let if_block = /*m*/ ctx[13].output && create_if_block$4(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if (if_block) if_block.c();
+    			if_block_anchor = empty();
+    		},
+    		m: function mount(target, anchor) {
+    			if (if_block) if_block.m(target, anchor);
+    			insert_dev(target, if_block_anchor, anchor);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (/*m*/ ctx[13].output) {
+    				if (if_block) {
+    					if_block.p(ctx, dirty);
+    				} else {
+    					if_block = create_if_block$4(ctx);
+    					if_block.c();
+    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    				}
+    			} else if (if_block) {
+    				if_block.d(1);
+    				if_block = null;
+    			}
+    		},
+    		d: function destroy(detaching) {
+    			if (if_block) if_block.d(detaching);
+    			if (detaching) detach_dev(if_block_anchor);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_each_block$4.name,
+    		type: "each",
+    		source: "(45:8) {#each Object.entries($modules) as [id, m]}",
+    		ctx
+    	});
+
+    	return block;
+    }
 
     function create_fragment$5(ctx) {
     	let main;
     	let div;
-    	let h2;
+    	let h1;
     	let t1;
-    	let label;
-    	let input_1;
-    	let t2;
+    	let h2;
     	let t3;
-    	let button;
+    	let label0;
+    	let select;
+    	let option;
     	let t4;
+    	let t5;
+    	let label1;
+    	let input;
+    	let t6;
+    	let t7;
+    	let button;
+    	let t8;
+    	let t9;
+    	let br;
     	let mounted;
     	let dispose;
+    	let each_value = Object.entries(/*$modules*/ ctx[3]);
+    	validate_each_argument(each_value);
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block$4(get_each_context$4(ctx, each_value, i));
+    	}
 
     	const block = {
     		c: function create() {
     			main = element("main");
     			div = element("div");
+    			h1 = element("h1");
+    			h1.textContent = `${/*moduleId*/ ctx[4]}`;
+    			t1 = space();
     			h2 = element("h2");
     			h2.textContent = "Output";
-    			t1 = space();
-    			label = element("label");
-    			input_1 = element("input");
-    			t2 = text("Gain");
     			t3 = space();
+    			label0 = element("label");
+    			select = element("select");
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			option = element("option");
+    			t4 = text("Input");
+    			t5 = space();
+    			label1 = element("label");
+    			input = element("input");
+    			t6 = text("Gain");
+    			t7 = space();
     			button = element("button");
-    			t4 = text(/*muteUnmute*/ ctx[1]);
-    			add_location(h2, file$5, 30, 8, 605);
-    			attr_dev(input_1, "type", "range");
-    			attr_dev(input_1, "min", "0");
-    			attr_dev(input_1, "max", "2");
-    			attr_dev(input_1, "step", "0.001");
-    			add_location(input_1, file$5, 31, 15, 637);
-    			add_location(label, file$5, 31, 8, 630);
-    			add_location(button, file$5, 32, 8, 741);
+    			t8 = text(/*muteUnmute*/ ctx[2]);
+    			t9 = space();
+    			br = element("br");
+    			add_location(h1, file$5, 41, 8, 999);
+    			add_location(h2, file$5, 42, 8, 1028);
+    			option.__value = null;
+    			option.value = option.__value;
+    			add_location(option, file$5, 49, 8, 1273);
+    			if (/*module*/ ctx[0].input === void 0) add_render_callback(() => /*select_change_handler*/ ctx[7].call(select));
+    			add_location(select, file$5, 43, 15, 1060);
+    			add_location(label0, file$5, 43, 8, 1053);
+    			attr_dev(input, "type", "range");
+    			attr_dev(input, "min", "0");
+    			attr_dev(input, "max", "1");
+    			attr_dev(input, "step", "0.001");
+    			add_location(input, file$5, 51, 15, 1352);
+    			add_location(label1, file$5, 51, 8, 1345);
+    			add_location(button, file$5, 52, 8, 1456);
     			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$5, 29, 4, 590);
-    			add_location(main, file$5, 28, 0, 578);
+    			add_location(div, file$5, 40, 4, 984);
+    			add_location(br, file$5, 54, 4, 1527);
+    			add_location(main, file$5, 39, 0, 972);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1233,37 +1459,84 @@ var app = (function () {
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
     			append_dev(main, div);
-    			append_dev(div, h2);
+    			append_dev(div, h1);
     			append_dev(div, t1);
-    			append_dev(div, label);
-    			append_dev(label, input_1);
-    			set_input_value(input_1, /*gainNode*/ ctx[0].gain.value);
-    			append_dev(label, t2);
+    			append_dev(div, h2);
     			append_dev(div, t3);
+    			append_dev(div, label0);
+    			append_dev(label0, select);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				if (each_blocks[i]) {
+    					each_blocks[i].m(select, null);
+    				}
+    			}
+
+    			append_dev(select, option);
+    			select_option(select, /*module*/ ctx[0].input, true);
+    			append_dev(label0, t4);
+    			append_dev(div, t5);
+    			append_dev(div, label1);
+    			append_dev(label1, input);
+    			set_input_value(input, /*gainNode*/ ctx[1].gain.value);
+    			append_dev(label1, t6);
+    			append_dev(div, t7);
     			append_dev(div, button);
-    			append_dev(button, t4);
+    			append_dev(button, t8);
+    			append_dev(main, t9);
+    			append_dev(main, br);
 
     			if (!mounted) {
     				dispose = [
-    					listen_dev(input_1, "change", /*input_1_change_input_handler*/ ctx[5]),
-    					listen_dev(input_1, "input", /*input_1_change_input_handler*/ ctx[5]),
-    					listen_dev(button, "click", /*toggleMute*/ ctx[2], false, false, false, false)
+    					listen_dev(select, "change", /*select_change_handler*/ ctx[7]),
+    					listen_dev(input, "change", /*input_change_input_handler*/ ctx[8]),
+    					listen_dev(input, "input", /*input_change_input_handler*/ ctx[8]),
+    					listen_dev(button, "click", /*toggleMute*/ ctx[5], false, false, false, false)
     				];
 
     				mounted = true;
     			}
     		},
     		p: function update(ctx, [dirty]) {
-    			if (dirty & /*gainNode*/ 1) {
-    				set_input_value(input_1, /*gainNode*/ ctx[0].gain.value);
+    			if (dirty & /*Object, $modules*/ 8) {
+    				each_value = Object.entries(/*$modules*/ ctx[3]);
+    				validate_each_argument(each_value);
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context$4(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    					} else {
+    						each_blocks[i] = create_each_block$4(child_ctx);
+    						each_blocks[i].c();
+    						each_blocks[i].m(select, option);
+    					}
+    				}
+
+    				for (; i < each_blocks.length; i += 1) {
+    					each_blocks[i].d(1);
+    				}
+
+    				each_blocks.length = each_value.length;
     			}
 
-    			if (dirty & /*muteUnmute*/ 2) set_data_dev(t4, /*muteUnmute*/ ctx[1]);
+    			if (dirty & /*module, Object, $modules*/ 9) {
+    				select_option(select, /*module*/ ctx[0].input);
+    			}
+
+    			if (dirty & /*gainNode*/ 2) {
+    				set_input_value(input, /*gainNode*/ ctx[1].gain.value);
+    			}
+
+    			if (dirty & /*muteUnmute*/ 4) set_data_dev(t8, /*muteUnmute*/ ctx[2]);
     		},
     		i: noop,
     		o: noop,
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(main);
+    			destroy_each(each_blocks, detaching);
     			mounted = false;
     			run_all(dispose);
     		}
@@ -1281,69 +1554,77 @@ var app = (function () {
     }
 
     function instance$5($$self, $$props, $$invalidate) {
+    	let $context;
+    	let $modules;
+    	let $noModules;
+    	validate_store(context, 'context');
+    	component_subscribe($$self, context, $$value => $$invalidate(10, $context = $$value));
+    	validate_store(modules, 'modules');
+    	component_subscribe($$self, modules, $$value => $$invalidate(3, $modules = $$value));
+    	validate_store(noModules, 'noModules');
+    	component_subscribe($$self, noModules, $$value => $$invalidate(11, $noModules = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('Output', slots, []);
-    	let { ctx } = $$props;
-    	let { input } = $$props;
-    	var gainNode = ctx.createGain();
+    	const moduleId = $noModules;
+    	set_store_value(modules, $modules[moduleId] = {}, $modules);
+    	set_store_value(noModules, $noModules++, $noModules);
+    	const module = $modules[moduleId];
+    	var gainNode = $context.createGain();
     	gainNode.gain.value = 0.2;
-    	gainNode.connect(ctx.destination);
+    	gainNode.connect($context.destination);
+    	var currentInput;
     	var playing = false;
     	var muteUnmute = 'Unmute';
 
     	function toggleMute() {
     		if (playing) {
     			playing = false;
-    			$$invalidate(1, muteUnmute = 'Unmute');
-    			ctx.suspend();
+    			$$invalidate(2, muteUnmute = 'Unmute');
+    			$context.suspend();
     		} else {
     			playing = true;
-    			$$invalidate(1, muteUnmute = 'Mute');
-    			ctx.resume();
+    			$$invalidate(2, muteUnmute = 'Mute');
+    			$context.resume();
     		}
     	}
 
-    	$$self.$$.on_mount.push(function () {
-    		if (ctx === undefined && !('ctx' in $$props || $$self.$$.bound[$$self.$$.props['ctx']])) {
-    			console.warn("<Output> was created without expected prop 'ctx'");
-    		}
+    	const writable_props = [];
 
-    		if (input === undefined && !('input' in $$props || $$self.$$.bound[$$self.$$.props['input']])) {
-    			console.warn("<Output> was created without expected prop 'input'");
-    		}
-    	});
-
-    	const writable_props = ['ctx', 'input'];
-
-    	Object.keys($$props).forEach(key => {
+    	Object_1$4.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<Output> was created with unknown prop '${key}'`);
     	});
 
-    	function input_1_change_input_handler() {
-    		gainNode.gain.value = to_number(this.value);
-    		$$invalidate(0, gainNode);
+    	function select_change_handler() {
+    		module.input = select_value(this);
+    		$$invalidate(0, module);
     	}
 
-    	$$self.$$set = $$props => {
-    		if ('ctx' in $$props) $$invalidate(3, ctx = $$props.ctx);
-    		if ('input' in $$props) $$invalidate(4, input = $$props.input);
-    	};
+    	function input_change_input_handler() {
+    		gainNode.gain.value = to_number(this.value);
+    		$$invalidate(1, gainNode);
+    	}
 
     	$$self.$capture_state = () => ({
-    		ctx,
-    		input,
+    		modules,
+    		context,
+    		noModules,
+    		moduleId,
+    		module,
     		gainNode,
+    		currentInput,
     		playing,
     		muteUnmute,
-    		toggleMute
+    		toggleMute,
+    		$context,
+    		$modules,
+    		$noModules
     	});
 
     	$$self.$inject_state = $$props => {
-    		if ('ctx' in $$props) $$invalidate(3, ctx = $$props.ctx);
-    		if ('input' in $$props) $$invalidate(4, input = $$props.input);
-    		if ('gainNode' in $$props) $$invalidate(0, gainNode = $$props.gainNode);
+    		if ('gainNode' in $$props) $$invalidate(1, gainNode = $$props.gainNode);
+    		if ('currentInput' in $$props) $$invalidate(6, currentInput = $$props.currentInput);
     		if ('playing' in $$props) playing = $$props.playing;
-    		if ('muteUnmute' in $$props) $$invalidate(1, muteUnmute = $$props.muteUnmute);
+    		if ('muteUnmute' in $$props) $$invalidate(2, muteUnmute = $$props.muteUnmute);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -1351,20 +1632,35 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*input, gainNode*/ 17) {
-    			if (input) {
-    				input.connect(gainNode);
+    		if ($$self.$$.dirty & /*module, currentInput, gainNode*/ 67) {
+    			if (module.input) {
+    				if (currentInput) currentInput.disconnect();
+    				$$invalidate(6, currentInput = module.input);
+    				currentInput.connect(gainNode);
+    			} else {
+    				if (currentInput) currentInput.disconnect();
+    				$$invalidate(6, currentInput = null);
     			}
     		}
     	};
 
-    	return [gainNode, muteUnmute, toggleMute, ctx, input, input_1_change_input_handler];
+    	return [
+    		module,
+    		gainNode,
+    		muteUnmute,
+    		$modules,
+    		moduleId,
+    		toggleMute,
+    		currentInput,
+    		select_change_handler,
+    		input_change_input_handler
+    	];
     }
 
     class Output extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$5, create_fragment$5, safe_not_equal, { ctx: 3, input: 4 });
+    		init(this, options, instance$5, create_fragment$5, safe_not_equal, {});
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
@@ -1373,58 +1669,184 @@ var app = (function () {
     			id: create_fragment$5.name
     		});
     	}
-
-    	get ctx() {
-    		throw new Error("<Output>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set ctx(value) {
-    		throw new Error("<Output>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get input() {
-    		throw new Error("<Output>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set input(value) {
-    		throw new Error("<Output>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
     }
 
     /* src\VCA.svelte generated by Svelte v3.59.2 */
+
+    const { Object: Object_1$3 } = globals;
     const file$4 = "src\\VCA.svelte";
+
+    function get_each_context$3(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[11] = list[i][0];
+    	child_ctx[12] = list[i][1];
+    	return child_ctx;
+    }
+
+    // (45:8) {#if m.output}
+    function create_if_block$3(ctx) {
+    	let option;
+    	let t_value = /*id*/ ctx[11] + "";
+    	let t;
+    	let option_value_value;
+
+    	const block = {
+    		c: function create() {
+    			option = element("option");
+    			t = text(t_value);
+    			option.__value = option_value_value = /*m*/ ctx[12].output;
+    			option.value = option.__value;
+    			add_location(option, file$4, 45, 8, 1111);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, option, anchor);
+    			append_dev(option, t);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty & /*$modules*/ 4 && t_value !== (t_value = /*id*/ ctx[11] + "")) set_data_dev(t, t_value);
+
+    			if (dirty & /*$modules*/ 4 && option_value_value !== (option_value_value = /*m*/ ctx[12].output)) {
+    				prop_dev(option, "__value", option_value_value);
+    				option.value = option.__value;
+    			}
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(option);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block$3.name,
+    		type: "if",
+    		source: "(45:8) {#if m.output}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (44:4) {#each Object.entries($modules) as [id, m]}
+    function create_each_block$3(ctx) {
+    	let if_block_anchor;
+    	let if_block = /*m*/ ctx[12].output && create_if_block$3(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if (if_block) if_block.c();
+    			if_block_anchor = empty();
+    		},
+    		m: function mount(target, anchor) {
+    			if (if_block) if_block.m(target, anchor);
+    			insert_dev(target, if_block_anchor, anchor);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (/*m*/ ctx[12].output) {
+    				if (if_block) {
+    					if_block.p(ctx, dirty);
+    				} else {
+    					if_block = create_if_block$3(ctx);
+    					if_block.c();
+    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    				}
+    			} else if (if_block) {
+    				if_block.d(1);
+    				if_block = null;
+    			}
+    		},
+    		d: function destroy(detaching) {
+    			if (if_block) if_block.d(detaching);
+    			if (detaching) detach_dev(if_block_anchor);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_each_block$3.name,
+    		type: "each",
+    		source: "(44:4) {#each Object.entries($modules) as [id, m]}",
+    		ctx
+    	});
+
+    	return block;
+    }
 
     function create_fragment$4(ctx) {
     	let main;
     	let div;
-    	let h2;
+    	let h1;
     	let t1;
-    	let label;
-    	let input_1;
-    	let t2;
+    	let h2;
+    	let t3;
+    	let button;
+    	let t5;
+    	let label0;
+    	let select;
+    	let option;
+    	let t6;
+    	let t7;
+    	let label1;
+    	let input;
+    	let t8;
+    	let t9;
+    	let br;
     	let mounted;
     	let dispose;
+    	let each_value = Object.entries(/*$modules*/ ctx[2]);
+    	validate_each_argument(each_value);
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block$3(get_each_context$3(ctx, each_value, i));
+    	}
 
     	const block = {
     		c: function create() {
     			main = element("main");
     			div = element("div");
+    			h1 = element("h1");
+    			h1.textContent = `${/*moduleId*/ ctx[3]}`;
+    			t1 = space();
     			h2 = element("h2");
     			h2.textContent = "Amplifier";
-    			t1 = space();
-    			label = element("label");
-    			input_1 = element("input");
-    			t2 = text("Gain");
-    			add_location(h2, file$4, 21, 4, 484);
-    			attr_dev(input_1, "type", "range");
-    			attr_dev(input_1, "min", "0");
-    			attr_dev(input_1, "max", "1");
-    			attr_dev(input_1, "step", "0.001");
-    			add_location(input_1, file$4, 22, 11, 515);
-    			add_location(label, file$4, 22, 4, 508);
+    			t3 = space();
+    			button = element("button");
+    			button.textContent = "Update";
+    			t5 = space();
+    			label0 = element("label");
+    			select = element("select");
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			option = element("option");
+    			t6 = text("Input");
+    			t7 = space();
+    			label1 = element("label");
+    			input = element("input");
+    			t8 = text("Gain");
+    			t9 = space();
+    			br = element("br");
+    			add_location(h1, file$4, 39, 4, 891);
+    			add_location(h2, file$4, 40, 4, 916);
+    			add_location(button, file$4, 41, 4, 940);
+    			option.__value = null;
+    			option.value = option.__value;
+    			add_location(option, file$4, 48, 4, 1183);
+    			if (/*module*/ ctx[0].input === void 0) add_render_callback(() => /*select_change_handler*/ ctx[7].call(select));
+    			add_location(select, file$4, 42, 11, 994);
+    			add_location(label0, file$4, 42, 4, 987);
+    			attr_dev(input, "type", "range");
+    			attr_dev(input, "min", "0");
+    			attr_dev(input, "max", "1");
+    			attr_dev(input, "step", "0.001");
+    			add_location(input, file$4, 50, 11, 1254);
+    			add_location(label1, file$4, 50, 4, 1247);
     			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$4, 20, 0, 473);
-    			add_location(main, file$4, 19, 0, 465);
+    			add_location(div, file$4, 38, 0, 880);
+    			add_location(br, file$4, 52, 0, 1351);
+    			add_location(main, file$4, 37, 0, 872);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1432,32 +1854,81 @@ var app = (function () {
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
     			append_dev(main, div);
-    			append_dev(div, h2);
+    			append_dev(div, h1);
     			append_dev(div, t1);
-    			append_dev(div, label);
-    			append_dev(label, input_1);
-    			set_input_value(input_1, /*max_cv*/ ctx[0].value);
-    			append_dev(label, t2);
+    			append_dev(div, h2);
+    			append_dev(div, t3);
+    			append_dev(div, button);
+    			append_dev(div, t5);
+    			append_dev(div, label0);
+    			append_dev(label0, select);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				if (each_blocks[i]) {
+    					each_blocks[i].m(select, null);
+    				}
+    			}
+
+    			append_dev(select, option);
+    			select_option(select, /*module*/ ctx[0].input, true);
+    			append_dev(label0, t6);
+    			append_dev(div, t7);
+    			append_dev(div, label1);
+    			append_dev(label1, input);
+    			set_input_value(input, /*max_cv*/ ctx[1].value);
+    			append_dev(label1, t8);
+    			append_dev(main, t9);
+    			append_dev(main, br);
 
     			if (!mounted) {
     				dispose = [
-    					action_destroyer(/*handle*/ ctx[1].call(null, window)),
-    					listen_dev(input_1, "change", /*input_1_change_input_handler*/ ctx[4]),
-    					listen_dev(input_1, "input", /*input_1_change_input_handler*/ ctx[4])
+    					listen_dev(button, "click", /*update*/ ctx[4], false, false, false, false),
+    					listen_dev(select, "change", /*select_change_handler*/ ctx[7]),
+    					listen_dev(input, "change", /*input_change_input_handler*/ ctx[8]),
+    					listen_dev(input, "input", /*input_change_input_handler*/ ctx[8])
     				];
 
     				mounted = true;
     			}
     		},
     		p: function update(ctx, [dirty]) {
-    			if (dirty & /*max_cv*/ 1) {
-    				set_input_value(input_1, /*max_cv*/ ctx[0].value);
+    			if (dirty & /*Object, $modules*/ 4) {
+    				each_value = Object.entries(/*$modules*/ ctx[2]);
+    				validate_each_argument(each_value);
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context$3(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    					} else {
+    						each_blocks[i] = create_each_block$3(child_ctx);
+    						each_blocks[i].c();
+    						each_blocks[i].m(select, option);
+    					}
+    				}
+
+    				for (; i < each_blocks.length; i += 1) {
+    					each_blocks[i].d(1);
+    				}
+
+    				each_blocks.length = each_value.length;
+    			}
+
+    			if (dirty & /*module, Object, $modules*/ 5) {
+    				select_option(select, /*module*/ ctx[0].input);
+    			}
+
+    			if (dirty & /*max_cv*/ 2) {
+    				set_input_value(input, /*max_cv*/ ctx[1].value);
     			}
     		},
     		i: noop,
     		o: noop,
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(main);
+    			destroy_each(each_blocks, detaching);
     			mounted = false;
     			run_all(dispose);
     		}
@@ -1475,61 +1946,67 @@ var app = (function () {
     }
 
     function instance$4($$self, $$props, $$invalidate) {
+    	let $context;
+    	let $modules;
+    	let $noModules;
+    	validate_store(context, 'context');
+    	component_subscribe($$self, context, $$value => $$invalidate(6, $context = $$value));
+    	validate_store(modules, 'modules');
+    	component_subscribe($$self, modules, $$value => $$invalidate(2, $modules = $$value));
+    	validate_store(noModules, 'noModules');
+    	component_subscribe($$self, noModules, $$value => $$invalidate(9, $noModules = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('VCA', slots, []);
-    	let { ctx } = $$props;
-    	let { input } = $$props;
+    	const moduleId = $noModules;
+    	set_store_value(modules, $modules[moduleId] = {}, $modules);
+    	set_store_value(noModules, $noModules++, $noModules);
+    	const module = $modules[moduleId];
+    	module.input = null;
     	let max_cv = { value: 1 };
-    	const dispatch = createEventDispatcher();
-    	var gainNode = ctx.createGain();
+    	var gainNode = $context.createGain();
+    	module.output = gainNode;
+    	var currentInput;
 
-    	const handle = () => dispatch('connect', {
-    		output: gainNode,
-    		cv_in: gainNode.gain,
-    		max_cv
-    	});
+    	const update = () => {
+    		(($$invalidate(0, module), $$invalidate(10, gainNode)), $$invalidate(1, max_cv));
+    	};
 
-    	$$self.$$.on_mount.push(function () {
-    		if (ctx === undefined && !('ctx' in $$props || $$self.$$.bound[$$self.$$.props['ctx']])) {
-    			console.warn("<VCA> was created without expected prop 'ctx'");
-    		}
+    	const writable_props = [];
 
-    		if (input === undefined && !('input' in $$props || $$self.$$.bound[$$self.$$.props['input']])) {
-    			console.warn("<VCA> was created without expected prop 'input'");
-    		}
-    	});
-
-    	const writable_props = ['ctx', 'input'];
-
-    	Object.keys($$props).forEach(key => {
+    	Object_1$3.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<VCA> was created with unknown prop '${key}'`);
     	});
 
-    	function input_1_change_input_handler() {
-    		max_cv.value = to_number(this.value);
-    		$$invalidate(0, max_cv);
+    	function select_change_handler() {
+    		module.input = select_value(this);
+    		(($$invalidate(0, module), $$invalidate(10, gainNode)), $$invalidate(1, max_cv));
     	}
 
-    	$$self.$$set = $$props => {
-    		if ('ctx' in $$props) $$invalidate(2, ctx = $$props.ctx);
-    		if ('input' in $$props) $$invalidate(3, input = $$props.input);
-    	};
+    	function input_change_input_handler() {
+    		max_cv.value = to_number(this.value);
+    		$$invalidate(1, max_cv);
+    	}
 
     	$$self.$capture_state = () => ({
-    		createEventDispatcher,
-    		ctx,
-    		input,
+    		modules,
+    		context,
+    		noModules,
+    		midi,
+    		moduleId,
+    		module,
     		max_cv,
-    		dispatch,
     		gainNode,
-    		handle
+    		currentInput,
+    		update,
+    		$context,
+    		$modules,
+    		$noModules
     	});
 
     	$$self.$inject_state = $$props => {
-    		if ('ctx' in $$props) $$invalidate(2, ctx = $$props.ctx);
-    		if ('input' in $$props) $$invalidate(3, input = $$props.input);
-    		if ('max_cv' in $$props) $$invalidate(0, max_cv = $$props.max_cv);
-    		if ('gainNode' in $$props) $$invalidate(6, gainNode = $$props.gainNode);
+    		if ('max_cv' in $$props) $$invalidate(1, max_cv = $$props.max_cv);
+    		if ('gainNode' in $$props) $$invalidate(10, gainNode = $$props.gainNode);
+    		if ('currentInput' in $$props) $$invalidate(5, currentInput = $$props.currentInput);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -1537,22 +2014,45 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*max_cv, ctx*/ 5) {
-    			gainNode.gain.setValueAtTime(max_cv.value, ctx.currentTime);
+    		if ($$self.$$.dirty & /*max_cv*/ 2) {
+    			$$invalidate(0, module.max_cv = max_cv, module);
     		}
 
-    		if ($$self.$$.dirty & /*input*/ 8) {
-    			if (input) input.connect(gainNode);
+    		if ($$self.$$.dirty & /*module, currentInput*/ 33) {
+    			if (module.input) {
+    				if (currentInput) currentInput.disconnect();
+    				$$invalidate(5, currentInput = module.input);
+    				currentInput.connect(gainNode);
+    			} else {
+    				if (currentInput) currentInput.disconnect();
+    				$$invalidate(5, currentInput = null);
+    			}
+    		}
+
+    		if ($$self.$$.dirty & /*max_cv, $context*/ 66) {
+    			gainNode.gain.setValueAtTime(max_cv.value, $context.currentTime);
     		}
     	};
 
-    	return [max_cv, handle, ctx, input, input_1_change_input_handler];
+    	$$invalidate(0, module.cv_in = gainNode.gain, module);
+
+    	return [
+    		module,
+    		max_cv,
+    		$modules,
+    		moduleId,
+    		update,
+    		currentInput,
+    		$context,
+    		select_change_handler,
+    		input_change_input_handler
+    	];
     }
 
     class VCA extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$4, create_fragment$4, safe_not_equal, { ctx: 2, input: 3 });
+    		init(this, options, instance$4, create_fragment$4, safe_not_equal, {});
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
@@ -1561,72 +2061,226 @@ var app = (function () {
     			id: create_fragment$4.name
     		});
     	}
-
-    	get ctx() {
-    		throw new Error("<VCA>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set ctx(value) {
-    		throw new Error("<VCA>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get input() {
-    		throw new Error("<VCA>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set input(value) {
-    		throw new Error("<VCA>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
     }
 
     /* src\ADSR.svelte generated by Svelte v3.59.2 */
+
+    const { Object: Object_1$2 } = globals;
     const file$3 = "src\\ADSR.svelte";
+
+    function get_each_context$2(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[22] = list[i][0];
+    	child_ctx[23] = list[i][1];
+    	return child_ctx;
+    }
+
+    // (75:12) {#if m.cv_in && m.max_cv}
+    function create_if_block$2(ctx) {
+    	let option;
+    	let t_value = /*id*/ ctx[22] + "";
+    	let t;
+    	let option_value_value;
+
+    	const block = {
+    		c: function create() {
+    			option = element("option");
+    			t = text(t_value);
+    			option.__value = option_value_value = /*m*/ ctx[23];
+    			option.value = option.__value;
+    			add_location(option, file$3, 75, 12, 2127);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, option, anchor);
+    			append_dev(option, t);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty & /*$modules*/ 32 && t_value !== (t_value = /*id*/ ctx[22] + "")) set_data_dev(t, t_value);
+
+    			if (dirty & /*$modules*/ 32 && option_value_value !== (option_value_value = /*m*/ ctx[23])) {
+    				prop_dev(option, "__value", option_value_value);
+    				option.value = option.__value;
+    			}
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(option);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block$2.name,
+    		type: "if",
+    		source: "(75:12) {#if m.cv_in && m.max_cv}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (74:8) {#each Object.entries($modules) as [id, m]}
+    function create_each_block$2(ctx) {
+    	let if_block_anchor;
+    	let if_block = /*m*/ ctx[23].cv_in && /*m*/ ctx[23].max_cv && create_if_block$2(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if (if_block) if_block.c();
+    			if_block_anchor = empty();
+    		},
+    		m: function mount(target, anchor) {
+    			if (if_block) if_block.m(target, anchor);
+    			insert_dev(target, if_block_anchor, anchor);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (/*m*/ ctx[23].cv_in && /*m*/ ctx[23].max_cv) {
+    				if (if_block) {
+    					if_block.p(ctx, dirty);
+    				} else {
+    					if_block = create_if_block$2(ctx);
+    					if_block.c();
+    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    				}
+    			} else if (if_block) {
+    				if_block.d(1);
+    				if_block = null;
+    			}
+    		},
+    		d: function destroy(detaching) {
+    			if (if_block) if_block.d(detaching);
+    			if (detaching) detach_dev(if_block_anchor);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_each_block$2.name,
+    		type: "each",
+    		source: "(74:8) {#each Object.entries($modules) as [id, m]}",
+    		ctx
+    	});
+
+    	return block;
+    }
 
     function create_fragment$3(ctx) {
     	let main;
     	let div;
-    	let h2;
+    	let h1;
     	let t1;
-    	let label0;
-    	let input0;
-    	let t2;
+    	let h2;
     	let t3;
+    	let button;
+    	let t5;
+    	let label0;
+    	let select;
+    	let option;
+    	let t6;
+    	let t7;
     	let label1;
+    	let input0;
+    	let t8;
+    	let t9;
+    	let label2;
     	let input1;
-    	let t4;
+    	let t10;
+    	let t11;
+    	let label3;
+    	let input2;
+    	let t12;
+    	let t13;
+    	let label4;
+    	let input3;
+    	let t14;
+    	let t15;
+    	let br;
     	let mounted;
     	let dispose;
+    	let each_value = Object.entries(/*$modules*/ ctx[5]);
+    	validate_each_argument(each_value);
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block$2(get_each_context$2(ctx, each_value, i));
+    	}
 
     	const block = {
     		c: function create() {
     			main = element("main");
     			div = element("div");
+    			h1 = element("h1");
+    			h1.textContent = `${/*moduleId*/ ctx[6]}`;
+    			t1 = space();
     			h2 = element("h2");
     			h2.textContent = "Envelope";
-    			t1 = space();
-    			label0 = element("label");
-    			input0 = element("input");
-    			t2 = text("Attack");
     			t3 = space();
+    			button = element("button");
+    			button.textContent = "Update";
+    			t5 = space();
+    			label0 = element("label");
+    			select = element("select");
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			option = element("option");
+    			t6 = text("Output");
+    			t7 = space();
     			label1 = element("label");
+    			input0 = element("input");
+    			t8 = text("Attack");
+    			t9 = space();
+    			label2 = element("label");
     			input1 = element("input");
-    			t4 = text("Release");
-    			add_location(h2, file$3, 34, 8, 812);
+    			t10 = text("Decay");
+    			t11 = space();
+    			label3 = element("label");
+    			input2 = element("input");
+    			t12 = text("Sustain");
+    			t13 = space();
+    			label4 = element("label");
+    			input3 = element("input");
+    			t14 = text("Release");
+    			t15 = space();
+    			br = element("br");
+    			add_location(h1, file$3, 69, 8, 1876);
+    			add_location(h2, file$3, 70, 8, 1905);
+    			add_location(button, file$3, 71, 8, 1932);
+    			option.__value = null;
+    			option.value = option.__value;
+    			add_location(option, file$3, 78, 8, 2204);
+    			if (/*moduleOut*/ ctx[0] === void 0) add_render_callback(() => /*select_change_handler*/ ctx[10].call(select));
+    			add_location(select, file$3, 72, 15, 1990);
+    			add_location(label0, file$3, 72, 8, 1983);
     			attr_dev(input0, "type", "range");
     			attr_dev(input0, "min", "0");
     			attr_dev(input0, "max", "1");
     			attr_dev(input0, "step", "0.001");
-    			add_location(input0, file$3, 35, 15, 846);
-    			add_location(label0, file$3, 35, 8, 839);
+    			add_location(input0, file$3, 80, 15, 2284);
+    			add_location(label1, file$3, 80, 8, 2277);
     			attr_dev(input1, "type", "range");
     			attr_dev(input1, "min", "0");
     			attr_dev(input1, "max", "1");
     			attr_dev(input1, "step", "0.001");
-    			add_location(input1, file$3, 38, 15, 1160);
-    			add_location(label1, file$3, 38, 8, 1153);
+    			add_location(input1, file$3, 81, 15, 2384);
+    			add_location(label2, file$3, 81, 8, 2377);
+    			attr_dev(input2, "type", "range");
+    			attr_dev(input2, "min", "0");
+    			attr_dev(input2, "max", "1");
+    			attr_dev(input2, "step", "0.001");
+    			add_location(input2, file$3, 82, 15, 2482);
+    			add_location(label3, file$3, 82, 8, 2475);
+    			attr_dev(input3, "type", "range");
+    			attr_dev(input3, "min", "0");
+    			attr_dev(input3, "max", "1");
+    			attr_dev(input3, "step", "0.001");
+    			add_location(input3, file$3, 83, 15, 2584);
+    			add_location(label4, file$3, 83, 8, 2577);
     			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$3, 33, 4, 797);
-    			add_location(main, file$3, 32, 0, 785);
+    			add_location(div, file$3, 68, 4, 1861);
+    			add_location(br, file$3, 85, 4, 2687);
+    			add_location(main, file$3, 67, 0, 1849);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1634,42 +2288,114 @@ var app = (function () {
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
     			append_dev(main, div);
-    			append_dev(div, h2);
+    			append_dev(div, h1);
     			append_dev(div, t1);
-    			append_dev(div, label0);
-    			append_dev(label0, input0);
-    			set_input_value(input0, /*attack*/ ctx[0]);
-    			append_dev(label0, t2);
+    			append_dev(div, h2);
     			append_dev(div, t3);
+    			append_dev(div, button);
+    			append_dev(div, t5);
+    			append_dev(div, label0);
+    			append_dev(label0, select);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				if (each_blocks[i]) {
+    					each_blocks[i].m(select, null);
+    				}
+    			}
+
+    			append_dev(select, option);
+    			select_option(select, /*moduleOut*/ ctx[0], true);
+    			append_dev(label0, t6);
+    			append_dev(div, t7);
     			append_dev(div, label1);
-    			append_dev(label1, input1);
-    			set_input_value(input1, /*release*/ ctx[1]);
-    			append_dev(label1, t4);
+    			append_dev(label1, input0);
+    			set_input_value(input0, /*attack*/ ctx[1]);
+    			append_dev(label1, t8);
+    			append_dev(div, t9);
+    			append_dev(div, label2);
+    			append_dev(label2, input1);
+    			set_input_value(input1, /*decay*/ ctx[2]);
+    			append_dev(label2, t10);
+    			append_dev(div, t11);
+    			append_dev(div, label3);
+    			append_dev(label3, input2);
+    			set_input_value(input2, /*sustain*/ ctx[3]);
+    			append_dev(label3, t12);
+    			append_dev(div, t13);
+    			append_dev(div, label4);
+    			append_dev(label4, input3);
+    			set_input_value(input3, /*release*/ ctx[4]);
+    			append_dev(label4, t14);
+    			append_dev(main, t15);
+    			append_dev(main, br);
 
     			if (!mounted) {
     				dispose = [
-    					listen_dev(input0, "change", /*input0_change_input_handler*/ ctx[6]),
-    					listen_dev(input0, "input", /*input0_change_input_handler*/ ctx[6]),
-    					listen_dev(input1, "change", /*input1_change_input_handler*/ ctx[7]),
-    					listen_dev(input1, "input", /*input1_change_input_handler*/ ctx[7])
+    					listen_dev(button, "click", /*update*/ ctx[7], false, false, false, false),
+    					listen_dev(select, "change", /*select_change_handler*/ ctx[10]),
+    					listen_dev(input0, "change", /*input0_change_input_handler*/ ctx[11]),
+    					listen_dev(input0, "input", /*input0_change_input_handler*/ ctx[11]),
+    					listen_dev(input1, "change", /*input1_change_input_handler*/ ctx[12]),
+    					listen_dev(input1, "input", /*input1_change_input_handler*/ ctx[12]),
+    					listen_dev(input2, "change", /*input2_change_input_handler*/ ctx[13]),
+    					listen_dev(input2, "input", /*input2_change_input_handler*/ ctx[13]),
+    					listen_dev(input3, "change", /*input3_change_input_handler*/ ctx[14]),
+    					listen_dev(input3, "input", /*input3_change_input_handler*/ ctx[14])
     				];
 
     				mounted = true;
     			}
     		},
     		p: function update(ctx, [dirty]) {
-    			if (dirty & /*attack*/ 1) {
-    				set_input_value(input0, /*attack*/ ctx[0]);
+    			if (dirty & /*Object, $modules*/ 32) {
+    				each_value = Object.entries(/*$modules*/ ctx[5]);
+    				validate_each_argument(each_value);
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context$2(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    					} else {
+    						each_blocks[i] = create_each_block$2(child_ctx);
+    						each_blocks[i].c();
+    						each_blocks[i].m(select, option);
+    					}
+    				}
+
+    				for (; i < each_blocks.length; i += 1) {
+    					each_blocks[i].d(1);
+    				}
+
+    				each_blocks.length = each_value.length;
     			}
 
-    			if (dirty & /*release*/ 2) {
-    				set_input_value(input1, /*release*/ ctx[1]);
+    			if (dirty & /*moduleOut, Object, $modules*/ 33) {
+    				select_option(select, /*moduleOut*/ ctx[0]);
+    			}
+
+    			if (dirty & /*attack*/ 2) {
+    				set_input_value(input0, /*attack*/ ctx[1]);
+    			}
+
+    			if (dirty & /*decay*/ 4) {
+    				set_input_value(input1, /*decay*/ ctx[2]);
+    			}
+
+    			if (dirty & /*sustain*/ 8) {
+    				set_input_value(input2, /*sustain*/ ctx[3]);
+    			}
+
+    			if (dirty & /*release*/ 16) {
+    				set_input_value(input3, /*release*/ ctx[4]);
     			}
     		},
     		i: noop,
     		o: noop,
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(main);
+    			destroy_each(each_blocks, detaching);
     			mounted = false;
     			run_all(dispose);
     		}
@@ -1687,95 +2413,131 @@ var app = (function () {
     }
 
     function instance$3($$self, $$props, $$invalidate) {
+    	let $context;
+    	let $midi;
+    	let $modules;
+    	let $noModules;
+    	validate_store(context, 'context');
+    	component_subscribe($$self, context, $$value => $$invalidate(16, $context = $$value));
+    	validate_store(midi, 'midi');
+    	component_subscribe($$self, midi, $$value => $$invalidate(9, $midi = $$value));
+    	validate_store(modules, 'modules');
+    	component_subscribe($$self, modules, $$value => $$invalidate(5, $modules = $$value));
+    	validate_store(noModules, 'noModules');
+    	component_subscribe($$self, noModules, $$value => $$invalidate(17, $noModules = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('ADSR', slots, []);
-    	let { ctx } = $$props;
-    	let { trigger } = $$props;
-    	let { cv_out } = $$props;
-    	let { max_cv } = $$props;
+    	const moduleId = $noModules;
+    	set_store_value(modules, $modules[moduleId] = {}, $modules);
+    	set_store_value(noModules, $noModules++, $noModules);
+    	const module = $modules[moduleId];
+    	let notePlaying = false;
+    	let moduleOut;
     	let attack = 1;
     	let decay = 1;
     	let sustain = 1;
     	let release = 1;
 
     	const fireEnv = () => {
-    		if (cv_out) {
-    			let now = ctx.currentTime;
+    		if (moduleOut && moduleOut.cv_in) {
+    			let cv_out = moduleOut.cv_in;
+    			let now = $context.currentTime;
     			cv_out.cancelScheduledValues(now);
     			cv_out.setValueAtTime(0, now);
-    			cv_out.linearRampToValueAtTime(max_cv.value, now + attack);
-    			cv_out.linearRampToValueAtTime(0, now + attack + release);
+    			cv_out.linearRampToValueAtTime(moduleOut.max_cv.value, now + attack);
+    			cv_out.linearRampToValueAtTime(moduleOut.max_cv.value * sustain, now + attack + decay);
     		}
     	};
 
-    	onDestroy(() => {
-    		cv_out.cancelScheduledValues(ctx.currentTime);
-    		cv_out.setValueAtTime(max_cv.value, ctx.currentTime);
-    	});
-
-    	$$self.$$.on_mount.push(function () {
-    		if (ctx === undefined && !('ctx' in $$props || $$self.$$.bound[$$self.$$.props['ctx']])) {
-    			console.warn("<ADSR> was created without expected prop 'ctx'");
+    	const unFireEnv = () => {
+    		if (moduleOut && moduleOut.cv_in) {
+    			let cv_out = moduleOut.cv_in;
+    			let now = $context.currentTime;
+    			cv_out.cancelScheduledValues(now);
+    			cv_out.linearRampToValueAtTime(0, now + release);
     		}
+    	};
 
-    		if (trigger === undefined && !('trigger' in $$props || $$self.$$.bound[$$self.$$.props['trigger']])) {
-    			console.warn("<ADSR> was created without expected prop 'trigger'");
+    	var currentModuleOut;
+
+    	const reset = () => {
+    		if (currentModuleOut) {
+    			let cv_out = currentModuleOut.cv_in;
+    			let now = $context.currentTime;
+    			cv_out.cancelScheduledValues(now);
+    			cv_out.setValueAtTime(currentModuleOut.max_cv.value, now);
     		}
+    	};
 
-    		if (cv_out === undefined && !('cv_out' in $$props || $$self.$$.bound[$$self.$$.props['cv_out']])) {
-    			console.warn("<ADSR> was created without expected prop 'cv_out'");
-    		}
+    	const update = () => {
+    		$$invalidate(0, moduleOut);
+    	};
 
-    		if (max_cv === undefined && !('max_cv' in $$props || $$self.$$.bound[$$self.$$.props['max_cv']])) {
-    			console.warn("<ADSR> was created without expected prop 'max_cv'");
-    		}
-    	});
+    	onDestroy(reset);
+    	const writable_props = [];
 
-    	const writable_props = ['ctx', 'trigger', 'cv_out', 'max_cv'];
-
-    	Object.keys($$props).forEach(key => {
+    	Object_1$2.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<ADSR> was created with unknown prop '${key}'`);
     	});
 
+    	function select_change_handler() {
+    		moduleOut = select_value(this);
+    		$$invalidate(0, moduleOut);
+    	}
+
     	function input0_change_input_handler() {
     		attack = to_number(this.value);
-    		$$invalidate(0, attack);
+    		$$invalidate(1, attack);
     	}
 
     	function input1_change_input_handler() {
-    		release = to_number(this.value);
-    		$$invalidate(1, release);
+    		decay = to_number(this.value);
+    		$$invalidate(2, decay);
     	}
 
-    	$$self.$$set = $$props => {
-    		if ('ctx' in $$props) $$invalidate(2, ctx = $$props.ctx);
-    		if ('trigger' in $$props) $$invalidate(3, trigger = $$props.trigger);
-    		if ('cv_out' in $$props) $$invalidate(4, cv_out = $$props.cv_out);
-    		if ('max_cv' in $$props) $$invalidate(5, max_cv = $$props.max_cv);
-    	};
+    	function input2_change_input_handler() {
+    		sustain = to_number(this.value);
+    		$$invalidate(3, sustain);
+    	}
+
+    	function input3_change_input_handler() {
+    		release = to_number(this.value);
+    		$$invalidate(4, release);
+    	}
 
     	$$self.$capture_state = () => ({
     		onDestroy,
-    		ctx,
-    		trigger,
-    		cv_out,
-    		max_cv,
+    		modules,
+    		context,
+    		noModules,
+    		midi,
+    		moduleId,
+    		module,
+    		notePlaying,
+    		moduleOut,
     		attack,
     		decay,
     		sustain,
     		release,
-    		fireEnv
+    		fireEnv,
+    		unFireEnv,
+    		currentModuleOut,
+    		reset,
+    		update,
+    		$context,
+    		$midi,
+    		$modules,
+    		$noModules
     	});
 
     	$$self.$inject_state = $$props => {
-    		if ('ctx' in $$props) $$invalidate(2, ctx = $$props.ctx);
-    		if ('trigger' in $$props) $$invalidate(3, trigger = $$props.trigger);
-    		if ('cv_out' in $$props) $$invalidate(4, cv_out = $$props.cv_out);
-    		if ('max_cv' in $$props) $$invalidate(5, max_cv = $$props.max_cv);
-    		if ('attack' in $$props) $$invalidate(0, attack = $$props.attack);
-    		if ('decay' in $$props) decay = $$props.decay;
-    		if ('sustain' in $$props) sustain = $$props.sustain;
-    		if ('release' in $$props) $$invalidate(1, release = $$props.release);
+    		if ('notePlaying' in $$props) $$invalidate(8, notePlaying = $$props.notePlaying);
+    		if ('moduleOut' in $$props) $$invalidate(0, moduleOut = $$props.moduleOut);
+    		if ('attack' in $$props) $$invalidate(1, attack = $$props.attack);
+    		if ('decay' in $$props) $$invalidate(2, decay = $$props.decay);
+    		if ('sustain' in $$props) $$invalidate(3, sustain = $$props.sustain);
+    		if ('release' in $$props) $$invalidate(4, release = $$props.release);
+    		if ('currentModuleOut' in $$props) currentModuleOut = $$props.currentModuleOut;
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -1783,27 +2545,50 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*trigger*/ 8) {
-    			if (trigger) fireEnv();
+    		if ($$self.$$.dirty & /*$midi, notePlaying*/ 768) {
+    			if ($midi.trigger && !notePlaying) $$invalidate(8, notePlaying = true);
+    		}
+
+    		if ($$self.$$.dirty & /*$midi, notePlaying*/ 768) {
+    			if (!$midi.trigger && notePlaying) $$invalidate(8, notePlaying = false);
+    		}
+
+    		if ($$self.$$.dirty & /*notePlaying*/ 256) {
+    			if (notePlaying) fireEnv(); else unFireEnv();
+    		}
+
+    		if ($$self.$$.dirty & /*moduleOut*/ 1) {
+    			if (moduleOut) currentModuleOut = moduleOut;
+    		}
+
+    		if ($$self.$$.dirty & /*moduleOut*/ 1) {
+    			if (!moduleOut) reset();
     		}
     	};
 
     	return [
+    		moduleOut,
     		attack,
+    		decay,
+    		sustain,
     		release,
-    		ctx,
-    		trigger,
-    		cv_out,
-    		max_cv,
+    		$modules,
+    		moduleId,
+    		update,
+    		notePlaying,
+    		$midi,
+    		select_change_handler,
     		input0_change_input_handler,
-    		input1_change_input_handler
+    		input1_change_input_handler,
+    		input2_change_input_handler,
+    		input3_change_input_handler
     	];
     }
 
     class ADSR extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$3, create_fragment$3, safe_not_equal, { ctx: 2, trigger: 3, cv_out: 4, max_cv: 5 });
+    		init(this, options, instance$3, create_fragment$3, safe_not_equal, {});
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
@@ -1812,118 +2597,229 @@ var app = (function () {
     			id: create_fragment$3.name
     		});
     	}
-
-    	get ctx() {
-    		throw new Error("<ADSR>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set ctx(value) {
-    		throw new Error("<ADSR>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get trigger() {
-    		throw new Error("<ADSR>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set trigger(value) {
-    		throw new Error("<ADSR>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get cv_out() {
-    		throw new Error("<ADSR>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set cv_out(value) {
-    		throw new Error("<ADSR>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get max_cv() {
-    		throw new Error("<ADSR>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set max_cv(value) {
-    		throw new Error("<ADSR>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
     }
 
     /* src\VCF.svelte generated by Svelte v3.59.2 */
+
+    const { Object: Object_1$1 } = globals;
     const file$2 = "src\\VCF.svelte";
+
+    function get_each_context$1(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[16] = list[i][0];
+    	child_ctx[17] = list[i][1];
+    	return child_ctx;
+    }
+
+    // (49:12) {#if m.output}
+    function create_if_block$1(ctx) {
+    	let option;
+    	let t_value = /*id*/ ctx[16] + "";
+    	let t;
+    	let option_value_value;
+
+    	const block = {
+    		c: function create() {
+    			option = element("option");
+    			t = text(t_value);
+    			option.__value = option_value_value = /*m*/ ctx[17].output;
+    			option.value = option.__value;
+    			add_location(option, file$2, 49, 12, 1254);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, option, anchor);
+    			append_dev(option, t);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty & /*$modules*/ 8 && t_value !== (t_value = /*id*/ ctx[16] + "")) set_data_dev(t, t_value);
+
+    			if (dirty & /*$modules*/ 8 && option_value_value !== (option_value_value = /*m*/ ctx[17].output)) {
+    				prop_dev(option, "__value", option_value_value);
+    				option.value = option.__value;
+    			}
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(option);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block$1.name,
+    		type: "if",
+    		source: "(49:12) {#if m.output}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (48:8) {#each Object.entries($modules) as [id, m]}
+    function create_each_block$1(ctx) {
+    	let if_block_anchor;
+    	let if_block = /*m*/ ctx[17].output && create_if_block$1(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if (if_block) if_block.c();
+    			if_block_anchor = empty();
+    		},
+    		m: function mount(target, anchor) {
+    			if (if_block) if_block.m(target, anchor);
+    			insert_dev(target, if_block_anchor, anchor);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (/*m*/ ctx[17].output) {
+    				if (if_block) {
+    					if_block.p(ctx, dirty);
+    				} else {
+    					if_block = create_if_block$1(ctx);
+    					if_block.c();
+    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    				}
+    			} else if (if_block) {
+    				if_block.d(1);
+    				if_block = null;
+    			}
+    		},
+    		d: function destroy(detaching) {
+    			if (if_block) if_block.d(detaching);
+    			if (detaching) detach_dev(if_block_anchor);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_each_block$1.name,
+    		type: "each",
+    		source: "(48:8) {#each Object.entries($modules) as [id, m]}",
+    		ctx
+    	});
+
+    	return block;
+    }
 
     function create_fragment$2(ctx) {
     	let main;
     	let div;
-    	let h2;
+    	let h1;
     	let t1;
-    	let label0;
-    	let input0;
-    	let t2;
+    	let h2;
     	let t3;
-    	let section;
-    	let label1;
-    	let input1;
-    	let t4;
+    	let button;
     	let t5;
-    	let label2;
-    	let input2;
+    	let label0;
+    	let select;
+    	let option;
     	let t6;
     	let t7;
-    	let label3;
-    	let input3;
+    	let label1;
+    	let input0;
     	let t8;
+    	let t9;
+    	let section;
+    	let label2;
+    	let input1;
+    	let t10;
+    	let t11;
+    	let label3;
+    	let input2;
+    	let t12;
+    	let t13;
+    	let label4;
+    	let input3;
+    	let t14;
+    	let t15;
+    	let br;
     	let binding_group;
     	let mounted;
     	let dispose;
-    	binding_group = init_binding_group(/*$$binding_groups*/ ctx[8][0]);
+    	let each_value = Object.entries(/*$modules*/ ctx[3]);
+    	validate_each_argument(each_value);
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block$1(get_each_context$1(ctx, each_value, i));
+    	}
+
+    	binding_group = init_binding_group(/*$$binding_groups*/ ctx[12][0]);
 
     	const block = {
     		c: function create() {
     			main = element("main");
     			div = element("div");
+    			h1 = element("h1");
+    			h1.textContent = `${/*moduleId*/ ctx[4]}`;
+    			t1 = space();
     			h2 = element("h2");
     			h2.textContent = "Filter";
-    			t1 = space();
-    			label0 = element("label");
-    			input0 = element("input");
-    			t2 = text("Frequency");
     			t3 = space();
-    			section = element("section");
-    			label1 = element("label");
-    			input1 = element("input");
-    			t4 = text(" Lowpass");
+    			button = element("button");
+    			button.textContent = "Update";
     			t5 = space();
-    			label2 = element("label");
-    			input2 = element("input");
-    			t6 = text(" Highpass");
+    			label0 = element("label");
+    			select = element("select");
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			option = element("option");
+    			t6 = text("Input");
     			t7 = space();
+    			label1 = element("label");
+    			input0 = element("input");
+    			t8 = text("Frequency");
+    			t9 = space();
+    			section = element("section");
+    			label2 = element("label");
+    			input1 = element("input");
+    			t10 = text(" Lowpass");
+    			t11 = space();
     			label3 = element("label");
+    			input2 = element("input");
+    			t12 = text(" Highpass");
+    			t13 = space();
+    			label4 = element("label");
     			input3 = element("input");
-    			t8 = text(" Bandpass");
-    			add_location(h2, file$2, 25, 8, 601);
+    			t14 = text(" Bandpass");
+    			t15 = space();
+    			br = element("br");
+    			add_location(h1, file$2, 43, 8, 1013);
+    			add_location(h2, file$2, 44, 8, 1042);
+    			add_location(button, file$2, 45, 8, 1067);
+    			option.__value = null;
+    			option.value = option.__value;
+    			add_location(option, file$2, 52, 8, 1338);
+    			if (/*module*/ ctx[0].input === void 0) add_render_callback(() => /*select_change_handler*/ ctx[9].call(select));
+    			add_location(select, file$2, 46, 15, 1125);
+    			add_location(label0, file$2, 46, 8, 1118);
     			attr_dev(input0, "type", "range");
     			attr_dev(input0, "min", "2.78135971352466");
     			attr_dev(input0, "max", "14.78135971352466");
     			attr_dev(input0, "step", "0.0001");
-    			add_location(input0, file$2, 26, 15, 633);
-    			add_location(label0, file$2, 26, 8, 626);
+    			add_location(input0, file$2, 54, 15, 1417);
+    			add_location(label1, file$2, 54, 8, 1410);
     			attr_dev(input1, "type", "radio");
     			input1.__value = "lowpass";
     			input1.value = input1.__value;
-    			add_location(input1, file$2, 29, 16, 807);
-    			add_location(label1, file$2, 28, 12, 782);
+    			add_location(input1, file$2, 56, 19, 1573);
+    			add_location(label2, file$2, 56, 12, 1566);
     			attr_dev(input2, "type", "radio");
     			input2.__value = "highpass";
     			input2.value = input2.__value;
-    			add_location(input2, file$2, 32, 16, 943);
-    			add_location(label2, file$2, 31, 12, 918);
+    			add_location(input2, file$2, 57, 19, 1677);
+    			add_location(label3, file$2, 57, 12, 1670);
     			attr_dev(input3, "type", "radio");
     			input3.__value = "bandpass";
     			input3.value = input3.__value;
-    			add_location(input3, file$2, 35, 16, 1081);
-    			add_location(label3, file$2, 34, 12, 1056);
-    			add_location(section, file$2, 27, 8, 759);
+    			add_location(input3, file$2, 58, 19, 1783);
+    			add_location(label4, file$2, 58, 12, 1776);
+    			add_location(section, file$2, 55, 8, 1543);
     			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$2, 24, 4, 586);
-    			add_location(main, file$2, 23, 0, 574);
+    			add_location(div, file$2, 42, 4, 998);
+    			add_location(br, file$2, 61, 4, 1906);
+    			add_location(main, file$2, 41, 0, 986);
     			binding_group.p(input1, input2, input3);
     		},
     		l: function claim(nodes) {
@@ -1932,63 +2828,112 @@ var app = (function () {
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
     			append_dev(main, div);
-    			append_dev(div, h2);
+    			append_dev(div, h1);
     			append_dev(div, t1);
-    			append_dev(div, label0);
-    			append_dev(label0, input0);
-    			set_input_value(input0, /*voct*/ ctx[0]);
-    			append_dev(label0, t2);
+    			append_dev(div, h2);
     			append_dev(div, t3);
+    			append_dev(div, button);
+    			append_dev(div, t5);
+    			append_dev(div, label0);
+    			append_dev(label0, select);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				if (each_blocks[i]) {
+    					each_blocks[i].m(select, null);
+    				}
+    			}
+
+    			append_dev(select, option);
+    			select_option(select, /*module*/ ctx[0].input, true);
+    			append_dev(label0, t6);
+    			append_dev(div, t7);
+    			append_dev(div, label1);
+    			append_dev(label1, input0);
+    			set_input_value(input0, /*voct*/ ctx[1]);
+    			append_dev(label1, t8);
+    			append_dev(div, t9);
     			append_dev(div, section);
-    			append_dev(section, label1);
-    			append_dev(label1, input1);
-    			input1.checked = input1.__value === /*filterNode*/ ctx[1].type;
-    			append_dev(label1, t4);
-    			append_dev(section, t5);
     			append_dev(section, label2);
-    			append_dev(label2, input2);
-    			input2.checked = input2.__value === /*filterNode*/ ctx[1].type;
-    			append_dev(label2, t6);
-    			append_dev(section, t7);
+    			append_dev(label2, input1);
+    			input1.checked = input1.__value === /*filterNode*/ ctx[2].type;
+    			append_dev(label2, t10);
+    			append_dev(section, t11);
     			append_dev(section, label3);
-    			append_dev(label3, input3);
-    			input3.checked = input3.__value === /*filterNode*/ ctx[1].type;
-    			append_dev(label3, t8);
+    			append_dev(label3, input2);
+    			input2.checked = input2.__value === /*filterNode*/ ctx[2].type;
+    			append_dev(label3, t12);
+    			append_dev(section, t13);
+    			append_dev(section, label4);
+    			append_dev(label4, input3);
+    			input3.checked = input3.__value === /*filterNode*/ ctx[2].type;
+    			append_dev(label4, t14);
+    			append_dev(main, t15);
+    			append_dev(main, br);
 
     			if (!mounted) {
     				dispose = [
-    					action_destroyer(/*handle*/ ctx[2].call(null, window)),
-    					listen_dev(input0, "change", /*input0_change_input_handler*/ ctx[6]),
-    					listen_dev(input0, "input", /*input0_change_input_handler*/ ctx[6]),
-    					listen_dev(input1, "change", /*input1_change_handler*/ ctx[7]),
-    					listen_dev(input2, "change", /*input2_change_handler*/ ctx[9]),
-    					listen_dev(input3, "change", /*input3_change_handler*/ ctx[10])
+    					listen_dev(button, "click", /*update*/ ctx[5], false, false, false, false),
+    					listen_dev(select, "change", /*select_change_handler*/ ctx[9]),
+    					listen_dev(input0, "change", /*input0_change_input_handler*/ ctx[10]),
+    					listen_dev(input0, "input", /*input0_change_input_handler*/ ctx[10]),
+    					listen_dev(input1, "change", /*input1_change_handler*/ ctx[11]),
+    					listen_dev(input2, "change", /*input2_change_handler*/ ctx[13]),
+    					listen_dev(input3, "change", /*input3_change_handler*/ ctx[14])
     				];
 
     				mounted = true;
     			}
     		},
     		p: function update(ctx, [dirty]) {
-    			if (dirty & /*voct*/ 1) {
-    				set_input_value(input0, /*voct*/ ctx[0]);
+    			if (dirty & /*Object, $modules*/ 8) {
+    				each_value = Object.entries(/*$modules*/ ctx[3]);
+    				validate_each_argument(each_value);
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context$1(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    					} else {
+    						each_blocks[i] = create_each_block$1(child_ctx);
+    						each_blocks[i].c();
+    						each_blocks[i].m(select, option);
+    					}
+    				}
+
+    				for (; i < each_blocks.length; i += 1) {
+    					each_blocks[i].d(1);
+    				}
+
+    				each_blocks.length = each_value.length;
     			}
 
-    			if (dirty & /*filterNode*/ 2) {
-    				input1.checked = input1.__value === /*filterNode*/ ctx[1].type;
+    			if (dirty & /*module, Object, $modules*/ 9) {
+    				select_option(select, /*module*/ ctx[0].input);
     			}
 
-    			if (dirty & /*filterNode*/ 2) {
-    				input2.checked = input2.__value === /*filterNode*/ ctx[1].type;
+    			if (dirty & /*voct*/ 2) {
+    				set_input_value(input0, /*voct*/ ctx[1]);
     			}
 
-    			if (dirty & /*filterNode*/ 2) {
-    				input3.checked = input3.__value === /*filterNode*/ ctx[1].type;
+    			if (dirty & /*filterNode*/ 4) {
+    				input1.checked = input1.__value === /*filterNode*/ ctx[2].type;
+    			}
+
+    			if (dirty & /*filterNode*/ 4) {
+    				input2.checked = input2.__value === /*filterNode*/ ctx[2].type;
+    			}
+
+    			if (dirty & /*filterNode*/ 4) {
+    				input3.checked = input3.__value === /*filterNode*/ ctx[2].type;
     			}
     		},
     		i: noop,
     		o: noop,
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(main);
+    			destroy_each(each_blocks, detaching);
     			binding_group.r();
     			mounted = false;
     			run_all(dispose);
@@ -2007,81 +2952,87 @@ var app = (function () {
     }
 
     function instance$2($$self, $$props, $$invalidate) {
+    	let $context;
+    	let $modules;
+    	let $noModules;
+    	validate_store(context, 'context');
+    	component_subscribe($$self, context, $$value => $$invalidate(8, $context = $$value));
+    	validate_store(modules, 'modules');
+    	component_subscribe($$self, modules, $$value => $$invalidate(3, $modules = $$value));
+    	validate_store(noModules, 'noModules');
+    	component_subscribe($$self, noModules, $$value => $$invalidate(15, $noModules = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('VCF', slots, []);
-    	let { ctx } = $$props;
-    	let { input } = $$props;
+    	const moduleId = $noModules;
+    	set_store_value(modules, $modules[moduleId] = {}, $modules);
+    	set_store_value(noModules, $noModules++, $noModules);
+    	const module = $modules[moduleId];
+    	module.input = null;
     	let voct = Math.log2(18000);
     	let max_cv = { value: 18000 };
-    	const dispatch = createEventDispatcher();
-    	var filterNode = ctx.createBiquadFilter();
+    	var filterNode = $context.createBiquadFilter();
+    	module.output = filterNode;
+    	var currentInput;
 
-    	const handle = () => dispatch('connect', {
-    		output: filterNode,
-    		cv_in: filterNode.frequency,
-    		max_cv
-    	});
+    	const update = () => {
+    		((($$invalidate(0, module), $$invalidate(2, filterNode)), $$invalidate(6, max_cv)), $$invalidate(1, voct));
+    	};
 
-    	$$self.$$.on_mount.push(function () {
-    		if (ctx === undefined && !('ctx' in $$props || $$self.$$.bound[$$self.$$.props['ctx']])) {
-    			console.warn("<VCF> was created without expected prop 'ctx'");
-    		}
+    	const writable_props = [];
 
-    		if (input === undefined && !('input' in $$props || $$self.$$.bound[$$self.$$.props['input']])) {
-    			console.warn("<VCF> was created without expected prop 'input'");
-    		}
-    	});
-
-    	const writable_props = ['ctx', 'input'];
-
-    	Object.keys($$props).forEach(key => {
+    	Object_1$1.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<VCF> was created with unknown prop '${key}'`);
     	});
 
     	const $$binding_groups = [[]];
 
+    	function select_change_handler() {
+    		module.input = select_value(this);
+    		((($$invalidate(0, module), $$invalidate(2, filterNode)), $$invalidate(6, max_cv)), $$invalidate(1, voct));
+    	}
+
     	function input0_change_input_handler() {
     		voct = to_number(this.value);
-    		$$invalidate(0, voct);
+    		$$invalidate(1, voct);
     	}
 
     	function input1_change_handler() {
     		filterNode.type = this.__value;
-    		$$invalidate(1, filterNode);
+    		$$invalidate(2, filterNode);
     	}
 
     	function input2_change_handler() {
     		filterNode.type = this.__value;
-    		$$invalidate(1, filterNode);
+    		$$invalidate(2, filterNode);
     	}
 
     	function input3_change_handler() {
     		filterNode.type = this.__value;
-    		$$invalidate(1, filterNode);
+    		$$invalidate(2, filterNode);
     	}
 
-    	$$self.$$set = $$props => {
-    		if ('ctx' in $$props) $$invalidate(3, ctx = $$props.ctx);
-    		if ('input' in $$props) $$invalidate(4, input = $$props.input);
-    	};
-
     	$$self.$capture_state = () => ({
-    		createEventDispatcher,
-    		ctx,
-    		input,
+    		modules,
+    		context,
+    		noModules,
+    		midi,
+    		moduleId,
+    		module,
     		voct,
     		max_cv,
-    		dispatch,
     		filterNode,
-    		handle
+    		currentInput,
+    		update,
+    		$context,
+    		$modules,
+    		$noModules
     	});
 
     	$$self.$inject_state = $$props => {
-    		if ('ctx' in $$props) $$invalidate(3, ctx = $$props.ctx);
-    		if ('input' in $$props) $$invalidate(4, input = $$props.input);
-    		if ('voct' in $$props) $$invalidate(0, voct = $$props.voct);
-    		if ('max_cv' in $$props) $$invalidate(5, max_cv = $$props.max_cv);
-    		if ('filterNode' in $$props) $$invalidate(1, filterNode = $$props.filterNode);
+    		if ('voct' in $$props) $$invalidate(1, voct = $$props.voct);
+    		if ('max_cv' in $$props) $$invalidate(6, max_cv = $$props.max_cv);
+    		if ('filterNode' in $$props) $$invalidate(2, filterNode = $$props.filterNode);
+    		if ('currentInput' in $$props) $$invalidate(7, currentInput = $$props.currentInput);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -2089,26 +3040,45 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*voct*/ 1) {
-    			$$invalidate(5, max_cv.value = Math.pow(2, voct), max_cv);
+    		if ($$self.$$.dirty & /*voct*/ 2) {
+    			$$invalidate(6, max_cv.value = Math.pow(2, voct), max_cv);
     		}
 
-    		if ($$self.$$.dirty & /*filterNode, max_cv, ctx*/ 42) {
-    			filterNode.frequency.setValueAtTime(max_cv.value, ctx.currentTime);
+    		if ($$self.$$.dirty & /*filterNode*/ 4) {
+    			$$invalidate(0, module.cv_in = filterNode.frequency, module);
     		}
 
-    		if ($$self.$$.dirty & /*input, filterNode*/ 18) {
-    			if (input) input.connect(filterNode);
+    		if ($$self.$$.dirty & /*max_cv*/ 64) {
+    			$$invalidate(0, module.max_cv = max_cv, module);
+    		}
+
+    		if ($$self.$$.dirty & /*module, currentInput, filterNode*/ 133) {
+    			if (module.input) {
+    				if (currentInput) currentInput.disconnect();
+    				$$invalidate(7, currentInput = module.input);
+    				currentInput.connect(filterNode);
+    			} else {
+    				if (currentInput) currentInput.disconnect();
+    				$$invalidate(7, currentInput = null);
+    			}
+    		}
+
+    		if ($$self.$$.dirty & /*filterNode, max_cv, $context*/ 324) {
+    			filterNode.frequency.setValueAtTime(max_cv.value, $context.currentTime);
     		}
     	};
 
     	return [
+    		module,
     		voct,
     		filterNode,
-    		handle,
-    		ctx,
-    		input,
+    		$modules,
+    		moduleId,
+    		update,
     		max_cv,
+    		currentInput,
+    		$context,
+    		select_change_handler,
     		input0_change_input_handler,
     		input1_change_handler,
     		$$binding_groups,
@@ -2120,7 +3090,7 @@ var app = (function () {
     class VCF extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$2, create_fragment$2, safe_not_equal, { ctx: 3, input: 4 });
+    		init(this, options, instance$2, create_fragment$2, safe_not_equal, {});
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
@@ -2129,44 +3099,277 @@ var app = (function () {
     			id: create_fragment$2.name
     		});
     	}
-
-    	get ctx() {
-    		throw new Error("<VCF>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set ctx(value) {
-    		throw new Error("<VCF>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get input() {
-    		throw new Error("<VCF>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set input(value) {
-    		throw new Error("<VCF>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
     }
 
     /* src\Mixer.svelte generated by Svelte v3.59.2 */
+
+    const { Object: Object_1 } = globals;
     const file$1 = "src\\Mixer.svelte";
+
+    function get_each_context(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[9] = list[i];
+    	child_ctx[10] = list;
+    	child_ctx[11] = i;
+    	return child_ctx;
+    }
+
+    function get_each_context_1(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[12] = list[i][0];
+    	child_ctx[13] = list[i][1];
+    	return child_ctx;
+    }
+
+    // (42:12) {#if m.output && id != moduleId && (!module.inputs.includes(m) || m == input)}
+    function create_if_block(ctx) {
+    	let option;
+    	let t_value = /*id*/ ctx[12] + "";
+    	let t;
+    	let option_value_value;
+
+    	const block = {
+    		c: function create() {
+    			option = element("option");
+    			t = text(t_value);
+    			option.__value = option_value_value = /*m*/ ctx[13];
+    			option.value = option.__value;
+    			add_location(option, file$1, 42, 12, 1223);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, option, anchor);
+    			append_dev(option, t);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty & /*$modules*/ 2 && t_value !== (t_value = /*id*/ ctx[12] + "")) set_data_dev(t, t_value);
+
+    			if (dirty & /*$modules*/ 2 && option_value_value !== (option_value_value = /*m*/ ctx[13])) {
+    				prop_dev(option, "__value", option_value_value);
+    				option.value = option.__value;
+    			}
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(option);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block.name,
+    		type: "if",
+    		source: "(42:12) {#if m.output && id != moduleId && (!module.inputs.includes(m) || m == input)}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (41:8) {#each Object.entries($modules) as [id, m]}
+    function create_each_block_1(ctx) {
+    	let show_if = /*m*/ ctx[13].output && /*id*/ ctx[12] != /*moduleId*/ ctx[2] && (!/*module*/ ctx[0].inputs.includes(/*m*/ ctx[13]) || /*m*/ ctx[13] == /*input*/ ctx[9]);
+    	let if_block_anchor;
+    	let if_block = show_if && create_if_block(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if (if_block) if_block.c();
+    			if_block_anchor = empty();
+    		},
+    		m: function mount(target, anchor) {
+    			if (if_block) if_block.m(target, anchor);
+    			insert_dev(target, if_block_anchor, anchor);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty & /*$modules, module*/ 3) show_if = /*m*/ ctx[13].output && /*id*/ ctx[12] != /*moduleId*/ ctx[2] && (!/*module*/ ctx[0].inputs.includes(/*m*/ ctx[13]) || /*m*/ ctx[13] == /*input*/ ctx[9]);
+
+    			if (show_if) {
+    				if (if_block) {
+    					if_block.p(ctx, dirty);
+    				} else {
+    					if_block = create_if_block(ctx);
+    					if_block.c();
+    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    				}
+    			} else if (if_block) {
+    				if_block.d(1);
+    				if_block = null;
+    			}
+    		},
+    		d: function destroy(detaching) {
+    			if (if_block) if_block.d(detaching);
+    			if (detaching) detach_dev(if_block_anchor);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_each_block_1.name,
+    		type: "each",
+    		source: "(41:8) {#each Object.entries($modules) as [id, m]}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (39:4) {#each module.inputs as input, inpid}
+    function create_each_block(ctx) {
+    	let label;
+    	let select;
+    	let option;
+    	let t0;
+    	let t1;
+    	let mounted;
+    	let dispose;
+    	let each_value_1 = Object.entries(/*$modules*/ ctx[1]);
+    	validate_each_argument(each_value_1);
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value_1.length; i += 1) {
+    		each_blocks[i] = create_each_block_1(get_each_context_1(ctx, each_value_1, i));
+    	}
+
+    	function select_change_handler() {
+    		/*select_change_handler*/ ctx[5].call(select, /*each_value*/ ctx[10], /*inpid*/ ctx[11]);
+    	}
+
+    	const block = {
+    		c: function create() {
+    			label = element("label");
+    			select = element("select");
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			option = element("option");
+    			t0 = text("Input ");
+    			t1 = text(/*inpid*/ ctx[11]);
+    			option.__value = null;
+    			option.value = option.__value;
+    			add_location(option, file$1, 45, 12, 1304);
+    			if (/*input*/ ctx[9] === void 0) add_render_callback(select_change_handler);
+    			add_location(select, file$1, 39, 15, 1037);
+    			add_location(label, file$1, 39, 8, 1030);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, label, anchor);
+    			append_dev(label, select);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				if (each_blocks[i]) {
+    					each_blocks[i].m(select, null);
+    				}
+    			}
+
+    			append_dev(select, option);
+    			select_option(select, /*input*/ ctx[9], true);
+    			append_dev(label, t0);
+    			append_dev(label, t1);
+
+    			if (!mounted) {
+    				dispose = listen_dev(select, "change", select_change_handler);
+    				mounted = true;
+    			}
+    		},
+    		p: function update(new_ctx, dirty) {
+    			ctx = new_ctx;
+
+    			if (dirty & /*Object, $modules, moduleId, module*/ 7) {
+    				each_value_1 = Object.entries(/*$modules*/ ctx[1]);
+    				validate_each_argument(each_value_1);
+    				let i;
+
+    				for (i = 0; i < each_value_1.length; i += 1) {
+    					const child_ctx = get_each_context_1(ctx, each_value_1, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    					} else {
+    						each_blocks[i] = create_each_block_1(child_ctx);
+    						each_blocks[i].c();
+    						each_blocks[i].m(select, option);
+    					}
+    				}
+
+    				for (; i < each_blocks.length; i += 1) {
+    					each_blocks[i].d(1);
+    				}
+
+    				each_blocks.length = each_value_1.length;
+    			}
+
+    			if (dirty & /*module, Object, $modules*/ 3) {
+    				select_option(select, /*input*/ ctx[9]);
+    			}
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(label);
+    			destroy_each(each_blocks, detaching);
+    			mounted = false;
+    			dispose();
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_each_block.name,
+    		type: "each",
+    		source: "(39:4) {#each module.inputs as input, inpid}",
+    		ctx
+    	});
+
+    	return block;
+    }
 
     function create_fragment$1(ctx) {
     	let main;
     	let div;
+    	let h1;
+    	let t1;
     	let h2;
+    	let t3;
+    	let button;
+    	let t5;
+    	let t6;
+    	let br;
     	let mounted;
     	let dispose;
+    	let each_value = /*module*/ ctx[0].inputs;
+    	validate_each_argument(each_value);
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
+    	}
 
     	const block = {
     		c: function create() {
     			main = element("main");
     			div = element("div");
+    			h1 = element("h1");
+    			h1.textContent = `${/*moduleId*/ ctx[2]}`;
+    			t1 = space();
     			h2 = element("h2");
     			h2.textContent = "Mixer";
-    			add_location(h2, file$1, 23, 4, 528);
+    			t3 = space();
+    			button = element("button");
+    			button.textContent = "Update";
+    			t5 = space();
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			t6 = space();
+    			br = element("br");
+    			add_location(h1, file$1, 35, 4, 891);
+    			add_location(h2, file$1, 36, 4, 916);
+    			add_location(button, file$1, 37, 4, 936);
     			attr_dev(div, "class", "svelte-49prnq");
-    			add_location(div, file$1, 22, 0, 517);
-    			add_location(main, file$1, 21, 0, 509);
+    			add_location(div, file$1, 34, 0, 880);
+    			add_location(br, file$1, 49, 0, 1397);
+    			add_location(main, file$1, 33, 0, 872);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -2174,18 +3377,57 @@ var app = (function () {
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
     			append_dev(main, div);
+    			append_dev(div, h1);
+    			append_dev(div, t1);
     			append_dev(div, h2);
+    			append_dev(div, t3);
+    			append_dev(div, button);
+    			append_dev(div, t5);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				if (each_blocks[i]) {
+    					each_blocks[i].m(div, null);
+    				}
+    			}
+
+    			append_dev(main, t6);
+    			append_dev(main, br);
 
     			if (!mounted) {
-    				dispose = action_destroyer(/*handle*/ ctx[0].call(null, window));
+    				dispose = listen_dev(button, "click", /*update*/ ctx[3], false, false, false, false);
     				mounted = true;
     			}
     		},
-    		p: noop,
+    		p: function update(ctx, [dirty]) {
+    			if (dirty & /*module, Object, $modules, moduleId*/ 7) {
+    				each_value = /*module*/ ctx[0].inputs;
+    				validate_each_argument(each_value);
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    					} else {
+    						each_blocks[i] = create_each_block(child_ctx);
+    						each_blocks[i].c();
+    						each_blocks[i].m(div, null);
+    					}
+    				}
+
+    				for (; i < each_blocks.length; i += 1) {
+    					each_blocks[i].d(1);
+    				}
+
+    				each_blocks.length = each_value.length;
+    			}
+    		},
     		i: noop,
     		o: noop,
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(main);
+    			destroy_each(each_blocks, detaching);
     			mounted = false;
     			dispose();
     		}
@@ -2203,72 +3445,57 @@ var app = (function () {
     }
 
     function instance$1($$self, $$props, $$invalidate) {
+    	let $context;
+    	let $modules;
+    	let $noModules;
+    	validate_store(context, 'context');
+    	component_subscribe($$self, context, $$value => $$invalidate(6, $context = $$value));
+    	validate_store(modules, 'modules');
+    	component_subscribe($$self, modules, $$value => $$invalidate(1, $modules = $$value));
+    	validate_store(noModules, 'noModules');
+    	component_subscribe($$self, noModules, $$value => $$invalidate(7, $noModules = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('Mixer', slots, []);
-    	let { ctx } = $$props;
-    	let { in0 } = $$props;
-    	let { in1 } = $$props;
-    	let { in2 } = $$props;
-    	let { in3 } = $$props;
-    	const dispatch = createEventDispatcher();
-    	var gainNode = ctx.createGain();
-    	const handle = () => dispatch('connect', { output: gainNode });
+    	const moduleId = $noModules;
+    	set_store_value(modules, $modules[moduleId] = {}, $modules);
+    	set_store_value(noModules, $noModules++, $noModules);
+    	const module = $modules[moduleId];
+    	var gainNode = $context.createGain();
+    	module.output = gainNode;
+    	module.inputs = [null, null, null, null];
+    	const currentInputs = [null, null, null, null];
 
-    	$$self.$$.on_mount.push(function () {
-    		if (ctx === undefined && !('ctx' in $$props || $$self.$$.bound[$$self.$$.props['ctx']])) {
-    			console.warn("<Mixer> was created without expected prop 'ctx'");
-    		}
+    	const update = () => {
+    		$$invalidate(0, module);
+    	};
 
-    		if (in0 === undefined && !('in0' in $$props || $$self.$$.bound[$$self.$$.props['in0']])) {
-    			console.warn("<Mixer> was created without expected prop 'in0'");
-    		}
+    	const writable_props = [];
 
-    		if (in1 === undefined && !('in1' in $$props || $$self.$$.bound[$$self.$$.props['in1']])) {
-    			console.warn("<Mixer> was created without expected prop 'in1'");
-    		}
-
-    		if (in2 === undefined && !('in2' in $$props || $$self.$$.bound[$$self.$$.props['in2']])) {
-    			console.warn("<Mixer> was created without expected prop 'in2'");
-    		}
-
-    		if (in3 === undefined && !('in3' in $$props || $$self.$$.bound[$$self.$$.props['in3']])) {
-    			console.warn("<Mixer> was created without expected prop 'in3'");
-    		}
-    	});
-
-    	const writable_props = ['ctx', 'in0', 'in1', 'in2', 'in3'];
-
-    	Object.keys($$props).forEach(key => {
+    	Object_1.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<Mixer> was created with unknown prop '${key}'`);
     	});
 
-    	$$self.$$set = $$props => {
-    		if ('ctx' in $$props) $$invalidate(1, ctx = $$props.ctx);
-    		if ('in0' in $$props) $$invalidate(2, in0 = $$props.in0);
-    		if ('in1' in $$props) $$invalidate(3, in1 = $$props.in1);
-    		if ('in2' in $$props) $$invalidate(4, in2 = $$props.in2);
-    		if ('in3' in $$props) $$invalidate(5, in3 = $$props.in3);
-    	};
+    	function select_change_handler(each_value, inpid) {
+    		each_value[inpid] = select_value(this);
+    		$$invalidate(0, module);
+    	}
 
     	$$self.$capture_state = () => ({
-    		createEventDispatcher,
-    		ctx,
-    		in0,
-    		in1,
-    		in2,
-    		in3,
-    		dispatch,
+    		modules,
+    		context,
+    		noModules,
+    		moduleId,
+    		module,
     		gainNode,
-    		handle
+    		currentInputs,
+    		update,
+    		$context,
+    		$modules,
+    		$noModules
     	});
 
     	$$self.$inject_state = $$props => {
-    		if ('ctx' in $$props) $$invalidate(1, ctx = $$props.ctx);
-    		if ('in0' in $$props) $$invalidate(2, in0 = $$props.in0);
-    		if ('in1' in $$props) $$invalidate(3, in1 = $$props.in1);
-    		if ('in2' in $$props) $$invalidate(4, in2 = $$props.in2);
-    		if ('in3' in $$props) $$invalidate(5, in3 = $$props.in3);
-    		if ('gainNode' in $$props) $$invalidate(7, gainNode = $$props.gainNode);
+    		if ('gainNode' in $$props) $$invalidate(8, gainNode = $$props.gainNode);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -2276,30 +3503,27 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*in0*/ 4) {
-    			if (in0) in0.connect(gainNode);
-    		}
-
-    		if ($$self.$$.dirty & /*in1*/ 8) {
-    			if (in1) in1.connect(gainNode);
-    		}
-
-    		if ($$self.$$.dirty & /*in2*/ 16) {
-    			if (in2) in2.connect(gainNode);
-    		}
-
-    		if ($$self.$$.dirty & /*in3*/ 32) {
-    			if (in3) in3.connect(gainNode);
+    		if ($$self.$$.dirty & /*module, currentInputs*/ 17) {
+    			module.inputs.forEach((input, id) => {
+    				if (input) {
+    					if (currentInputs[id]) currentInputs[id].output.disconnect();
+    					$$invalidate(4, currentInputs[id] = input, currentInputs);
+    					currentInputs[id].output.connect(gainNode);
+    				} else {
+    					if (currentInputs[id]) currentInputs[id].output.disconnect();
+    					$$invalidate(4, currentInputs[id] = null, currentInputs);
+    				}
+    			});
     		}
     	};
 
-    	return [handle, ctx, in0, in1, in2, in3];
+    	return [module, $modules, moduleId, update, currentInputs, select_change_handler];
     }
 
     class Mixer extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$1, create_fragment$1, safe_not_equal, { ctx: 1, in0: 2, in1: 3, in2: 4, in3: 5 });
+    		init(this, options, instance$1, create_fragment$1, safe_not_equal, {});
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
@@ -2308,815 +3532,125 @@ var app = (function () {
     			id: create_fragment$1.name
     		});
     	}
-
-    	get ctx() {
-    		throw new Error("<Mixer>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set ctx(value) {
-    		throw new Error("<Mixer>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get in0() {
-    		throw new Error("<Mixer>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set in0(value) {
-    		throw new Error("<Mixer>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get in1() {
-    		throw new Error("<Mixer>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set in1(value) {
-    		throw new Error("<Mixer>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get in2() {
-    		throw new Error("<Mixer>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set in2(value) {
-    		throw new Error("<Mixer>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get in3() {
-    		throw new Error("<Mixer>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set in3(value) {
-    		throw new Error("<Mixer>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
     }
 
     /* src\App.svelte generated by Svelte v3.59.2 */
     const file = "src\\App.svelte";
 
-    // (78:1) {#if vcf.hasEnv}
-    function create_if_block_1(ctx) {
-    	let adsr;
-    	let updating_ctx;
-    	let updating_trigger;
-    	let updating_cv_out;
-    	let updating_max_cv;
-    	let current;
-
-    	function adsr_ctx_binding(value) {
-    		/*adsr_ctx_binding*/ ctx[17](value);
-    	}
-
-    	function adsr_trigger_binding(value) {
-    		/*adsr_trigger_binding*/ ctx[18](value);
-    	}
-
-    	function adsr_cv_out_binding(value) {
-    		/*adsr_cv_out_binding*/ ctx[19](value);
-    	}
-
-    	function adsr_max_cv_binding(value) {
-    		/*adsr_max_cv_binding*/ ctx[20](value);
-    	}
-
-    	let adsr_props = {};
-
-    	if (/*ctx*/ ctx[0] !== void 0) {
-    		adsr_props.ctx = /*ctx*/ ctx[0];
-    	}
-
-    	if (/*midi*/ ctx[3].trigger !== void 0) {
-    		adsr_props.trigger = /*midi*/ ctx[3].trigger;
-    	}
-
-    	if (/*vcf*/ ctx[4].cv !== void 0) {
-    		adsr_props.cv_out = /*vcf*/ ctx[4].cv;
-    	}
-
-    	if (/*vcf*/ ctx[4].cvmax !== void 0) {
-    		adsr_props.max_cv = /*vcf*/ ctx[4].cvmax;
-    	}
-
-    	adsr = new ADSR({ props: adsr_props, $$inline: true });
-    	binding_callbacks.push(() => bind(adsr, 'ctx', adsr_ctx_binding));
-    	binding_callbacks.push(() => bind(adsr, 'trigger', adsr_trigger_binding));
-    	binding_callbacks.push(() => bind(adsr, 'cv_out', adsr_cv_out_binding));
-    	binding_callbacks.push(() => bind(adsr, 'max_cv', adsr_max_cv_binding));
-
-    	const block = {
-    		c: function create() {
-    			create_component(adsr.$$.fragment);
-    		},
-    		m: function mount(target, anchor) {
-    			mount_component(adsr, target, anchor);
-    			current = true;
-    		},
-    		p: function update(ctx, dirty) {
-    			const adsr_changes = {};
-
-    			if (!updating_ctx && dirty & /*ctx*/ 1) {
-    				updating_ctx = true;
-    				adsr_changes.ctx = /*ctx*/ ctx[0];
-    				add_flush_callback(() => updating_ctx = false);
-    			}
-
-    			if (!updating_trigger && dirty & /*midi*/ 8) {
-    				updating_trigger = true;
-    				adsr_changes.trigger = /*midi*/ ctx[3].trigger;
-    				add_flush_callback(() => updating_trigger = false);
-    			}
-
-    			if (!updating_cv_out && dirty & /*vcf*/ 16) {
-    				updating_cv_out = true;
-    				adsr_changes.cv_out = /*vcf*/ ctx[4].cv;
-    				add_flush_callback(() => updating_cv_out = false);
-    			}
-
-    			if (!updating_max_cv && dirty & /*vcf*/ 16) {
-    				updating_max_cv = true;
-    				adsr_changes.max_cv = /*vcf*/ ctx[4].cvmax;
-    				add_flush_callback(() => updating_max_cv = false);
-    			}
-
-    			adsr.$set(adsr_changes);
-    		},
-    		i: function intro(local) {
-    			if (current) return;
-    			transition_in(adsr.$$.fragment, local);
-    			current = true;
-    		},
-    		o: function outro(local) {
-    			transition_out(adsr.$$.fragment, local);
-    			current = false;
-    		},
-    		d: function destroy(detaching) {
-    			destroy_component(adsr, detaching);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_if_block_1.name,
-    		type: "if",
-    		source: "(78:1) {#if vcf.hasEnv}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    // (84:1) {#if vca.hasEnv}
-    function create_if_block(ctx) {
-    	let adsr;
-    	let updating_ctx;
-    	let updating_trigger;
-    	let updating_cv_out;
-    	let updating_max_cv;
-    	let current;
-
-    	function adsr_ctx_binding_1(value) {
-    		/*adsr_ctx_binding_1*/ ctx[24](value);
-    	}
-
-    	function adsr_trigger_binding_1(value) {
-    		/*adsr_trigger_binding_1*/ ctx[25](value);
-    	}
-
-    	function adsr_cv_out_binding_1(value) {
-    		/*adsr_cv_out_binding_1*/ ctx[26](value);
-    	}
-
-    	function adsr_max_cv_binding_1(value) {
-    		/*adsr_max_cv_binding_1*/ ctx[27](value);
-    	}
-
-    	let adsr_props = {};
-
-    	if (/*ctx*/ ctx[0] !== void 0) {
-    		adsr_props.ctx = /*ctx*/ ctx[0];
-    	}
-
-    	if (/*midi*/ ctx[3].trigger !== void 0) {
-    		adsr_props.trigger = /*midi*/ ctx[3].trigger;
-    	}
-
-    	if (/*vca*/ ctx[5].cv !== void 0) {
-    		adsr_props.cv_out = /*vca*/ ctx[5].cv;
-    	}
-
-    	if (/*vca*/ ctx[5].cvmax !== void 0) {
-    		adsr_props.max_cv = /*vca*/ ctx[5].cvmax;
-    	}
-
-    	adsr = new ADSR({ props: adsr_props, $$inline: true });
-    	binding_callbacks.push(() => bind(adsr, 'ctx', adsr_ctx_binding_1));
-    	binding_callbacks.push(() => bind(adsr, 'trigger', adsr_trigger_binding_1));
-    	binding_callbacks.push(() => bind(adsr, 'cv_out', adsr_cv_out_binding_1));
-    	binding_callbacks.push(() => bind(adsr, 'max_cv', adsr_max_cv_binding_1));
-
-    	const block = {
-    		c: function create() {
-    			create_component(adsr.$$.fragment);
-    		},
-    		m: function mount(target, anchor) {
-    			mount_component(adsr, target, anchor);
-    			current = true;
-    		},
-    		p: function update(ctx, dirty) {
-    			const adsr_changes = {};
-
-    			if (!updating_ctx && dirty & /*ctx*/ 1) {
-    				updating_ctx = true;
-    				adsr_changes.ctx = /*ctx*/ ctx[0];
-    				add_flush_callback(() => updating_ctx = false);
-    			}
-
-    			if (!updating_trigger && dirty & /*midi*/ 8) {
-    				updating_trigger = true;
-    				adsr_changes.trigger = /*midi*/ ctx[3].trigger;
-    				add_flush_callback(() => updating_trigger = false);
-    			}
-
-    			if (!updating_cv_out && dirty & /*vca*/ 32) {
-    				updating_cv_out = true;
-    				adsr_changes.cv_out = /*vca*/ ctx[5].cv;
-    				add_flush_callback(() => updating_cv_out = false);
-    			}
-
-    			if (!updating_max_cv && dirty & /*vca*/ 32) {
-    				updating_max_cv = true;
-    				adsr_changes.max_cv = /*vca*/ ctx[5].cvmax;
-    				add_flush_callback(() => updating_max_cv = false);
-    			}
-
-    			adsr.$set(adsr_changes);
-    		},
-    		i: function intro(local) {
-    			if (current) return;
-    			transition_in(adsr.$$.fragment, local);
-    			current = true;
-    		},
-    		o: function outro(local) {
-    			transition_out(adsr.$$.fragment, local);
-    			current = false;
-    		},
-    		d: function destroy(detaching) {
-    			destroy_component(adsr, detaching);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_if_block.name,
-    		type: "if",
-    		source: "(84:1) {#if vca.hasEnv}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
     function create_fragment(ctx) {
     	let main;
-    	let output;
-    	let updating_ctx;
-    	let updating_input;
+    	let midi;
     	let t0;
-    	let switch_instance;
+    	let output;
     	let t1;
     	let vco0;
-    	let updating_ctx_1;
-    	let updating_voctIn;
     	let t2;
     	let vco1;
-    	let updating_ctx_2;
-    	let updating_voctIn_1;
     	let t3;
-    	let mixer_1;
-    	let updating_ctx_3;
-    	let updating_in0;
-    	let updating_in1;
+    	let mixer;
     	let t4;
-    	let br0;
+    	let adsr0;
     	let t5;
-    	let label0;
-    	let input0;
+    	let vcf;
     	let t6;
+    	let adsr1;
     	let t7;
-    	let t8;
-    	let vcf_1;
-    	let updating_ctx_4;
-    	let updating_input_1;
-    	let t9;
-    	let br1;
-    	let t10;
-    	let label1;
-    	let input1;
-    	let t11;
-    	let t12;
-    	let t13;
-    	let vca_1;
-    	let updating_ctx_5;
-    	let updating_input_2;
-    	let t14;
-    	let br2;
+    	let vca;
     	let current;
-    	let mounted;
-    	let dispose;
-
-    	function output_ctx_binding(value) {
-    		/*output_ctx_binding*/ ctx[7](value);
-    	}
-
-    	function output_input_binding(value) {
-    		/*output_input_binding*/ ctx[8](value);
-    	}
-
-    	let output_props = {};
-
-    	if (/*ctx*/ ctx[0] !== void 0) {
-    		output_props.ctx = /*ctx*/ ctx[0];
-    	}
-
-    	if (/*vca*/ ctx[5].output !== void 0) {
-    		output_props.input = /*vca*/ ctx[5].output;
-    	}
-
-    	output = new Output({ props: output_props, $$inline: true });
-    	binding_callbacks.push(() => bind(output, 'ctx', output_ctx_binding));
-    	binding_callbacks.push(() => bind(output, 'input', output_input_binding));
-    	var switch_value = /*midi*/ ctx[3].comp;
-
-    	function switch_props(ctx) {
-    		return { $$inline: true };
-    	}
-
-    	if (switch_value) {
-    		switch_instance = construct_svelte_component_dev(switch_value, switch_props());
-
-    		switch_instance.$on("input", function () {
-    			if (is_function(/*midi*/ ctx[3].handle)) /*midi*/ ctx[3].handle.apply(this, arguments);
-    		});
-    	}
-
-    	function vco0_ctx_binding(value) {
-    		/*vco0_ctx_binding*/ ctx[9](value);
-    	}
-
-    	function vco0_voctIn_binding(value) {
-    		/*vco0_voctIn_binding*/ ctx[10](value);
-    	}
-
-    	let vco0_props = {};
-
-    	if (/*ctx*/ ctx[0] !== void 0) {
-    		vco0_props.ctx = /*ctx*/ ctx[0];
-    	}
-
-    	if (/*midi*/ ctx[3].voct !== void 0) {
-    		vco0_props.voctIn = /*midi*/ ctx[3].voct;
-    	}
-
-    	vco0 = new VCO({ props: vco0_props, $$inline: true });
-    	binding_callbacks.push(() => bind(vco0, 'ctx', vco0_ctx_binding));
-    	binding_callbacks.push(() => bind(vco0, 'voctIn', vco0_voctIn_binding));
-
-    	vco0.$on("connect", function () {
-    		if (is_function(/*vco*/ ctx[1].handle)) /*vco*/ ctx[1].handle.apply(this, arguments);
-    	});
-
-    	function vco1_ctx_binding(value) {
-    		/*vco1_ctx_binding*/ ctx[11](value);
-    	}
-
-    	function vco1_voctIn_binding(value) {
-    		/*vco1_voctIn_binding*/ ctx[12](value);
-    	}
-
-    	let vco1_props = {};
-
-    	if (/*ctx*/ ctx[0] !== void 0) {
-    		vco1_props.ctx = /*ctx*/ ctx[0];
-    	}
-
-    	if (/*midi*/ ctx[3].voct !== void 0) {
-    		vco1_props.voctIn = /*midi*/ ctx[3].voct;
-    	}
-
-    	vco1 = new VCO({ props: vco1_props, $$inline: true });
-    	binding_callbacks.push(() => bind(vco1, 'ctx', vco1_ctx_binding));
-    	binding_callbacks.push(() => bind(vco1, 'voctIn', vco1_voctIn_binding));
-
-    	vco1.$on("connect", function () {
-    		if (is_function(/*vco2*/ ctx[2].handle)) /*vco2*/ ctx[2].handle.apply(this, arguments);
-    	});
-
-    	function mixer_1_ctx_binding(value) {
-    		/*mixer_1_ctx_binding*/ ctx[13](value);
-    	}
-
-    	function mixer_1_in0_binding(value) {
-    		/*mixer_1_in0_binding*/ ctx[14](value);
-    	}
-
-    	function mixer_1_in1_binding(value) {
-    		/*mixer_1_in1_binding*/ ctx[15](value);
-    	}
-
-    	let mixer_1_props = {};
-
-    	if (/*ctx*/ ctx[0] !== void 0) {
-    		mixer_1_props.ctx = /*ctx*/ ctx[0];
-    	}
-
-    	if (/*vco*/ ctx[1].output !== void 0) {
-    		mixer_1_props.in0 = /*vco*/ ctx[1].output;
-    	}
-
-    	if (/*vco2*/ ctx[2].output !== void 0) {
-    		mixer_1_props.in1 = /*vco2*/ ctx[2].output;
-    	}
-
-    	mixer_1 = new Mixer({ props: mixer_1_props, $$inline: true });
-    	binding_callbacks.push(() => bind(mixer_1, 'ctx', mixer_1_ctx_binding));
-    	binding_callbacks.push(() => bind(mixer_1, 'in0', mixer_1_in0_binding));
-    	binding_callbacks.push(() => bind(mixer_1, 'in1', mixer_1_in1_binding));
-
-    	mixer_1.$on("connect", function () {
-    		if (is_function(/*mixer*/ ctx[6].handle)) /*mixer*/ ctx[6].handle.apply(this, arguments);
-    	});
-
-    	let if_block0 = /*vcf*/ ctx[4].hasEnv && create_if_block_1(ctx);
-
-    	function vcf_1_ctx_binding(value) {
-    		/*vcf_1_ctx_binding*/ ctx[21](value);
-    	}
-
-    	function vcf_1_input_binding(value) {
-    		/*vcf_1_input_binding*/ ctx[22](value);
-    	}
-
-    	let vcf_1_props = {};
-
-    	if (/*ctx*/ ctx[0] !== void 0) {
-    		vcf_1_props.ctx = /*ctx*/ ctx[0];
-    	}
-
-    	if (/*mixer*/ ctx[6].output !== void 0) {
-    		vcf_1_props.input = /*mixer*/ ctx[6].output;
-    	}
-
-    	vcf_1 = new VCF({ props: vcf_1_props, $$inline: true });
-    	binding_callbacks.push(() => bind(vcf_1, 'ctx', vcf_1_ctx_binding));
-    	binding_callbacks.push(() => bind(vcf_1, 'input', vcf_1_input_binding));
-
-    	vcf_1.$on("connect", function () {
-    		if (is_function(/*vcf*/ ctx[4].handle)) /*vcf*/ ctx[4].handle.apply(this, arguments);
-    	});
-
-    	let if_block1 = /*vca*/ ctx[5].hasEnv && create_if_block(ctx);
-
-    	function vca_1_ctx_binding(value) {
-    		/*vca_1_ctx_binding*/ ctx[28](value);
-    	}
-
-    	function vca_1_input_binding(value) {
-    		/*vca_1_input_binding*/ ctx[29](value);
-    	}
-
-    	let vca_1_props = {};
-
-    	if (/*ctx*/ ctx[0] !== void 0) {
-    		vca_1_props.ctx = /*ctx*/ ctx[0];
-    	}
-
-    	if (/*vcf*/ ctx[4].output !== void 0) {
-    		vca_1_props.input = /*vcf*/ ctx[4].output;
-    	}
-
-    	vca_1 = new VCA({ props: vca_1_props, $$inline: true });
-    	binding_callbacks.push(() => bind(vca_1, 'ctx', vca_1_ctx_binding));
-    	binding_callbacks.push(() => bind(vca_1, 'input', vca_1_input_binding));
-
-    	vca_1.$on("connect", function () {
-    		if (is_function(/*vca*/ ctx[5].handle)) /*vca*/ ctx[5].handle.apply(this, arguments);
-    	});
+    	midi = new MIDI({ $$inline: true });
+    	output = new Output({ $$inline: true });
+    	vco0 = new VCO({ $$inline: true });
+    	vco1 = new VCO({ $$inline: true });
+    	mixer = new Mixer({ $$inline: true });
+    	adsr0 = new ADSR({ $$inline: true });
+    	vcf = new VCF({ $$inline: true });
+    	adsr1 = new ADSR({ $$inline: true });
+    	vca = new VCA({ $$inline: true });
 
     	const block = {
     		c: function create() {
     			main = element("main");
-    			create_component(output.$$.fragment);
+    			create_component(midi.$$.fragment);
     			t0 = space();
-    			if (switch_instance) create_component(switch_instance.$$.fragment);
+    			create_component(output.$$.fragment);
     			t1 = space();
     			create_component(vco0.$$.fragment);
     			t2 = space();
     			create_component(vco1.$$.fragment);
     			t3 = space();
-    			create_component(mixer_1.$$.fragment);
+    			create_component(mixer.$$.fragment);
     			t4 = space();
-    			br0 = element("br");
+    			create_component(adsr0.$$.fragment);
     			t5 = space();
-    			label0 = element("label");
-    			input0 = element("input");
-    			t6 = text("Envelope");
+    			create_component(vcf.$$.fragment);
+    			t6 = space();
+    			create_component(adsr1.$$.fragment);
     			t7 = space();
-    			if (if_block0) if_block0.c();
-    			t8 = space();
-    			create_component(vcf_1.$$.fragment);
-    			t9 = space();
-    			br1 = element("br");
-    			t10 = space();
-    			label1 = element("label");
-    			input1 = element("input");
-    			t11 = text("Envelope");
-    			t12 = space();
-    			if (if_block1) if_block1.c();
-    			t13 = space();
-    			create_component(vca_1.$$.fragment);
-    			t14 = space();
-    			br2 = element("br");
-    			add_location(br0, file, 75, 1, 1685);
-    			attr_dev(input0, "type", "checkbox");
-    			add_location(input0, file, 76, 8, 1699);
-    			add_location(label0, file, 76, 1, 1692);
-    			add_location(br1, file, 81, 1, 1959);
-    			attr_dev(input1, "type", "checkbox");
-    			add_location(input1, file, 82, 8, 1973);
-    			add_location(label1, file, 82, 1, 1966);
-    			add_location(br2, file, 87, 1, 2231);
-    			attr_dev(main, "class", "svelte-1h6otfa");
-    			add_location(main, file, 69, 0, 1340);
+    			create_component(vca.$$.fragment);
+    			attr_dev(main, "class", "svelte-pet8xf");
+    			add_location(main, file, 15, 0, 448);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
-    			mount_component(output, main, null);
+    			mount_component(midi, main, null);
     			append_dev(main, t0);
-    			if (switch_instance) mount_component(switch_instance, main, null);
+    			mount_component(output, main, null);
     			append_dev(main, t1);
     			mount_component(vco0, main, null);
     			append_dev(main, t2);
     			mount_component(vco1, main, null);
     			append_dev(main, t3);
-    			mount_component(mixer_1, main, null);
+    			mount_component(mixer, main, null);
     			append_dev(main, t4);
-    			append_dev(main, br0);
+    			mount_component(adsr0, main, null);
     			append_dev(main, t5);
-    			append_dev(main, label0);
-    			append_dev(label0, input0);
-    			input0.checked = /*vcf*/ ctx[4].hasEnv;
-    			append_dev(label0, t6);
+    			mount_component(vcf, main, null);
+    			append_dev(main, t6);
+    			mount_component(adsr1, main, null);
     			append_dev(main, t7);
-    			if (if_block0) if_block0.m(main, null);
-    			append_dev(main, t8);
-    			mount_component(vcf_1, main, null);
-    			append_dev(main, t9);
-    			append_dev(main, br1);
-    			append_dev(main, t10);
-    			append_dev(main, label1);
-    			append_dev(label1, input1);
-    			input1.checked = /*vca*/ ctx[5].hasEnv;
-    			append_dev(label1, t11);
-    			append_dev(main, t12);
-    			if (if_block1) if_block1.m(main, null);
-    			append_dev(main, t13);
-    			mount_component(vca_1, main, null);
-    			append_dev(main, t14);
-    			append_dev(main, br2);
+    			mount_component(vca, main, null);
     			current = true;
-
-    			if (!mounted) {
-    				dispose = [
-    					listen_dev(input0, "change", /*input0_change_handler*/ ctx[16]),
-    					listen_dev(input1, "change", /*input1_change_handler*/ ctx[23])
-    				];
-
-    				mounted = true;
-    			}
     		},
-    		p: function update(new_ctx, [dirty]) {
-    			ctx = new_ctx;
-    			const output_changes = {};
-
-    			if (!updating_ctx && dirty & /*ctx*/ 1) {
-    				updating_ctx = true;
-    				output_changes.ctx = /*ctx*/ ctx[0];
-    				add_flush_callback(() => updating_ctx = false);
-    			}
-
-    			if (!updating_input && dirty & /*vca*/ 32) {
-    				updating_input = true;
-    				output_changes.input = /*vca*/ ctx[5].output;
-    				add_flush_callback(() => updating_input = false);
-    			}
-
-    			output.$set(output_changes);
-
-    			if (dirty & /*midi*/ 8 && switch_value !== (switch_value = /*midi*/ ctx[3].comp)) {
-    				if (switch_instance) {
-    					group_outros();
-    					const old_component = switch_instance;
-
-    					transition_out(old_component.$$.fragment, 1, 0, () => {
-    						destroy_component(old_component, 1);
-    					});
-
-    					check_outros();
-    				}
-
-    				if (switch_value) {
-    					switch_instance = construct_svelte_component_dev(switch_value, switch_props());
-
-    					switch_instance.$on("input", function () {
-    						if (is_function(/*midi*/ ctx[3].handle)) /*midi*/ ctx[3].handle.apply(this, arguments);
-    					});
-
-    					create_component(switch_instance.$$.fragment);
-    					transition_in(switch_instance.$$.fragment, 1);
-    					mount_component(switch_instance, main, t1);
-    				} else {
-    					switch_instance = null;
-    				}
-    			}
-
-    			const vco0_changes = {};
-
-    			if (!updating_ctx_1 && dirty & /*ctx*/ 1) {
-    				updating_ctx_1 = true;
-    				vco0_changes.ctx = /*ctx*/ ctx[0];
-    				add_flush_callback(() => updating_ctx_1 = false);
-    			}
-
-    			if (!updating_voctIn && dirty & /*midi*/ 8) {
-    				updating_voctIn = true;
-    				vco0_changes.voctIn = /*midi*/ ctx[3].voct;
-    				add_flush_callback(() => updating_voctIn = false);
-    			}
-
-    			vco0.$set(vco0_changes);
-    			const vco1_changes = {};
-
-    			if (!updating_ctx_2 && dirty & /*ctx*/ 1) {
-    				updating_ctx_2 = true;
-    				vco1_changes.ctx = /*ctx*/ ctx[0];
-    				add_flush_callback(() => updating_ctx_2 = false);
-    			}
-
-    			if (!updating_voctIn_1 && dirty & /*midi*/ 8) {
-    				updating_voctIn_1 = true;
-    				vco1_changes.voctIn = /*midi*/ ctx[3].voct;
-    				add_flush_callback(() => updating_voctIn_1 = false);
-    			}
-
-    			vco1.$set(vco1_changes);
-    			const mixer_1_changes = {};
-
-    			if (!updating_ctx_3 && dirty & /*ctx*/ 1) {
-    				updating_ctx_3 = true;
-    				mixer_1_changes.ctx = /*ctx*/ ctx[0];
-    				add_flush_callback(() => updating_ctx_3 = false);
-    			}
-
-    			if (!updating_in0 && dirty & /*vco*/ 2) {
-    				updating_in0 = true;
-    				mixer_1_changes.in0 = /*vco*/ ctx[1].output;
-    				add_flush_callback(() => updating_in0 = false);
-    			}
-
-    			if (!updating_in1 && dirty & /*vco2*/ 4) {
-    				updating_in1 = true;
-    				mixer_1_changes.in1 = /*vco2*/ ctx[2].output;
-    				add_flush_callback(() => updating_in1 = false);
-    			}
-
-    			mixer_1.$set(mixer_1_changes);
-
-    			if (dirty & /*vcf*/ 16) {
-    				input0.checked = /*vcf*/ ctx[4].hasEnv;
-    			}
-
-    			if (/*vcf*/ ctx[4].hasEnv) {
-    				if (if_block0) {
-    					if_block0.p(ctx, dirty);
-
-    					if (dirty & /*vcf*/ 16) {
-    						transition_in(if_block0, 1);
-    					}
-    				} else {
-    					if_block0 = create_if_block_1(ctx);
-    					if_block0.c();
-    					transition_in(if_block0, 1);
-    					if_block0.m(main, t8);
-    				}
-    			} else if (if_block0) {
-    				group_outros();
-
-    				transition_out(if_block0, 1, 1, () => {
-    					if_block0 = null;
-    				});
-
-    				check_outros();
-    			}
-
-    			const vcf_1_changes = {};
-
-    			if (!updating_ctx_4 && dirty & /*ctx*/ 1) {
-    				updating_ctx_4 = true;
-    				vcf_1_changes.ctx = /*ctx*/ ctx[0];
-    				add_flush_callback(() => updating_ctx_4 = false);
-    			}
-
-    			if (!updating_input_1 && dirty & /*mixer*/ 64) {
-    				updating_input_1 = true;
-    				vcf_1_changes.input = /*mixer*/ ctx[6].output;
-    				add_flush_callback(() => updating_input_1 = false);
-    			}
-
-    			vcf_1.$set(vcf_1_changes);
-
-    			if (dirty & /*vca*/ 32) {
-    				input1.checked = /*vca*/ ctx[5].hasEnv;
-    			}
-
-    			if (/*vca*/ ctx[5].hasEnv) {
-    				if (if_block1) {
-    					if_block1.p(ctx, dirty);
-
-    					if (dirty & /*vca*/ 32) {
-    						transition_in(if_block1, 1);
-    					}
-    				} else {
-    					if_block1 = create_if_block(ctx);
-    					if_block1.c();
-    					transition_in(if_block1, 1);
-    					if_block1.m(main, t13);
-    				}
-    			} else if (if_block1) {
-    				group_outros();
-
-    				transition_out(if_block1, 1, 1, () => {
-    					if_block1 = null;
-    				});
-
-    				check_outros();
-    			}
-
-    			const vca_1_changes = {};
-
-    			if (!updating_ctx_5 && dirty & /*ctx*/ 1) {
-    				updating_ctx_5 = true;
-    				vca_1_changes.ctx = /*ctx*/ ctx[0];
-    				add_flush_callback(() => updating_ctx_5 = false);
-    			}
-
-    			if (!updating_input_2 && dirty & /*vcf*/ 16) {
-    				updating_input_2 = true;
-    				vca_1_changes.input = /*vcf*/ ctx[4].output;
-    				add_flush_callback(() => updating_input_2 = false);
-    			}
-
-    			vca_1.$set(vca_1_changes);
-    		},
+    		p: noop,
     		i: function intro(local) {
     			if (current) return;
+    			transition_in(midi.$$.fragment, local);
     			transition_in(output.$$.fragment, local);
-    			if (switch_instance) transition_in(switch_instance.$$.fragment, local);
     			transition_in(vco0.$$.fragment, local);
     			transition_in(vco1.$$.fragment, local);
-    			transition_in(mixer_1.$$.fragment, local);
-    			transition_in(if_block0);
-    			transition_in(vcf_1.$$.fragment, local);
-    			transition_in(if_block1);
-    			transition_in(vca_1.$$.fragment, local);
+    			transition_in(mixer.$$.fragment, local);
+    			transition_in(adsr0.$$.fragment, local);
+    			transition_in(vcf.$$.fragment, local);
+    			transition_in(adsr1.$$.fragment, local);
+    			transition_in(vca.$$.fragment, local);
     			current = true;
     		},
     		o: function outro(local) {
+    			transition_out(midi.$$.fragment, local);
     			transition_out(output.$$.fragment, local);
-    			if (switch_instance) transition_out(switch_instance.$$.fragment, local);
     			transition_out(vco0.$$.fragment, local);
     			transition_out(vco1.$$.fragment, local);
-    			transition_out(mixer_1.$$.fragment, local);
-    			transition_out(if_block0);
-    			transition_out(vcf_1.$$.fragment, local);
-    			transition_out(if_block1);
-    			transition_out(vca_1.$$.fragment, local);
+    			transition_out(mixer.$$.fragment, local);
+    			transition_out(adsr0.$$.fragment, local);
+    			transition_out(vcf.$$.fragment, local);
+    			transition_out(adsr1.$$.fragment, local);
+    			transition_out(vca.$$.fragment, local);
     			current = false;
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(main);
+    			destroy_component(midi);
     			destroy_component(output);
-    			if (switch_instance) destroy_component(switch_instance);
     			destroy_component(vco0);
     			destroy_component(vco1);
-    			destroy_component(mixer_1);
-    			if (if_block0) if_block0.d();
-    			destroy_component(vcf_1);
-    			if (if_block1) if_block1.d();
-    			destroy_component(vca_1);
-    			mounted = false;
-    			run_all(dispose);
+    			destroy_component(mixer);
+    			destroy_component(adsr0);
+    			destroy_component(vcf);
+    			destroy_component(adsr1);
+    			destroy_component(vca);
     		}
     	};
 
@@ -3132,214 +3666,22 @@ var app = (function () {
     }
 
     function instance($$self, $$props, $$invalidate) {
+    	let $context;
+    	validate_store(context, 'context');
+    	component_subscribe($$self, context, $$value => $$invalidate(0, $context = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('App', slots, []);
     	window.AudioContext = window.AudioContext || window.webkitAudioContext;
     	var ctx = new AudioContext();
-
-    	const vco = {
-    		output: null,
-    		handle: event => {
-    			$$invalidate(1, vco.output = event.detail.output, vco);
-    		}
-    	};
-
-    	const vco2 = {
-    		output: null,
-    		handle: event => {
-    			$$invalidate(2, vco2.output = event.detail.output, vco2);
-    		}
-    	};
-
-    	const midi = {
-    		comp: MIDI,
-    		voct: null,
-    		trigger: null,
-    		handle: event => {
-    			$$invalidate(3, midi.voct = event.detail.output, midi);
-    			$$invalidate(3, midi.trigger = event.detail.trigger, midi);
-    		}
-    	};
-
-    	const vcf = {
-    		output: null,
-    		cv: null,
-    		cvmax: null,
-    		hasEnv: false,
-    		handle: event => {
-    			$$invalidate(4, vcf.output = event.detail.output, vcf);
-    			$$invalidate(4, vcf.cv = event.detail.cv_in, vcf);
-    			$$invalidate(4, vcf.cvmax = event.detail.max_cv, vcf);
-    		}
-    	};
-
-    	const vca = {
-    		output: null,
-    		cv: null,
-    		cvmax: null,
-    		hasEnv: false,
-    		handle: event => {
-    			$$invalidate(5, vca.output = event.detail.output, vca);
-    			$$invalidate(5, vca.cv = event.detail.cv_in, vca);
-    			$$invalidate(5, vca.cvmax = event.detail.max_cv, vca);
-    		}
-    	};
-
-    	const mixer = {
-    		output: null,
-    		handle: event => {
-    			$$invalidate(6, mixer.output = event.detail.output, mixer);
-    		}
-    	};
-
+    	set_store_value(context, $context = ctx, $context);
     	const writable_props = [];
 
     	Object.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<App> was created with unknown prop '${key}'`);
     	});
 
-    	function output_ctx_binding(value) {
-    		ctx = value;
-    		$$invalidate(0, ctx);
-    	}
-
-    	function output_input_binding(value) {
-    		if ($$self.$$.not_equal(vca.output, value)) {
-    			vca.output = value;
-    			$$invalidate(5, vca);
-    		}
-    	}
-
-    	function vco0_ctx_binding(value) {
-    		ctx = value;
-    		$$invalidate(0, ctx);
-    	}
-
-    	function vco0_voctIn_binding(value) {
-    		if ($$self.$$.not_equal(midi.voct, value)) {
-    			midi.voct = value;
-    			$$invalidate(3, midi);
-    		}
-    	}
-
-    	function vco1_ctx_binding(value) {
-    		ctx = value;
-    		$$invalidate(0, ctx);
-    	}
-
-    	function vco1_voctIn_binding(value) {
-    		if ($$self.$$.not_equal(midi.voct, value)) {
-    			midi.voct = value;
-    			$$invalidate(3, midi);
-    		}
-    	}
-
-    	function mixer_1_ctx_binding(value) {
-    		ctx = value;
-    		$$invalidate(0, ctx);
-    	}
-
-    	function mixer_1_in0_binding(value) {
-    		if ($$self.$$.not_equal(vco.output, value)) {
-    			vco.output = value;
-    			$$invalidate(1, vco);
-    		}
-    	}
-
-    	function mixer_1_in1_binding(value) {
-    		if ($$self.$$.not_equal(vco2.output, value)) {
-    			vco2.output = value;
-    			$$invalidate(2, vco2);
-    		}
-    	}
-
-    	function input0_change_handler() {
-    		vcf.hasEnv = this.checked;
-    		$$invalidate(4, vcf);
-    	}
-
-    	function adsr_ctx_binding(value) {
-    		ctx = value;
-    		$$invalidate(0, ctx);
-    	}
-
-    	function adsr_trigger_binding(value) {
-    		if ($$self.$$.not_equal(midi.trigger, value)) {
-    			midi.trigger = value;
-    			$$invalidate(3, midi);
-    		}
-    	}
-
-    	function adsr_cv_out_binding(value) {
-    		if ($$self.$$.not_equal(vcf.cv, value)) {
-    			vcf.cv = value;
-    			$$invalidate(4, vcf);
-    		}
-    	}
-
-    	function adsr_max_cv_binding(value) {
-    		if ($$self.$$.not_equal(vcf.cvmax, value)) {
-    			vcf.cvmax = value;
-    			$$invalidate(4, vcf);
-    		}
-    	}
-
-    	function vcf_1_ctx_binding(value) {
-    		ctx = value;
-    		$$invalidate(0, ctx);
-    	}
-
-    	function vcf_1_input_binding(value) {
-    		if ($$self.$$.not_equal(mixer.output, value)) {
-    			mixer.output = value;
-    			$$invalidate(6, mixer);
-    		}
-    	}
-
-    	function input1_change_handler() {
-    		vca.hasEnv = this.checked;
-    		$$invalidate(5, vca);
-    	}
-
-    	function adsr_ctx_binding_1(value) {
-    		ctx = value;
-    		$$invalidate(0, ctx);
-    	}
-
-    	function adsr_trigger_binding_1(value) {
-    		if ($$self.$$.not_equal(midi.trigger, value)) {
-    			midi.trigger = value;
-    			$$invalidate(3, midi);
-    		}
-    	}
-
-    	function adsr_cv_out_binding_1(value) {
-    		if ($$self.$$.not_equal(vca.cv, value)) {
-    			vca.cv = value;
-    			$$invalidate(5, vca);
-    		}
-    	}
-
-    	function adsr_max_cv_binding_1(value) {
-    		if ($$self.$$.not_equal(vca.cvmax, value)) {
-    			vca.cvmax = value;
-    			$$invalidate(5, vca);
-    		}
-    	}
-
-    	function vca_1_ctx_binding(value) {
-    		ctx = value;
-    		$$invalidate(0, ctx);
-    	}
-
-    	function vca_1_input_binding(value) {
-    		if ($$self.$$.not_equal(vcf.output, value)) {
-    			vcf.output = value;
-    			$$invalidate(4, vcf);
-    		}
-    	}
-
     	$$self.$capture_state = () => ({
+    		context,
     		MIDI,
     		VCO,
     		Output,
@@ -3348,54 +3690,18 @@ var app = (function () {
     		VCF,
     		Mixer,
     		ctx,
-    		vco,
-    		vco2,
-    		midi,
-    		vcf,
-    		vca,
-    		mixer
+    		$context
     	});
 
     	$$self.$inject_state = $$props => {
-    		if ('ctx' in $$props) $$invalidate(0, ctx = $$props.ctx);
+    		if ('ctx' in $$props) ctx = $$props.ctx;
     	};
 
     	if ($$props && "$$inject" in $$props) {
     		$$self.$inject_state($$props.$$inject);
     	}
 
-    	return [
-    		ctx,
-    		vco,
-    		vco2,
-    		midi,
-    		vcf,
-    		vca,
-    		mixer,
-    		output_ctx_binding,
-    		output_input_binding,
-    		vco0_ctx_binding,
-    		vco0_voctIn_binding,
-    		vco1_ctx_binding,
-    		vco1_voctIn_binding,
-    		mixer_1_ctx_binding,
-    		mixer_1_in0_binding,
-    		mixer_1_in1_binding,
-    		input0_change_handler,
-    		adsr_ctx_binding,
-    		adsr_trigger_binding,
-    		adsr_cv_out_binding,
-    		adsr_max_cv_binding,
-    		vcf_1_ctx_binding,
-    		vcf_1_input_binding,
-    		input1_change_handler,
-    		adsr_ctx_binding_1,
-    		adsr_trigger_binding_1,
-    		adsr_cv_out_binding_1,
-    		adsr_max_cv_binding_1,
-    		vca_1_ctx_binding,
-    		vca_1_input_binding
-    	];
+    	return [];
     }
 
     class App extends SvelteComponentDev {
