@@ -14,7 +14,7 @@
     let frequency = 440;
     let trigger = false;
     
-    let note = 'A'; // The note to be displayed
+    let note = ''; // The note to be displayed
     
     let octUp = 0;
     let newOctUp = 0;
@@ -169,7 +169,7 @@
     <h2>MIDI</h2>
     Play notes by pressing keys on keyboard. Row Z-/ is white notes, row A-' is black notes.
     <br>Press - to lower octave and = to raise octave. Press space to trigger envelope without giving note input.
-    <h3 class:active={trigger}>{note}{newOct+newOctUp}</h3>
+    <p>Note played: <b class:active={trigger}>{note}{#if note}{newOct+newOctUp}{/if}</b></p>
 </div>
 <br>
 </main>
@@ -177,7 +177,11 @@
 <style>
     div {
         border-style: solid;
+        position: absolute;
+        width: 250px;
+        padding: 1%;
     }
+
     .active {
         color:red;
     }

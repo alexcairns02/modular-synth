@@ -29,10 +29,18 @@
     const update = () => {
         module.inputs = module.inputs;
     }
+
+    const destroy = () => {
+        module.component.parentNode.removeChild(module.component);
+        module.output.disconnect();
+        module.output = null;
+        $modules = $modules;
+    };
 </script>
 
-<main>
+<main bind:this={module.component}>
 <div>
+    <button class="delete" on:click={destroy}>x</button>
     <h1>{moduleId}</h1>
     <h2>Mixer</h2>
     <button on:click={update}>Update</button>

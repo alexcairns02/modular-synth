@@ -4,7 +4,7 @@
     const moduleId = $noModules;
     $modules[moduleId] = {};
     $noModules++;
-    const module = $modules[moduleId];
+    var module = $modules[moduleId];
 
     module.input = null;
 
@@ -33,10 +33,19 @@
     const update = () => {
         module.input = module.input;
     }
+
+    const destroy = () => {
+        module.component.parentNode.removeChild(module.component);
+        gainNode.disconnect();
+        module.output = null;
+        delete $modules[moduleId];
+        $modules = $modules;
+    };
 </script>
 
-<main>
+<main bind:this={module.component}>
 <div>
+    <button class="delete" on:click={destroy}>x</button>
     <h1>{moduleId}</h1>
     <h2>Amplifier</h2>
     <button on:click={update}>Update</button>

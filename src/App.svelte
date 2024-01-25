@@ -28,13 +28,15 @@
 	<button on:click={() => addModule(ADSR)}>Add Envelope</button>
 	<MIDI />
 	<Output />
+	<div class="modules">
 	{#each modules as m}
 		<svelte:component this={m} />
 	{/each}
+	</div>
 </main>
 
 <style>
-	main {
+	.modules {
 		text-align: center;
 		padding: 1em;
 		max-width: 500px;

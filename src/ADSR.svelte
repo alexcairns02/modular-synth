@@ -21,7 +21,7 @@
             let cv_out = moduleOut.cv_in;
             let now = $context.currentTime;
             cv_out.cancelScheduledValues(now);
-            cv_out.setValueAtTime(0, now);
+            cv_out.linearRampToValueAtTime(0, now + 0.01);
             cv_out.linearRampToValueAtTime(moduleOut.max_cv.value, now + attack);
             cv_out.linearRampToValueAtTime(moduleOut.max_cv.value*sustain, now + attack + decay);
         }
@@ -32,6 +32,7 @@
             let cv_out = moduleOut.cv_in;
             let now = $context.currentTime;
             cv_out.cancelScheduledValues(now);
+            cv_out.linearRampToValueAtTime(moduleOut.max_cv.value*sustain, now + 0.01);
             cv_out.linearRampToValueAtTime(0, now + release);
         }
     }
@@ -43,8 +44,6 @@
     $: if (notePlaying) fireEnv(); else unFireEnv(); 
 
     var currentModuleOut;
-
-    $: if (moduleOut) currentModuleOut = moduleOut;
 
     const reset = () => {
         if (currentModuleOut) {
@@ -59,14 +58,22 @@
         moduleOut = moduleOut;
     }
 
-    $: if (!moduleOut) reset();
+    
+    $: if (moduleOut) {
+        currentModuleOut = moduleOut;
+        unFireEnv();
+    }
+    else { reset(); }
 
-    onDestroy(reset);
-
+    const destroy = () => {
+        reset();
+        module.component.parentNode.removeChild(module.component);
+    };
 </script>
 
-<main>
-    <div class="main">
+<main bind:this={module.component}>
+    <div>
+        <button class="delete" on:click={destroy}>x</button>
         <h1>{moduleId}</h1>
         <h2>Envelope</h2>
         <button on:click={update}>Update</button>
@@ -89,7 +96,7 @@
 </main>
 
 <style>
-    .main {
+    main {
         border-style: solid;
     }
 
