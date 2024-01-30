@@ -1,5 +1,5 @@
 <script>
-	import { context } from './stores.js';
+	import { context, modules } from './stores.js';
 	import MIDI from './MIDI.svelte';
 	import VCO from './VCO.svelte';
 	import Output from './Output.svelte';
@@ -12,24 +12,31 @@
     var ctx = new AudioContext();
 	$context = ctx;
 
-	var modules = [];
+	var mods = [];
 
 	const addModule = (type) => {
-		modules.push(type);
-		modules = modules;
+		mods.push(type);
+		mods = mods;
+	}
+
+	const save = () => {
+		Object.entries($modules).forEach(module => {
+			console.log(module[1].state)
+		});
 	}
 </script>
 
 <main>
+	<button on:click={save}>Save patch</button>
 	<button on:click={() => addModule(VCO)}>Add Oscillator</button>
-	<button on:click={() => addModule(Mixer)}>Add Mixer</button>
 	<button on:click={() => addModule(VCA)}>Add Amplifier</button>
 	<button on:click={() => addModule(VCF)}>Add Filter</button>
 	<button on:click={() => addModule(ADSR)}>Add Envelope</button>
+	<button on:click={() => addModule(Mixer)}>Add Mixer</button>
 	<MIDI />
 	<Output />
 	<div class="modules">
-	{#each modules as m}
+	{#each mods as m}
 		<svelte:component this={m} />
 	{/each}
 	</div>

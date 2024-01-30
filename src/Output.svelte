@@ -1,17 +1,20 @@
 <script>
-    import { modules, context, noModules } from './stores.js';
+    import { modules, context, output } from './stores.js';
+    
+    export const state = {};
 
     var gainNode = $context.createGain();
     gainNode.gain.value = 0.2;
     gainNode.connect($context.destination);
 
-    var input;
+    $output.input;
     var currentInput;
 
-    $: if (input) {
+    $: if ($output.input && $output.input.output) {
         if (currentInput) currentInput.disconnect();
-        currentInput = input;
+        currentInput = $output.input.output;
         currentInput.connect(gainNode);
+        if ($output.input.input || $output.input.inputs) $output.input.update();
     } else {
         if (currentInput) currentInput.disconnect();
         currentInput = null;
@@ -21,10 +24,10 @@
 <main>
     <div>
         <h2>Output</h2>
-        <label><select bind:value={input}>
+        <label><select bind:value={$output.input}>
         {#each Object.entries($modules) as [id, m]}
             {#if m.output}
-            <option value={m.output}>{id}</option>
+            <option value={m}>{id}</option>
             {/if}
         {/each}
         <option value={null}></option>

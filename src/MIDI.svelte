@@ -1,8 +1,5 @@
 <script>
-    import { createEventDispatcher } from "svelte";
     import { midi } from './stores.js';
-    
-    const dispatch = createEventDispatcher();
 
     let octChanged = false; // Whether key input was an octave change (no note is triggered)
 
