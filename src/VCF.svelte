@@ -1,19 +1,31 @@
 <script>
     import { modules, context, output } from './stores.js';
     
-    export const state = {
+    export let state = {
         type: 'vcf',
         voct: Math.log2(18000),
         filterType: 'lowpass',
-        id: createNewId()
+        id: createNewId(),
+        inputId: null,
+        cvId: null
     };
 
     $modules[state.id] = {};
     const module = $modules[state.id];
     module.state = state;
 
-    module.input = null;
-    let cv_module = null;
+    if (state.inputId != null) {
+        module.input = $modules[state.inputId];
+    } else {
+        module.input = null;
+    }
+
+    let cv_module;
+    if (state.cvId != null) {
+        cv_module = $modules[state.cvId];
+    } else {
+        cv_module = null;
+    }
 
     var filterNode = $context.createBiquadFilter();
 
@@ -42,9 +54,11 @@
         currentInput = module.input.output;
         currentInput.connect(filterNode);
         if (module.input.input || module.input.inputs) module.input.update();
+        state.inputId = module.input.state.id;
     } else {
         if (currentInput) currentInput.disconnect();
         currentInput = null;
+        state.inputId = null;
     }
 
     var currentCvModule;
@@ -59,6 +73,7 @@
         currentCvModule = cv_module;
         currentCvModule.cv = filterNode.frequency;
         currentCvModule.max_cv = frequency;
+        state.cvId = cv_module.state.id;
     } else {
         filterNode.frequency.cancelScheduledValues($context.currentTime);
         filterNode.frequency.setValueAtTime(frequency, $context.currentTime);
@@ -67,13 +82,14 @@
             currentCvModule.max_cv = null;
         }
         currentCvModule = null;
+        state.cvId = null;
     }
 
     module.update = () => {
         module.input = module.input;
     }
 
-    const destroy = () => {
+    module.destroy = () => {
         module.component.parentNode.removeChild(module.component);
         delete $modules[module.state.id];
         $modules = $modules;
@@ -101,7 +117,7 @@
 
 <main bind:this={module.component}>
     <div>
-        <button class="delete" on:click={destroy}>x</button>
+        <button class="delete" on:click={module.destroy}>x</button>
         <h1>{module.state.id}</h1>
         <h2>Filter</h2>
         <label><select bind:value={module.input}>

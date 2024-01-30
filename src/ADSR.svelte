@@ -1,7 +1,7 @@
 <script>
     import { modules, context, midi } from './stores.js';
     
-    export const state = {
+    export let state = {
         type: 'adsr',
         attack: 0.1,
         decay: 0.1,
@@ -45,7 +45,7 @@
 
     $: if (notePlaying) fireEnv(); else unFireEnv();
 
-    const destroy = () => {
+    module.destroy = () => {
         module.cv = null;
         module.max_cv = null;
         module.component.parentNode.removeChild(module.component);
@@ -62,7 +62,7 @@
 
 <main bind:this={module.component}>
     <div>
-        <button class="delete" on:click={destroy}>x</button>
+        <button class="delete" on:click={module.destroy}>x</button>
         <h1>{module.state.id}</h1>
         <h2>Envelope</h2>
         <div class="params">

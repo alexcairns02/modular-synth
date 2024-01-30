@@ -1,7 +1,7 @@
 <script>
     import { modules, context, midi, output } from './stores.js';
 
-    export const state = {
+    export let state = {
         type: 'vco',
         frequency: 0,
         shape: 'sine',
@@ -11,7 +11,6 @@
     $modules[state.id] = {};
     const module = $modules[state.id];
     module.state = state;
-    module.deleted = false;
 
     let voct = Math.log2(440);
 
@@ -26,7 +25,7 @@
     
     oscNode.start(0);
 
-    const destroy = () => {
+    module.destroy = () => {
         module.component.parentNode.removeChild(module.component);
         delete $modules[module.state.id];
         $modules = $modules;
@@ -54,7 +53,7 @@
 
 <main bind:this={module.component}>
 <div>
-    <button class="delete" on:click={destroy}>x</button>
+    <button class="delete" on:click={module.destroy}>x</button>
     <h1>{module.state.id}</h1>
     <h2>Oscillator</h2>
     <!--<label><input bind:value={voct} type='range' min='2.78135971352466' max='14.78135971352466' step='0.0001'>v/oct</label>-->
