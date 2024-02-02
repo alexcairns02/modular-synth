@@ -84,15 +84,17 @@
 </script>
 
 <main>
-	<button on:click={save}>Save patch</button>
-	<button on:click={load}>Load patch</button>
-	<button on:click={() => addModule(VCO)}>Add Oscillator</button>
-	<button on:click={() => addModule(VCA)}>Add Amplifier</button>
-	<button on:click={() => addModule(VCF)}>Add Filter</button>
-	<button on:click={() => addModule(ADSR)}>Add Envelope</button>
-	<button on:click={() => addModule(Mixer)}>Add Mixer</button>
-	<MIDI />
-	<Output />
+	<div class="menu">
+		<button on:click={save}>Save patch</button>
+		<button on:click={load}>Load patch</button>
+		<button on:click={() => addModule(VCO)}>Add Oscillator</button>
+		<button on:click={() => addModule(VCA)}>Add Amplifier</button>
+		<button on:click={() => addModule(VCF)}>Add Filter</button>
+		<button on:click={() => addModule(ADSR)}>Add Envelope</button>
+		<button on:click={() => addModule(Mixer)}>Add Mixer</button>
+		<MIDI />
+		<Output />
+	</div>
 	<div class="modules">
 	{#each mods as m}
 		<svelte:component this={m.type} {...m.props} />
@@ -106,5 +108,10 @@
 		padding: 1em;
 		max-width: 500px;
 		margin: 0 auto;
+	}
+
+	.menu {
+		position: relative;
+		z-index: 1;
 	}
 </style>

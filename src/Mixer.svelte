@@ -1,5 +1,6 @@
 <script>
     import { modules, context, output } from './stores.js';
+    import ModuleMovement from './ModuleMovement.svelte';
     
     export let state = {
         type: 'mixer',
@@ -11,16 +12,17 @@
     const module = $modules[state.id];
     module.state = state;
 
+    let moduleNode;
+    let controlsNode;
+
     var gainNode = $context.createGain();
     
     module.output = gainNode;
 
-    module.inputs = [];
-    state.inputIds.forEach((id) => {
-        if (id != null) {
-            module.inputs.push($modules[id]);
-        } else {
-            module.inputs.push(null);
+    module.inputs = [null, null, null, null];
+    state.inputIds.forEach((id, i) => {
+        if (id != null && $modules[id] != null) {
+            module.inputs[i] = $modules[id];
         }
     });
 
@@ -67,32 +69,44 @@
             if (!$modules[i]) return i;
         }
     }
+
+    function movement(node) {
+        moduleNode = node;
+    }
+
+    function controls(node) {
+        controlsNode = node;
+    }
 </script>
 
 <main bind:this={module.component}>
-<div>
-    <button class="delete" on:click={module.destroy}>x</button>
+<ModuleMovement bind:moduleNode bind:controlsNode nodeSize={{ x: 200, y: 400 }} bind:nodePos={state.position} />
+<div id="module" use:movement>
     <h1>{module.state.id}</h1>
     <h2>Mixer</h2>
-    <button on:click={module.update}>Update</button>
+    <div id="controls" use:controls>
+    <button class="delete" on:click={module.destroy}>x</button>
     {#each module.inputs as input, inpid}
         <label><select bind:value={input}>
         {#each Object.entries($modules) as [id, m]}
-            {#if m.output && id != module.state.id && (!module.inputs.includes(m) || m == input)}
+            {#if m && m.output && id != module.state.id && (!module.inputs.includes(m) || m == input)}
             <option value={m}>{id}</option>
             {/if}
         {/each}
             <option value={null}></option>
         </select>Input {inpid}</label>
     {/each}
+    </div>
 </div>
 <br>
 </main>
 
 <style>
-    div {
+    #module {
         background-color: lightgoldenrodyellow;
         border-style: solid;
+        position: absolute;
+        user-select: none;
     }
 </style>
 

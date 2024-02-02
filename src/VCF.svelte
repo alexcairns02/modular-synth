@@ -1,5 +1,6 @@
 <script>
     import { modules, context, output } from './stores.js';
+    import ModuleMovement from './ModuleMovement.svelte';
     
     export let state = {
         type: 'vcf',
@@ -13,6 +14,9 @@
     $modules[state.id] = {};
     const module = $modules[state.id];
     module.state = state;
+
+    let moduleNode;
+    let controlsNode;
 
     if (state.inputId != null) {
         module.input = $modules[state.inputId];
@@ -113,43 +117,56 @@
             if (!$modules[i]) return i;
         }
     }
+
+    function movement(node) {
+        moduleNode = node;
+    }
+
+    function controls(node) {
+        controlsNode = node;
+    }
 </script>
 
 <main bind:this={module.component}>
-    <div>
-        <button class="delete" on:click={module.destroy}>x</button>
+<ModuleMovement bind:moduleNode bind:controlsNode nodeSize={{ x: 320, y: 420 }} bind:nodePos={state.position} />
+    <div id="module" use:movement>
         <h1>{module.state.id}</h1>
         <h2>Filter</h2>
-        <label><select bind:value={module.input}>
-        {#each Object.entries($modules) as [id, m]}
-            {#if m.output && id != module.state.id}
-            <option value={m}>{id}</option>
-            {/if}
-        {/each}
-        <option value={null}></option>
-        </select>Input</label>
-        <label><select bind:value={cv_module}>
-        {#each Object.entries($modules) as [id, m]}
-            {#if m.state.type == 'adsr'}
-            <option value={m}>{id}</option>
-            {/if}
-        {/each}
-        <option value={null}></option>
-        </select>CV</label>
-        <label><input bind:value={module.state.voct} type='range' min='2.78135971352466' max='14.78135971352466' step='0.0001'>Frequency</label>
-        <section>
-            <label><input type='radio' value='lowpass' bind:group={module.state.filterType} /> Lowpass</label>
-            <label><input type='radio' value='highpass' bind:group={module.state.filterType} /> Highpass</label>
-            <label><input type='radio' value='bandpass' bind:group={module.state.filterType} /> Bandpass</label>
-        </section>
+        <div id="controls" use:controls>
+            <button class="delete" on:click={module.destroy}>x</button>
+            <label><select bind:value={module.input}>
+            {#each Object.entries($modules) as [id, m]}
+                {#if m.output && id != module.state.id}
+                <option value={m}>{id}</option>
+                {/if}
+            {/each}
+            <option value={null}></option>
+            </select>Input</label>
+            <label><select bind:value={cv_module}>
+            {#each Object.entries($modules) as [id, m]}
+                {#if m.state.type == 'adsr'}
+                <option value={m}>{id}</option>
+                {/if}
+            {/each}
+            <option value={null}></option>
+            </select>CV</label>
+            <label><input bind:value={module.state.voct} type='range' min='2.78135971352466' max='14.78135971352466' step='0.0001'>Frequency</label>
+            <section>
+                <label><input type='radio' value='lowpass' bind:group={module.state.filterType} /> Lowpass</label>
+                <label><input type='radio' value='highpass' bind:group={module.state.filterType} /> Highpass</label>
+                <label><input type='radio' value='bandpass' bind:group={module.state.filterType} /> Bandpass</label>
+            </section>
+        </div>
     </div>
     <br>
 </main>
 
 <style>
-    div {
-        border-style: solid;
+    #module {
         background-color: lightsalmon;
+        border-style: solid;
+        position: absolute;
+        user-select: none;
     }
 </style>
 

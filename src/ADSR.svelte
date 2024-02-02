@@ -1,5 +1,6 @@
 <script>
     import { modules, context, midi } from './stores.js';
+    import ModuleMovement from './ModuleMovement.svelte';
     
     export let state = {
         type: 'adsr',
@@ -13,6 +14,9 @@
     $modules[state.id] = {};
     const module = $modules[state.id];
     module.state = state;
+
+    let moduleNode;
+    let controlsNode;
 
     let notePlaying = false;
 
@@ -58,27 +62,40 @@
             if (!$modules[i]) return i;
         }
     }
+
+    function movement(node) {
+        moduleNode = node;
+    }
+
+    function controls(node) {
+        controlsNode = node;
+    }
 </script>
 
 <main bind:this={module.component}>
-    <div>
-        <button class="delete" on:click={module.destroy}>x</button>
+    <ModuleMovement bind:moduleNode bind:controlsNode nodeSize={{ x: 400, y: 400 }} bind:nodePos={state.position} />
+    <div id="module" use:movement>
         <h1>{module.state.id}</h1>
         <h2>Envelope</h2>
-        <div class="params">
-            <label><input bind:value={module.state.attack} type='range' min='0' max='1' step='0.001'>Attack ({attack.toFixed(2)}s)</label>
-            <label><input bind:value={module.state.decay} type='range' min='0' max='1' step='0.001'>Decay ({decay.toFixed(2)}s)</label>
-            <label><input bind:value={module.state.sustain} type='range' min='0' max='1' step='0.001'>Sustain ({module.state.sustain.toFixed(2)})</label>
-            <label><input bind:value={module.state.release} type='range' min='0' max='1' step='0.001'>Release ({release.toFixed(2)}s)</label>
+        <div id="controls" use:controls>
+            <button class="delete" on:click={module.destroy}>x</button>
+            <div class="params">
+                <label><input bind:value={module.state.attack} type='range' min='0' max='1' step='0.001'>Attack ({attack.toFixed(2)}s)</label>
+                <label><input bind:value={module.state.decay} type='range' min='0' max='1' step='0.001'>Decay ({decay.toFixed(2)}s)</label>
+                <label><input bind:value={module.state.sustain} type='range' min='0' max='1' step='0.001'>Sustain ({module.state.sustain.toFixed(2)})</label>
+                <label><input bind:value={module.state.release} type='range' min='0' max='1' step='0.001'>Release ({release.toFixed(2)}s)</label>
+            </div>
         </div>
     </div>
     <br>
 </main>
 
 <style>
-    main {
-        border-style: solid;
+    #module {
         background-color: lightblue;
+        border-style: solid;
+        position: absolute;
+        user-select: none;
     }
 
     .params {

@@ -44,5 +44,6 @@
         width: 250px;
         margin-top: 310px;
         padding: 1%;
+        background-color: white;
     }
 </style>

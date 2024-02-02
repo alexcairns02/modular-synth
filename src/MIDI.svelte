@@ -177,6 +177,7 @@
         position: absolute;
         width: 250px;
         padding: 1%;
+        background-color: white;
     }
 
     .active {
