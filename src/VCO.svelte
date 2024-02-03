@@ -1,6 +1,7 @@
 <script>
     import { modules, context, midi, output } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
+    import DeleteButton from './DeleteButton.svelte';
 
     export let state = {
         type: 'vco',
@@ -11,6 +12,7 @@
 
     let moduleNode;
     let controlsNode;
+    let deleteNode;
 
     $modules[state.id] = {};
     const module = $modules[state.id];
@@ -54,24 +56,28 @@
         }
     }
 
-    function movement(node) {
+    function setModule(node) {
         moduleNode = node;
     }
 
-    function controls(node) {
+    function setControls(node) {
         controlsNode = node;
+    }
+
+    function setDelete(node) {
+        deleteNode = node;
     }
 </script>
 
 <main bind:this={module.component}>
-<ModuleMovement bind:moduleNode bind:controlsNode bind:nodePos={state.position} />
-<div id="module" use:movement>
+<ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode bind:nodePos={state.position} nodeSize={{ x: 320, y: 250 }} />
+<div id="module" use:setModule>
+    <div class="delete" use:setDelete><DeleteButton module={module} /></div>
     <h1>{module.state.id}</h1>
     <h2>Oscillator</h2>
-    <div id="controls" use:controls>
-        <button class="delete" on:click={module.destroy}>x</button>
+    <div id="controls" use:setControls>
         <label><input bind:value={module.state.frequency} type='range' min='-2' max='2' step='0.083333333333333'>Frequency</label>
-        <section class="shape">
+        <br><section class="shape">
             <label><input type='radio' value='sine' bind:group={module.state.shape} />Sine</label>
             <label><input type='radio' value='triangle' bind:group={module.state.shape} />Triangle</label>
             <label><input type='radio' value='sawtooth' bind:group={module.state.shape} />Sawtooth</label>
@@ -85,9 +91,11 @@
 <style>
     #module {
         border-style: solid;
-        background-color: lightcoral;
+        background-color: #ff6666;
         position: absolute;
         user-select: none;
+        border-radius: 50px;
+        border-color: #222222;
     }
 
     .shape {
@@ -96,6 +104,12 @@
     
     .shape label {
         margin: auto;
+    }
+
+    .delete {
+        position: absolute;
+        right: 20px;
+        top: 20px;
     }
 </style>
 

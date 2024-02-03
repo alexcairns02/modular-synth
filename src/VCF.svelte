@@ -1,6 +1,7 @@
 <script>
     import { modules, context, output } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
+    import DeleteButton from './DeleteButton.svelte';
     
     export let state = {
         type: 'vcf',
@@ -17,6 +18,7 @@
 
     let moduleNode;
     let controlsNode;
+    let deleteNode
 
     if (state.inputId != null) {
         module.input = $modules[state.inputId];
@@ -118,22 +120,26 @@
         }
     }
 
-    function movement(node) {
+    function setModule(node) {
         moduleNode = node;
     }
 
-    function controls(node) {
+    function setControls(node) {
         controlsNode = node;
+    }
+
+    function setDelete(node) {
+        deleteNode = node;
     }
 </script>
 
 <main bind:this={module.component}>
-<ModuleMovement bind:moduleNode bind:controlsNode nodeSize={{ x: 320, y: 420 }} bind:nodePos={state.position} />
-    <div id="module" use:movement>
+<ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 320, y: 330 }} bind:nodePos={state.position} />
+    <div id="module" use:setModule>
         <h1>{module.state.id}</h1>
         <h2>Filter</h2>
-        <div id="controls" use:controls>
-            <button class="delete" on:click={module.destroy}>x</button>
+        <div class="delete" use:setDelete><DeleteButton module={module} /></div>
+        <div id="controls" use:setControls>
             <label><select bind:value={module.input}>
             {#each Object.entries($modules) as [id, m]}
                 {#if m.output && id != module.state.id}
@@ -151,7 +157,7 @@
             <option value={null}></option>
             </select>CV</label>
             <label><input bind:value={module.state.voct} type='range' min='2.78135971352466' max='14.78135971352466' step='0.0001'>Frequency</label>
-            <section>
+            <br><section class="type">
                 <label><input type='radio' value='lowpass' bind:group={module.state.filterType} /> Lowpass</label>
                 <label><input type='radio' value='highpass' bind:group={module.state.filterType} /> Highpass</label>
                 <label><input type='radio' value='bandpass' bind:group={module.state.filterType} /> Bandpass</label>
@@ -163,10 +169,26 @@
 
 <style>
     #module {
-        background-color: lightsalmon;
+        background-color: #ff9955;
         border-style: solid;
         position: absolute;
         user-select: none;
+        border-radius: 50px;
+        border-color: #222222;
+    }
+
+    .type {
+        display: flex;
+    }
+
+    .type label {
+        margin: auto;
+    }
+
+    .delete {
+        position: absolute;
+        right: 20px;
+        top: 20px;
     }
 </style>
 

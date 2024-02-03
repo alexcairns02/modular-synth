@@ -9,6 +9,8 @@
 	import VCF from './VCF.svelte';
 	import Mixer from './Mixer.svelte';
 
+	const DEBUG = false;
+
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
     var ctx = new AudioContext();
 	$context = ctx;
@@ -81,6 +83,68 @@
 			}
 		})
 	};
+
+	const debugPatch = [{
+		"type": "vco",
+		"frequency": 0,
+		"shape": "sine",
+		"id": 0,
+		"position": {
+		"x": 308,
+		"y": 102
+		}
+	}, {
+		"type": "vca",
+		"gain": 1,
+		"id": 1,
+		"inputId": null,
+		"cvId": null,
+		"position": {
+		"x": 659,
+		"y": 81
+		}
+	},
+	{
+		"type": "vcf",
+		"voct": 14.1357092861044,
+		"filterType": "lowpass",
+		"id": 2,
+		"inputId": null,
+		"cvId": null,
+		"position": {
+		"x": 993,
+		"y": 58
+		}
+	},
+	{
+		"type": "adsr",
+		"attack": 0.1,
+		"decay": 0.1,
+		"sustain": 0.5,
+		"release": 0.1,
+		"id": 3,
+		"position": {
+		"x": 327,
+		"y": 537
+		}
+	},
+	{
+		"type": "mixer",
+		"id": 4,
+		"inputIds": [
+		null,
+		null,
+		null,
+		null
+		],
+		"position": {
+		"x": 837,
+		"y": 553
+		}
+	}
+	]
+
+	if (DEBUG) addPatch(debugPatch);
 </script>
 
 <main>
@@ -103,6 +167,11 @@
 </main>
 
 <style>
+	main {
+        font-family: "Monaco", monospace;
+		color: "#222222";
+	}
+
 	.modules {
 		text-align: center;
 		padding: 1em;

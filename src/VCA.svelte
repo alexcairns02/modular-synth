@@ -1,6 +1,7 @@
 <script>
     import { modules, context, output } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
+    import DeleteButton from './DeleteButton.svelte';
     
     export let state = {
         type: 'vca',
@@ -16,6 +17,7 @@
 
     let moduleNode;
     let controlsNode;
+    let deleteNode;
 
     if (state.inputId != null) {
         module.input = $modules[state.inputId];
@@ -116,22 +118,26 @@
         }
     }
 
-    function movement(node) {
+    function setModule(node) {
         moduleNode = node;
     }
 
-    function controls(node) {
+    function setControls(node) {
         controlsNode = node;
+    }
+
+    function setDelete(node) {
+        deleteNode = node;
     }
 </script>
 
 <main bind:this={module.component}>
-<ModuleMovement bind:moduleNode bind:controlsNode nodeSize={{ x: 300, y: 350 }} bind:nodePos={state.position} />
-<div id="module" use:movement>
+<ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 300, y: 300 }} bind:nodePos={state.position} />
+<div id="module" use:setModule>
+    <div class="delete" use:setDelete><DeleteButton module={module} /></div>
     <h1>{module.state.id}</h1>
     <h2>Amplifier</h2>
-    <div id="controls" use:controls>
-        <button class="delete" on:click={module.destroy}>x</button>
+    <div id="controls" use:setControls>
         <label><select bind:value={module.input}>
         {#each Object.entries($modules) as [id, m]}
             {#if m.output && id != module.state.id}
@@ -156,10 +162,18 @@
 
 <style>
     #module {
-        background-color: lightgreen;
+        background-color: #77ff77;
         border-style: solid;
         position: absolute;
         user-select: none;
+        border-radius: 50px;
+        border-color: #222222;
+    }
+
+    .delete {
+        position: absolute;
+        right: 20px;
+        top: 20px;
     }
 </style>
 

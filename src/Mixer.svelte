@@ -1,7 +1,8 @@
 <script>
     import { modules, context, output } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
-    
+    import DeleteButton from './DeleteButton.svelte';
+
     export let state = {
         type: 'mixer',
         id: createNewId(),
@@ -14,6 +15,7 @@
 
     let moduleNode;
     let controlsNode;
+    let deleteNode;
 
     var gainNode = $context.createGain();
     
@@ -70,22 +72,26 @@
         }
     }
 
-    function movement(node) {
+    function setModule(node) {
         moduleNode = node;
     }
 
-    function controls(node) {
+    function setControls(node) {
         controlsNode = node;
+    }
+
+    function setDelete(node) {
+        deleteNode = node;
     }
 </script>
 
 <main bind:this={module.component}>
-<ModuleMovement bind:moduleNode bind:controlsNode nodeSize={{ x: 200, y: 400 }} bind:nodePos={state.position} />
-<div id="module" use:movement>
+<ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 200, y: 320 }} bind:nodePos={state.position} />
+<div id="module" use:setModule>
+    <div class="delete" use:setDelete><DeleteButton module={module} /></div>
     <h1>{module.state.id}</h1>
     <h2>Mixer</h2>
-    <div id="controls" use:controls>
-    <button class="delete" on:click={module.destroy}>x</button>
+    <div id="controls" use:setControls>
     {#each module.inputs as input, inpid}
         <label><select bind:value={input}>
         {#each Object.entries($modules) as [id, m]}
@@ -103,10 +109,18 @@
 
 <style>
     #module {
-        background-color: lightgoldenrodyellow;
+        background-color: #ffff77;
         border-style: solid;
         position: absolute;
         user-select: none;
+        border-radius: 50px;
+        border-color: #222222;
+    }
+
+    .delete {
+        position: absolute;
+        right: 20px;
+        top: 20px;
     }
 </style>
 

@@ -1,6 +1,7 @@
 <script>
     import { modules, context, midi } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
+    import DeleteButton from './DeleteButton.svelte';
     
     export let state = {
         type: 'adsr',
@@ -17,6 +18,7 @@
 
     let moduleNode;
     let controlsNode;
+    let deleteNode;
 
     let notePlaying = false;
 
@@ -63,22 +65,26 @@
         }
     }
 
-    function movement(node) {
+    function setModule(node) {
         moduleNode = node;
     }
 
-    function controls(node) {
+    function setControls(node) {
         controlsNode = node;
+    }
+
+    function setDelete(node) {
+        deleteNode = node;
     }
 </script>
 
 <main bind:this={module.component}>
-    <ModuleMovement bind:moduleNode bind:controlsNode nodeSize={{ x: 400, y: 400 }} bind:nodePos={state.position} />
-    <div id="module" use:movement>
+    <ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 400, y: 350 }} bind:nodePos={state.position} />
+    <div id="module" use:setModule>
         <h1>{module.state.id}</h1>
         <h2>Envelope</h2>
-        <div id="controls" use:controls>
-            <button class="delete" on:click={module.destroy}>x</button>
+        <div class="delete" use:setDelete><DeleteButton module={module} /></div>
+        <div id="controls" use:setControls>
             <div class="params">
                 <label><input bind:value={module.state.attack} type='range' min='0' max='1' step='0.001'>Attack ({attack.toFixed(2)}s)</label>
                 <label><input bind:value={module.state.decay} type='range' min='0' max='1' step='0.001'>Decay ({decay.toFixed(2)}s)</label>
@@ -92,15 +98,18 @@
 
 <style>
     #module {
-        background-color: lightblue;
+        background-color: #7788ff;
         border-style: solid;
         position: absolute;
         user-select: none;
+        border-radius: 50px;
+        border-color: #222222;
     }
 
-    .params {
-        margin-left: 20%;
-        text-align: left;
+    .delete {
+        position: absolute;
+        right: 20px;
+        top: 20px;
     }
 </style>
 
