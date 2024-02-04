@@ -12,30 +12,48 @@
 
     let clicking = false;
 
-    onMount(() => {
-        button.addEventListener('mousedown', () => {
-            size.set(35);
-            clicking = true;
-        });
-        window.addEventListener('mouseup', () => {
+    const buttonClick = () => {
+        size.set(35);
+        clicking = true;
+    };
+
+    const buttonUnClick = () => {
+        if (clicking) {
+            module.destroy();
+        }
+    };
+
+    const windowUnClick = () => {
+        size.set(25);
+        clicking = false;
+    };
+
+    const buttonHover = () => {
+        if (!clicking) {
+            size.set(30);
+        }
+    };
+
+    const buttonUnHover = () => {
+        if (!clicking) {
             size.set(25);
-            clicking = false;
-        })
-        button.addEventListener('mouseup', () => {
-            if (clicking) {
-                module.destroy();
-            }
-        })
-        button.addEventListener('mouseover', () => {
-            if (!clicking) {
-                size.set(30);
-            }
-        });
-        button.addEventListener('mouseout', () => {
-            if (!clicking) {
-                size.set(25);
-            }
-        });
+        }
+    };
+
+    onMount(() => {
+        button.addEventListener('mousedown', buttonClick);
+        button.addEventListener('touchstart', buttonClick);
+
+        button.addEventListener('mouseup', buttonUnClick);
+        button.addEventListener('touchend', buttonUnClick);
+
+        window.addEventListener('mouseup', windowUnClick);
+        window.addEventListener('touchend', buttonUnClick);
+
+        button.addEventListener('mouseover', buttonHover);
+
+        button.addEventListener('mouseout', buttonUnHover);
+
     });
 
     $: if (button) {
@@ -58,5 +76,4 @@
 </main>
 
 <style>
-
 </style>

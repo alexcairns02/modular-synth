@@ -31,7 +31,7 @@
             {/if}
         {/each}
         <option value={null}></option>
-        </select>Input</label>
+        </select> Input</label>
         <label><input bind:value={gainNode.gain.value} type='range' min='0' max='1' step='0.001'>Gain</label>
     </div>
     <br>
@@ -44,6 +44,14 @@
         width: 250px;
         margin-top: 310px;
         padding: 1%;
-        background-color: white;
+        background-color: white;    
     }
+
+	input {
+		pointer-events: all;
+	}
+    
+	select {
+		pointer-events: all;
+	}
 </style>

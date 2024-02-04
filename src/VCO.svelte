@@ -76,12 +76,12 @@
     <h1>{module.state.id}</h1>
     <h2>Oscillator</h2>
     <div id="controls" use:setControls>
-        <label><input bind:value={module.state.frequency} type='range' min='-2' max='2' step='0.083333333333333'>Frequency</label>
+        <label for="freq">Frequency</label><input id="freq" bind:value={module.state.frequency} type='range' min='-2' max='2' step='0.083333333333333'>
         <br><section class="shape">
-            <label><input type='radio' value='sine' bind:group={module.state.shape} />Sine</label>
-            <label><input type='radio' value='triangle' bind:group={module.state.shape} />Triangle</label>
-            <label><input type='radio' value='sawtooth' bind:group={module.state.shape} />Sawtooth</label>
-            <label><input type='radio' value='square' bind:group={module.state.shape} />Square</label>
+            <input id='sine' type='radio' value='sine' bind:group={module.state.shape} /><label for='sine'>Sine</label>
+            <input id ='triangle' type='radio' value='triangle' bind:group={module.state.shape} /><label for='triangle'>Triangle</label>
+            <input id='sawtooth' type='radio' value='sawtooth' bind:group={module.state.shape} /><label for='sawtooth'>Sawtooth</label>
+            <input id='square' type='radio' value='square' bind:group={module.state.shape} /><label for='square'>Square</label>
         </section>
     </div>
 </div>
@@ -99,11 +99,22 @@
     }
 
     .shape {
-        display: flex;
+        display: inline-flex;
+    }
+
+    .shape input[type="radio"] {
+        opacity: 0;
+        position: fixed;
+        width: 0;
     }
     
     .shape label {
         margin: auto;
+        padding: 5px;
+    }
+
+    .shape input[type="radio"]:checked + label {
+        color: #ffffff;
     }
 
     .delete {

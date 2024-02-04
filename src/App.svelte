@@ -182,5 +182,10 @@
 	.menu {
 		position: relative;
 		z-index: 1;
+		pointer-events: none;
+	}
+
+	button {
+		pointer-events: all;
 	}
 </style>

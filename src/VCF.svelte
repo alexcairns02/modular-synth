@@ -134,7 +134,7 @@
 </script>
 
 <main bind:this={module.component}>
-<ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 320, y: 330 }} bind:nodePos={state.position} />
+<ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 280, y: 350 }} bind:nodePos={state.position} />
     <div id="module" use:setModule>
         <h1>{module.state.id}</h1>
         <h2>Filter</h2>
@@ -147,7 +147,7 @@
                 {/if}
             {/each}
             <option value={null}></option>
-            </select>Input</label>
+            </select> Input</label>
             <label><select bind:value={cv_module}>
             {#each Object.entries($modules) as [id, m]}
                 {#if m.state.type == 'adsr'}
@@ -155,12 +155,12 @@
                 {/if}
             {/each}
             <option value={null}></option>
-            </select>CV</label>
-            <label><input bind:value={module.state.voct} type='range' min='2.78135971352466' max='14.78135971352466' step='0.0001'>Frequency</label>
+            </select> CV</label><br>
+            <label for='freq'>Frequency</label><input id='freq' bind:value={module.state.voct} type='range' min='2.78135971352466' max='14.78135971352466' step='0.0001'>
             <br><section class="type">
-                <label><input type='radio' value='lowpass' bind:group={module.state.filterType} /> Lowpass</label>
-                <label><input type='radio' value='highpass' bind:group={module.state.filterType} /> Highpass</label>
-                <label><input type='radio' value='bandpass' bind:group={module.state.filterType} /> Bandpass</label>
+                <input id='lowpass' type='radio' value='lowpass' bind:group={module.state.filterType} /><label for='lowpass'>Lowpass</label>
+                <input id='highpass' type='radio' value='highpass' bind:group={module.state.filterType} /><label for='highpass'>Highpass</label>
+                <input id='bandpass' type='radio' value='bandpass' bind:group={module.state.filterType} /><label for='bandpass'>Bandpass</label>
             </section>
         </div>
     </div>
@@ -178,11 +178,22 @@
     }
 
     .type {
-        display: flex;
+        display: inline-flex;
     }
 
+    .type input[type="radio"] {
+        opacity: 0;
+        position: fixed;
+        width: 0;
+    }
+    
     .type label {
         margin: auto;
+        padding: 5px;
+    }
+
+    .type input[type="radio"]:checked + label {
+        color: #ffffff;
     }
 
     .delete {

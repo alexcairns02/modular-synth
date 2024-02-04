@@ -100,7 +100,7 @@
             {/if}
         {/each}
             <option value={null}></option>
-        </select>Input {inpid}</label>
+        </select> Input {inpid}</label>
     {/each}
     </div>
 </div>

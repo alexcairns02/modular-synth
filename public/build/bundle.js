@@ -1231,10 +1231,15 @@ var app = (function () {
     }
 
     function instance$8($$self, $$props, $$invalidate) {
+    	let $triggerSize;
     	let $size;
     	let $coords;
+    	let $midi;
+    	validate_store(midi, 'midi');
+    	component_subscribe($$self, midi, $$value => $$invalidate(12, $midi = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('ModuleMovement', slots, []);
+    	let { hasTrigger = false } = $$props;
     	let { moduleNode } = $$props;
     	let { controlsNode } = $$props;
     	let { deleteNode } = $$props;
@@ -1242,40 +1247,43 @@ var app = (function () {
     	let { nodePos = { x: 300, y: 100 } } = $$props;
     	let coords = spring({ x: nodePos.x, y: nodePos.y }, { stiffness: 0.3, damping: 0.5 });
     	validate_store(coords, 'coords');
-    	component_subscribe($$self, coords, value => $$invalidate(9, $coords = value));
+    	component_subscribe($$self, coords, value => $$invalidate(11, $coords = value));
     	let size = spring(0, { stiffness: 0.3, damping: 0.5 });
     	validate_store(size, 'size');
-    	component_subscribe($$self, size, value => $$invalidate(8, $size = value));
+    	component_subscribe($$self, size, value => $$invalidate(10, $size = value));
+    	let triggerSize = spring(0, { stiffness: 1, damping: 0.5 });
+    	validate_store(triggerSize, 'triggerSize');
+    	component_subscribe($$self, triggerSize, value => $$invalidate(9, $triggerSize = value));
     	let moving = false;
     	let controlling = false;
 
-    	window.addEventListener('mouseup', () => {
-    		moving = false;
-    		$$invalidate(7, controlling = false);
-    		size.set(0);
-    	});
+    	const moduleClick = () => {
+    		moving = true;
+    		if (!controlling) size.set(20);
+    	};
 
-    	window.addEventListener('touchend', () => {
-    		moving = false;
-    		$$invalidate(7, controlling = false);
-    		size.set(0);
-    	});
+    	const controlsClick = () => {
+    		controlling = true;
+    	};
 
-    	window.addEventListener('mousemove', e => {
+    	const windowUnClick = () => {
+    		moving = false;
+    		controlling = false;
+    		size.set(0);
+    	};
+
+    	const windowMouseMove = e => {
     		if (moving && !controlling) {
-    			$$invalidate(3, nodePos.x += e.movementX, nodePos);
-    			$$invalidate(3, nodePos.y += e.movementY, nodePos);
+    			$$invalidate(4, nodePos.x += e.movementX, nodePos);
+    			$$invalidate(4, nodePos.y += e.movementY, nodePos);
     			coords.set({ x: nodePos.x, y: nodePos.y });
     		}
-    	});
+    	};
 
-    	window.addEventListener('touchmove', e => {
-    		if (moving && !controlling) {
-    			$$invalidate(3, nodePos.x += e.movementX, nodePos);
-    			$$invalidate(3, nodePos.y += e.movementY, nodePos);
-    			coords.set({ x: nodePos.x, y: nodePos.y });
-    		}
-    	});
+    	window.addEventListener('mouseup', windowUnClick);
+    	window.addEventListener('touchend', windowUnClick);
+    	window.addEventListener('mousemove', windowMouseMove);
+    	window.addEventListener('touchmove', windowMouseMove);
 
     	$$self.$$.on_mount.push(function () {
     		if (moduleNode === undefined && !('moduleNode' in $$props || $$self.$$.bound[$$self.$$.props['moduleNode']])) {
@@ -1291,22 +1299,32 @@ var app = (function () {
     		}
     	});
 
-    	const writable_props = ['moduleNode', 'controlsNode', 'deleteNode', 'nodeSize', 'nodePos'];
+    	const writable_props = [
+    		'hasTrigger',
+    		'moduleNode',
+    		'controlsNode',
+    		'deleteNode',
+    		'nodeSize',
+    		'nodePos'
+    	];
 
     	Object.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<ModuleMovement> was created with unknown prop '${key}'`);
     	});
 
     	$$self.$$set = $$props => {
-    		if ('moduleNode' in $$props) $$invalidate(2, moduleNode = $$props.moduleNode);
-    		if ('controlsNode' in $$props) $$invalidate(4, controlsNode = $$props.controlsNode);
-    		if ('deleteNode' in $$props) $$invalidate(5, deleteNode = $$props.deleteNode);
-    		if ('nodeSize' in $$props) $$invalidate(6, nodeSize = $$props.nodeSize);
-    		if ('nodePos' in $$props) $$invalidate(3, nodePos = $$props.nodePos);
+    		if ('hasTrigger' in $$props) $$invalidate(5, hasTrigger = $$props.hasTrigger);
+    		if ('moduleNode' in $$props) $$invalidate(3, moduleNode = $$props.moduleNode);
+    		if ('controlsNode' in $$props) $$invalidate(6, controlsNode = $$props.controlsNode);
+    		if ('deleteNode' in $$props) $$invalidate(7, deleteNode = $$props.deleteNode);
+    		if ('nodeSize' in $$props) $$invalidate(8, nodeSize = $$props.nodeSize);
+    		if ('nodePos' in $$props) $$invalidate(4, nodePos = $$props.nodePos);
     	};
 
     	$$self.$capture_state = () => ({
     		spring,
+    		midi,
+    		hasTrigger,
     		moduleNode,
     		controlsNode,
     		deleteNode,
@@ -1314,22 +1332,31 @@ var app = (function () {
     		nodePos,
     		coords,
     		size,
+    		triggerSize,
     		moving,
     		controlling,
+    		moduleClick,
+    		controlsClick,
+    		windowUnClick,
+    		windowMouseMove,
+    		$triggerSize,
     		$size,
-    		$coords
+    		$coords,
+    		$midi
     	});
 
     	$$self.$inject_state = $$props => {
-    		if ('moduleNode' in $$props) $$invalidate(2, moduleNode = $$props.moduleNode);
-    		if ('controlsNode' in $$props) $$invalidate(4, controlsNode = $$props.controlsNode);
-    		if ('deleteNode' in $$props) $$invalidate(5, deleteNode = $$props.deleteNode);
-    		if ('nodeSize' in $$props) $$invalidate(6, nodeSize = $$props.nodeSize);
-    		if ('nodePos' in $$props) $$invalidate(3, nodePos = $$props.nodePos);
+    		if ('hasTrigger' in $$props) $$invalidate(5, hasTrigger = $$props.hasTrigger);
+    		if ('moduleNode' in $$props) $$invalidate(3, moduleNode = $$props.moduleNode);
+    		if ('controlsNode' in $$props) $$invalidate(6, controlsNode = $$props.controlsNode);
+    		if ('deleteNode' in $$props) $$invalidate(7, deleteNode = $$props.deleteNode);
+    		if ('nodeSize' in $$props) $$invalidate(8, nodeSize = $$props.nodeSize);
+    		if ('nodePos' in $$props) $$invalidate(4, nodePos = $$props.nodePos);
     		if ('coords' in $$props) $$invalidate(0, coords = $$props.coords);
     		if ('size' in $$props) $$invalidate(1, size = $$props.size);
+    		if ('triggerSize' in $$props) $$invalidate(2, triggerSize = $$props.triggerSize);
     		if ('moving' in $$props) moving = $$props.moving;
-    		if ('controlling' in $$props) $$invalidate(7, controlling = $$props.controlling);
+    		if ('controlling' in $$props) controlling = $$props.controlling;
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -1337,50 +1364,41 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*moduleNode, $coords, $size, nodeSize*/ 836) {
+    		if ($$self.$$.dirty & /*moduleNode, $coords, $size, $triggerSize, nodeSize*/ 3848) {
     			if (moduleNode) {
-    				$$invalidate(2, moduleNode.style.left = `${$coords.x - $size / 2}px`, moduleNode);
-    				$$invalidate(2, moduleNode.style.top = `${$coords.y - $size / 2}px`, moduleNode);
-    				$$invalidate(2, moduleNode.style.width = `${nodeSize.x + $size}px`, moduleNode);
-    				$$invalidate(2, moduleNode.style.height = `${nodeSize.y + $size}px`, moduleNode);
+    				$$invalidate(3, moduleNode.style.left = `${$coords.x - $size / 2 - $triggerSize / 2}px`, moduleNode);
+    				$$invalidate(3, moduleNode.style.top = `${$coords.y - $size / 2 - $triggerSize / 2}px`, moduleNode);
+    				$$invalidate(3, moduleNode.style.width = `${nodeSize.x + $size + $triggerSize}px`, moduleNode);
+    				$$invalidate(3, moduleNode.style.height = `${nodeSize.y + $size + $triggerSize}px`, moduleNode);
     			}
     		}
 
-    		if ($$self.$$.dirty & /*controlsNode*/ 16) {
+    		if ($$self.$$.dirty & /*moduleNode*/ 8) {
+    			if (moduleNode) {
+    				moduleNode.addEventListener('mousedown', moduleClick);
+    				moduleNode.addEventListener('touchstart', moduleClick);
+    			}
+    		}
+
+    		if ($$self.$$.dirty & /*controlsNode*/ 64) {
     			if (controlsNode) {
-    				controlsNode.addEventListener('mousedown', () => {
-    					$$invalidate(7, controlling = true);
-    				});
-
-    				controlsNode.addEventListener('touchstart', () => {
-    					$$invalidate(7, controlling = true);
-    				});
+    				controlsNode.addEventListener('mousedown', controlsClick);
+    				controlsNode.addEventListener('touchstart', controlsClick);
     			}
     		}
 
-    		if ($$self.$$.dirty & /*deleteNode*/ 32) {
+    		if ($$self.$$.dirty & /*deleteNode*/ 128) {
     			if (deleteNode) {
-    				deleteNode.addEventListener('mousedown', () => {
-    					$$invalidate(7, controlling = true);
-    				});
-
-    				deleteNode.addEventListener('touchstart', () => {
-    					$$invalidate(7, controlling = true);
-    				});
+    				deleteNode.addEventListener('mousedown', controlsClick);
+    				deleteNode.addEventListener('touchstart', controlsClick);
     			}
     		}
 
-    		if ($$self.$$.dirty & /*moduleNode, controlling*/ 132) {
-    			if (moduleNode) {
-    				moduleNode.addEventListener('mousedown', () => {
-    					moving = true;
-    					if (!controlling) size.set(20);
-    				});
-
-    				moduleNode.addEventListener('touchstart', () => {
-    					moving = true;
-    					if (!controlling) size.set(20);
-    				});
+    		if ($$self.$$.dirty & /*$midi, hasTrigger*/ 4128) {
+    			if ($midi.trigger && hasTrigger) {
+    				triggerSize.set(2);
+    			} else {
+    				triggerSize.set(0);
     			}
     		}
     	};
@@ -1388,14 +1406,17 @@ var app = (function () {
     	return [
     		coords,
     		size,
+    		triggerSize,
     		moduleNode,
     		nodePos,
+    		hasTrigger,
     		controlsNode,
     		deleteNode,
     		nodeSize,
-    		controlling,
+    		$triggerSize,
     		$size,
-    		$coords
+    		$coords,
+    		$midi
     	];
     }
 
@@ -1404,11 +1425,12 @@ var app = (function () {
     		super(options);
 
     		init(this, options, instance$8, create_fragment$8, safe_not_equal, {
-    			moduleNode: 2,
-    			controlsNode: 4,
-    			deleteNode: 5,
-    			nodeSize: 6,
-    			nodePos: 3
+    			hasTrigger: 5,
+    			moduleNode: 3,
+    			controlsNode: 6,
+    			deleteNode: 7,
+    			nodeSize: 8,
+    			nodePos: 4
     		});
 
     		dispatch_dev("SvelteRegisterComponent", {
@@ -1417,6 +1439,14 @@ var app = (function () {
     			options,
     			id: create_fragment$8.name
     		});
+    	}
+
+    	get hasTrigger() {
+    		throw new Error("<ModuleMovement>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set hasTrigger(value) {
+    		throw new Error("<ModuleMovement>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
     	}
 
     	get moduleNode() {
@@ -1479,7 +1509,7 @@ var app = (function () {
     			defs = svg_element("defs");
     			g = svg_element("g");
     			path = svg_element("path");
-    			add_location(defs, file$7, 51, 4, 1280);
+    			add_location(defs, file$7, 69, 4, 1615);
     			attr_dev(path, "d", "M 45 0 C 20.147 0 0 20.147 0 45 c 0 24.853 20.147 45 45 45 s 45 -20.147 45 -45 C 90 20.147 69.853 0 45 0 z M 64.244 61.416 c 0.781 0.781 0.781 2.047 0 2.828 c -0.391 0.391 -0.902 0.586 -1.414 0.586 s -1.023 -0.195 -1.414 -0.586 L 45 47.828 L 28.583 64.244 c -0.39 0.391 -0.902 0.586 -1.414 0.586 s -1.024 -0.195 -1.414 -0.586 c -0.781 -0.781 -0.781 -2.047 0 -2.828 L 42.172 45 L 25.755 28.583 c -0.781 -0.781 -0.781 -2.047 0 -2.828 c 0.78 -0.781 2.048 -0.781 2.828 0 L 45 42.172 l 16.416 -16.416 c 0.781 -0.781 2.047 -0.781 2.828 0 c 0.781 0.781 0.781 2.047 0 2.828 L 47.828 45 L 64.244 61.416 z");
     			set_style(path, "stroke", "none");
     			set_style(path, "stroke-width", "1");
@@ -1492,7 +1522,7 @@ var app = (function () {
     			set_style(path, "opacity", "1");
     			attr_dev(path, "transform", " matrix(1 0 0 1 0 0) ");
     			attr_dev(path, "stroke-linecap", "round");
-    			add_location(path, file$7, 54, 8, 1573);
+    			add_location(path, file$7, 72, 8, 1908);
     			set_style(g, "stroke", "none");
     			set_style(g, "stroke-width", "0");
     			set_style(g, "stroke-dasharray", "none");
@@ -1503,14 +1533,14 @@ var app = (function () {
     			set_style(g, "fill-rule", "nonzero");
     			set_style(g, "opacity", "1");
     			attr_dev(g, "transform", "translate(1.4065934065934016 1.4065934065934016) scale(2.81 2.81)");
-    			add_location(g, file$7, 53, 4, 1305);
+    			add_location(g, file$7, 71, 4, 1640);
     			attr_dev(svg, "xmlns", "http://www.w3.org/2000/svg");
     			attr_dev(svg, "xmlns:xlink", "http://www.w3.org/1999/xlink");
     			attr_dev(svg, "version", "1.1");
     			attr_dev(svg, "viewBox", "0 0 256 256");
     			attr_dev(svg, "xml:space", "preserve");
-    			add_location(svg, file$7, 50, 0, 1120);
-    			add_location(main, file$7, 49, 0, 1112);
+    			add_location(svg, file$7, 68, 0, 1455);
+    			add_location(main, file$7, 67, 0, 1447);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1559,34 +1589,43 @@ var app = (function () {
     	let button;
     	let clicking = false;
 
-    	onMount(() => {
-    		button.addEventListener('mousedown', () => {
-    			size.set(35);
-    			clicking = true;
-    		});
+    	const buttonClick = () => {
+    		size.set(35);
+    		clicking = true;
+    	};
 
-    		window.addEventListener('mouseup', () => {
+    	const buttonUnClick = () => {
+    		if (clicking) {
+    			module.destroy();
+    		}
+    	};
+
+    	const windowUnClick = () => {
+    		size.set(25);
+    		clicking = false;
+    	};
+
+    	const buttonHover = () => {
+    		if (!clicking) {
+    			size.set(30);
+    		}
+    	};
+
+    	const buttonUnHover = () => {
+    		if (!clicking) {
     			size.set(25);
-    			clicking = false;
-    		});
+    		}
+    	};
 
-    		button.addEventListener('mouseup', () => {
-    			if (clicking) {
-    				module.destroy();
-    			}
-    		});
-
-    		button.addEventListener('mouseover', () => {
-    			if (!clicking) {
-    				size.set(30);
-    			}
-    		});
-
-    		button.addEventListener('mouseout', () => {
-    			if (!clicking) {
-    				size.set(25);
-    			}
-    		});
+    	onMount(() => {
+    		button.addEventListener('mousedown', buttonClick);
+    		button.addEventListener('touchstart', buttonClick);
+    		button.addEventListener('mouseup', buttonUnClick);
+    		button.addEventListener('touchend', buttonUnClick);
+    		window.addEventListener('mouseup', windowUnClick);
+    		window.addEventListener('touchend', buttonUnClick);
+    		button.addEventListener('mouseover', buttonHover);
+    		button.addEventListener('mouseout', buttonUnHover);
     	});
 
     	function setButton(node) {
@@ -1616,6 +1655,11 @@ var app = (function () {
     		size,
     		button,
     		clicking,
+    		buttonClick,
+    		buttonUnClick,
+    		windowUnClick,
+    		buttonHover,
+    		buttonUnHover,
     		setButton,
     		$size
     	});
@@ -1690,25 +1734,20 @@ var app = (function () {
     	let div1;
     	let label0;
     	let input0;
-    	let t6;
     	let t7;
     	let br0;
     	let section;
-    	let label1;
     	let input1;
-    	let t8;
+    	let label1;
     	let t9;
-    	let label2;
     	let input2;
-    	let t10;
+    	let label2;
     	let t11;
-    	let label3;
     	let input3;
-    	let t12;
+    	let label3;
     	let t13;
-    	let label4;
     	let input4;
-    	let t14;
+    	let label4;
     	let t15;
     	let br1;
     	let current;
@@ -1784,71 +1823,85 @@ var app = (function () {
     			t5 = space();
     			div1 = element("div");
     			label0 = element("label");
+    			label0.textContent = "Frequency";
     			input0 = element("input");
-    			t6 = text("Frequency");
     			t7 = space();
     			br0 = element("br");
     			section = element("section");
-    			label1 = element("label");
     			input1 = element("input");
-    			t8 = text("Sine");
+    			label1 = element("label");
+    			label1.textContent = "Sine";
     			t9 = space();
-    			label2 = element("label");
     			input2 = element("input");
-    			t10 = text("Triangle");
+    			label2 = element("label");
+    			label2.textContent = "Triangle";
     			t11 = space();
-    			label3 = element("label");
     			input3 = element("input");
-    			t12 = text("Sawtooth");
+    			label3 = element("label");
+    			label3.textContent = "Sawtooth";
     			t13 = space();
-    			label4 = element("label");
     			input4 = element("input");
-    			t14 = text("Square");
+    			label4 = element("label");
+    			label4.textContent = "Square";
     			t15 = space();
     			br1 = element("br");
-    			attr_dev(div0, "class", "delete svelte-ql1wbe");
+    			attr_dev(div0, "class", "delete svelte-i9ryvh");
     			add_location(div0, file$6, 74, 4, 2050);
     			add_location(h1, file$6, 75, 4, 2128);
     			add_location(h2, file$6, 76, 4, 2160);
+    			attr_dev(label0, "for", "freq");
+    			add_location(label0, file$6, 78, 8, 2230);
+    			attr_dev(input0, "id", "freq");
     			attr_dev(input0, "type", "range");
     			attr_dev(input0, "min", "-2");
     			attr_dev(input0, "max", "2");
     			attr_dev(input0, "step", "0.083333333333333");
-    			add_location(input0, file$6, 78, 15, 2237);
-    			add_location(label0, file$6, 78, 8, 2230);
-    			add_location(br0, file$6, 79, 8, 2362);
+    			add_location(input0, file$6, 78, 43, 2265);
+    			add_location(br0, file$6, 79, 8, 2383);
+    			attr_dev(input1, "id", "sine");
     			attr_dev(input1, "type", "radio");
     			input1.__value = "sine";
     			input1.value = input1.__value;
-    			add_location(input1, file$6, 80, 19, 2410);
-    			attr_dev(label1, "class", "svelte-ql1wbe");
-    			add_location(label1, file$6, 80, 12, 2403);
+    			attr_dev(input1, "class", "svelte-i9ryvh");
+    			add_location(input1, file$6, 80, 12, 2424);
+    			attr_dev(label1, "for", "sine");
+    			attr_dev(label1, "class", "svelte-i9ryvh");
+    			add_location(label1, file$6, 80, 89, 2501);
+    			attr_dev(input2, "id", "triangle");
     			attr_dev(input2, "type", "radio");
     			input2.__value = "triangle";
     			input2.value = input2.__value;
-    			add_location(input2, file$6, 81, 19, 2510);
-    			attr_dev(label2, "class", "svelte-ql1wbe");
-    			add_location(label2, file$6, 81, 12, 2503);
+    			attr_dev(input2, "class", "svelte-i9ryvh");
+    			add_location(input2, file$6, 81, 12, 2545);
+    			attr_dev(label2, "for", "triangle");
+    			attr_dev(label2, "class", "svelte-i9ryvh");
+    			add_location(label2, file$6, 81, 98, 2631);
+    			attr_dev(input3, "id", "sawtooth");
     			attr_dev(input3, "type", "radio");
     			input3.__value = "sawtooth";
     			input3.value = input3.__value;
-    			add_location(input3, file$6, 82, 19, 2618);
-    			attr_dev(label3, "class", "svelte-ql1wbe");
-    			add_location(label3, file$6, 82, 12, 2611);
+    			attr_dev(input3, "class", "svelte-i9ryvh");
+    			add_location(input3, file$6, 82, 12, 2683);
+    			attr_dev(label3, "for", "sawtooth");
+    			attr_dev(label3, "class", "svelte-i9ryvh");
+    			add_location(label3, file$6, 82, 97, 2768);
+    			attr_dev(input4, "id", "square");
     			attr_dev(input4, "type", "radio");
     			input4.__value = "square";
     			input4.value = input4.__value;
-    			add_location(input4, file$6, 83, 19, 2726);
-    			attr_dev(label4, "class", "svelte-ql1wbe");
-    			add_location(label4, file$6, 83, 12, 2719);
-    			attr_dev(section, "class", "shape svelte-ql1wbe");
-    			add_location(section, file$6, 79, 12, 2366);
+    			attr_dev(input4, "class", "svelte-i9ryvh");
+    			add_location(input4, file$6, 83, 12, 2820);
+    			attr_dev(label4, "for", "square");
+    			attr_dev(label4, "class", "svelte-i9ryvh");
+    			add_location(label4, file$6, 83, 93, 2901);
+    			attr_dev(section, "class", "shape svelte-i9ryvh");
+    			add_location(section, file$6, 79, 12, 2387);
     			attr_dev(div1, "id", "controls");
     			add_location(div1, file$6, 77, 4, 2185);
     			attr_dev(div2, "id", "module");
-    			attr_dev(div2, "class", "svelte-ql1wbe");
+    			attr_dev(div2, "class", "svelte-i9ryvh");
     			add_location(div2, file$6, 73, 0, 2013);
-    			add_location(br1, file$6, 87, 0, 2851);
+    			add_location(br1, file$6, 87, 0, 2977);
     			add_location(main, file$6, 71, 0, 1846);
     			binding_group.p(input1, input2, input3, input4);
     		},
@@ -1870,31 +1923,26 @@ var app = (function () {
     			append_dev(div2, t5);
     			append_dev(div2, div1);
     			append_dev(div1, label0);
-    			append_dev(label0, input0);
+    			append_dev(div1, input0);
     			set_input_value(input0, /*module*/ ctx[1].state.frequency);
-    			append_dev(label0, t6);
     			append_dev(div1, t7);
     			append_dev(div1, br0);
     			append_dev(div1, section);
-    			append_dev(section, label1);
-    			append_dev(label1, input1);
+    			append_dev(section, input1);
     			input1.checked = input1.__value === /*module*/ ctx[1].state.shape;
-    			append_dev(label1, t8);
+    			append_dev(section, label1);
     			append_dev(section, t9);
-    			append_dev(section, label2);
-    			append_dev(label2, input2);
+    			append_dev(section, input2);
     			input2.checked = input2.__value === /*module*/ ctx[1].state.shape;
-    			append_dev(label2, t10);
+    			append_dev(section, label2);
     			append_dev(section, t11);
-    			append_dev(section, label3);
-    			append_dev(label3, input3);
+    			append_dev(section, input3);
     			input3.checked = input3.__value === /*module*/ ctx[1].state.shape;
-    			append_dev(label3, t12);
+    			append_dev(section, label3);
     			append_dev(section, t13);
-    			append_dev(section, label4);
-    			append_dev(label4, input4);
+    			append_dev(section, input4);
     			input4.checked = input4.__value === /*module*/ ctx[1].state.shape;
-    			append_dev(label4, t14);
+    			append_dev(section, label4);
     			append_dev(main, t15);
     			append_dev(main, br1);
     			/*main_binding*/ ctx[20](main);
@@ -2380,7 +2428,7 @@ var app = (function () {
     			}
 
     			option = element("option");
-    			t2 = text("Input");
+    			t2 = text(" Input");
     			t3 = space();
     			label1 = element("label");
     			input = element("input");
@@ -2391,6 +2439,7 @@ var app = (function () {
     			option.__value = null;
     			option.value = option.__value;
     			add_location(option, file$5, 32, 8, 936);
+    			attr_dev(select, "class", "svelte-1ytt6fg");
     			if (/*$output*/ ctx[1].input === void 0) add_render_callback(() => /*select_change_handler*/ ctx[5].call(select));
     			add_location(select, file$5, 26, 15, 729);
     			add_location(label0, file$5, 26, 8, 722);
@@ -2398,11 +2447,12 @@ var app = (function () {
     			attr_dev(input, "min", "0");
     			attr_dev(input, "max", "1");
     			attr_dev(input, "step", "0.001");
-    			add_location(input, file$5, 34, 15, 1015);
-    			add_location(label1, file$5, 34, 8, 1008);
-    			attr_dev(div, "class", "svelte-gu11lu");
+    			attr_dev(input, "class", "svelte-1ytt6fg");
+    			add_location(input, file$5, 34, 15, 1016);
+    			add_location(label1, file$5, 34, 8, 1009);
+    			attr_dev(div, "class", "svelte-1ytt6fg");
     			add_location(div, file$5, 24, 4, 682);
-    			add_location(br, file$5, 36, 4, 1127);
+    			add_location(br, file$5, 36, 4, 1128);
     			add_location(main, file$5, 23, 0, 670);
     		},
     		l: function claim(nodes) {
@@ -2719,7 +2769,7 @@ var app = (function () {
     			t = text(t_value);
     			option.__value = option_value_value = /*m*/ ctx[26];
     			option.value = option.__value;
-    			add_location(option, file$4, 151, 12, 4545);
+    			add_location(option, file$4, 151, 12, 4546);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, option, anchor);
@@ -2822,12 +2872,12 @@ var app = (function () {
     	let select1;
     	let option1;
     	let t8;
+    	let br0;
     	let t9;
     	let label2;
     	let input;
-    	let t10;
     	let t11;
-    	let br;
+    	let br1;
     	let current;
     	let mounted;
     	let dispose;
@@ -2848,7 +2898,7 @@ var app = (function () {
     		/*modulemovement_nodePos_binding*/ ctx[17](value);
     	}
 
-    	let modulemovement_props = { nodeSize: { x: 300, y: 300 } };
+    	let modulemovement_props = { nodeSize: { x: 280, y: 310 } };
 
     	if (/*moduleNode*/ ctx[4] !== void 0) {
     		modulemovement_props.moduleNode = /*moduleNode*/ ctx[4];
@@ -2921,7 +2971,7 @@ var app = (function () {
     			}
 
     			option0 = element("option");
-    			t6 = text("Input");
+    			t6 = text(" Input");
     			t7 = space();
     			label1 = element("label");
     			select1 = element("select");
@@ -2931,14 +2981,15 @@ var app = (function () {
     			}
 
     			option1 = element("option");
-    			t8 = text("CV");
+    			t8 = text(" CV");
+    			br0 = element("br");
     			t9 = space();
     			label2 = element("label");
+    			label2.textContent = "Gain";
     			input = element("input");
-    			t10 = text("Gain");
     			t11 = space();
-    			br = element("br");
-    			attr_dev(div0, "class", "delete svelte-8xddq8");
+    			br1 = element("br");
+    			attr_dev(div0, "class", "delete svelte-ooopzg");
     			add_location(div0, file$4, 136, 4, 3909);
     			add_location(h1, file$4, 137, 4, 3987);
     			add_location(h2, file$4, 138, 4, 4019);
@@ -2950,22 +3001,25 @@ var app = (function () {
     			add_location(label0, file$4, 140, 8, 4088);
     			option1.__value = null;
     			option1.value = option1.__value;
-    			add_location(option1, file$4, 154, 8, 4622);
+    			add_location(option1, file$4, 154, 8, 4623);
     			if (/*cv_module*/ ctx[2] === void 0) add_render_callback(() => /*select1_change_handler*/ ctx[19].call(select1));
-    			add_location(select1, file$4, 148, 15, 4405);
-    			add_location(label1, file$4, 148, 8, 4398);
+    			add_location(select1, file$4, 148, 15, 4406);
+    			add_location(label1, file$4, 148, 8, 4399);
+    			add_location(br0, file$4, 155, 28, 4683);
+    			attr_dev(label2, "for", "gain");
+    			add_location(label2, file$4, 156, 8, 4697);
+    			attr_dev(input, "id", "gain");
     			attr_dev(input, "type", "range");
     			attr_dev(input, "min", "0");
     			attr_dev(input, "max", "1");
     			attr_dev(input, "step", "0.001");
-    			add_location(input, file$4, 156, 15, 4698);
-    			add_location(label2, file$4, 156, 8, 4691);
+    			add_location(input, file$4, 156, 38, 4727);
     			attr_dev(div1, "id", "controls");
     			add_location(div1, file$4, 139, 4, 4043);
     			attr_dev(div2, "id", "module");
-    			attr_dev(div2, "class", "svelte-8xddq8");
+    			attr_dev(div2, "class", "svelte-ooopzg");
     			add_location(div2, file$4, 135, 0, 3872);
-    			add_location(br, file$4, 159, 0, 4812);
+    			add_location(br1, file$4, 159, 0, 4839);
     			add_location(main, file$4, 133, 0, 3705);
     		},
     		l: function claim(nodes) {
@@ -3010,13 +3064,13 @@ var app = (function () {
     			append_dev(select1, option1);
     			select_option(select1, /*cv_module*/ ctx[2], true);
     			append_dev(label1, t8);
+    			append_dev(div1, br0);
     			append_dev(div1, t9);
     			append_dev(div1, label2);
-    			append_dev(label2, input);
+    			append_dev(div1, input);
     			set_input_value(input, /*module*/ ctx[1].state.gain);
-    			append_dev(label2, t10);
     			append_dev(main, t11);
-    			append_dev(main, br);
+    			append_dev(main, br1);
     			/*main_binding*/ ctx[21](main);
     			current = true;
 
@@ -3490,32 +3544,32 @@ var app = (function () {
     	let div2;
     	let div1;
     	let label0;
-    	let input0;
     	let t6;
     	let t7_value = /*attack*/ ctx[5].toFixed(2) + "";
     	let t7;
     	let t8;
+    	let input0;
     	let t9;
     	let label1;
-    	let input1;
     	let t10;
     	let t11_value = /*decay*/ ctx[6].toFixed(2) + "";
     	let t11;
     	let t12;
+    	let input1;
     	let t13;
     	let label2;
-    	let input2;
     	let t14;
     	let t15_value = /*module*/ ctx[1].state.sustain.toFixed(2) + "";
     	let t15;
     	let t16;
+    	let input2;
     	let t17;
     	let label3;
-    	let input3;
     	let t18;
     	let t19_value = /*release*/ ctx[7].toFixed(2) + "";
     	let t19;
     	let t20;
+    	let input3;
     	let t21;
     	let br;
     	let current;
@@ -3538,7 +3592,10 @@ var app = (function () {
     		/*modulemovement_nodePos_binding*/ ctx[16](value);
     	}
 
-    	let modulemovement_props = { nodeSize: { x: 400, y: 350 } };
+    	let modulemovement_props = {
+    		hasTrigger: true,
+    		nodeSize: { x: 280, y: 400 }
+    	};
 
     	if (/*moduleNode*/ ctx[2] !== void 0) {
     		modulemovement_props.moduleNode = /*moduleNode*/ ctx[2];
@@ -3589,66 +3646,74 @@ var app = (function () {
     			div2 = element("div");
     			div1 = element("div");
     			label0 = element("label");
-    			input0 = element("input");
     			t6 = text("Attack (");
     			t7 = text(t7_value);
     			t8 = text("s)");
+    			input0 = element("input");
     			t9 = space();
     			label1 = element("label");
-    			input1 = element("input");
     			t10 = text("Decay (");
     			t11 = text(t11_value);
     			t12 = text("s)");
+    			input1 = element("input");
     			t13 = space();
     			label2 = element("label");
-    			input2 = element("input");
     			t14 = text("Sustain (");
     			t15 = text(t15_value);
     			t16 = text(")");
+    			input2 = element("input");
     			t17 = space();
     			label3 = element("label");
-    			input3 = element("input");
     			t18 = text("Release (");
     			t19 = text(t19_value);
     			t20 = text("s)");
+    			input3 = element("input");
     			t21 = space();
     			br = element("br");
-    			add_location(h1, file$3, 83, 8, 2535);
-    			add_location(h2, file$3, 84, 8, 2571);
+    			add_location(h1, file$3, 83, 8, 2553);
+    			add_location(h2, file$3, 84, 8, 2589);
     			attr_dev(div0, "class", "delete svelte-4v52pm");
-    			add_location(div0, file$3, 85, 8, 2598);
+    			add_location(div0, file$3, 85, 8, 2616);
+    			attr_dev(label0, "for", "attack");
+    			add_location(label0, file$3, 88, 16, 2785);
+    			attr_dev(input0, "id", "attack");
     			attr_dev(input0, "type", "range");
     			attr_dev(input0, "min", "0");
     			attr_dev(input0, "max", "1");
     			attr_dev(input0, "step", "0.001");
-    			add_location(input0, file$3, 88, 23, 2774);
-    			add_location(label0, file$3, 88, 16, 2767);
+    			add_location(input0, file$3, 88, 73, 2842);
+    			attr_dev(label1, "for", "decay");
+    			add_location(label1, file$3, 89, 16, 2954);
+    			attr_dev(input1, "id", "decay");
     			attr_dev(input1, "type", "range");
     			attr_dev(input1, "min", "0");
     			attr_dev(input1, "max", "1");
     			attr_dev(input1, "step", "0.001");
-    			add_location(input1, file$3, 89, 23, 2918);
-    			add_location(label1, file$3, 89, 16, 2911);
+    			add_location(input1, file$3, 89, 70, 3008);
+    			attr_dev(label2, "for", "sustain");
+    			add_location(label2, file$3, 90, 16, 3118);
+    			attr_dev(input2, "id", "sustain");
     			attr_dev(input2, "type", "range");
     			attr_dev(input2, "min", "0");
     			attr_dev(input2, "max", "1");
     			attr_dev(input2, "step", "0.001");
-    			add_location(input2, file$3, 90, 23, 3059);
-    			add_location(label2, file$3, 90, 16, 3052);
+    			add_location(input2, file$3, 90, 88, 3190);
+    			attr_dev(label3, "for", "release");
+    			add_location(label3, file$3, 91, 16, 3304);
+    			attr_dev(input3, "id", "release");
     			attr_dev(input3, "type", "range");
     			attr_dev(input3, "min", "0");
     			attr_dev(input3, "max", "1");
     			attr_dev(input3, "step", "0.001");
-    			add_location(input3, file$3, 91, 23, 3218);
-    			add_location(label3, file$3, 91, 16, 3211);
+    			add_location(input3, file$3, 91, 76, 3364);
     			attr_dev(div1, "class", "params");
-    			add_location(div1, file$3, 87, 12, 2729);
+    			add_location(div1, file$3, 87, 12, 2747);
     			attr_dev(div2, "id", "controls");
-    			add_location(div2, file$3, 86, 8, 2680);
+    			add_location(div2, file$3, 86, 8, 2698);
     			attr_dev(div3, "id", "module");
     			attr_dev(div3, "class", "svelte-4v52pm");
-    			add_location(div3, file$3, 82, 4, 2494);
-    			add_location(br, file$3, 95, 4, 3394);
+    			add_location(div3, file$3, 82, 4, 2512);
+    			add_location(br, file$3, 95, 4, 3514);
     			add_location(main, file$3, 80, 0, 2319);
     		},
     		l: function claim(nodes) {
@@ -3670,32 +3735,32 @@ var app = (function () {
     			append_dev(div3, div2);
     			append_dev(div2, div1);
     			append_dev(div1, label0);
-    			append_dev(label0, input0);
-    			set_input_value(input0, /*module*/ ctx[1].state.attack);
     			append_dev(label0, t6);
     			append_dev(label0, t7);
     			append_dev(label0, t8);
+    			append_dev(div1, input0);
+    			set_input_value(input0, /*module*/ ctx[1].state.attack);
     			append_dev(div1, t9);
     			append_dev(div1, label1);
-    			append_dev(label1, input1);
-    			set_input_value(input1, /*module*/ ctx[1].state.decay);
     			append_dev(label1, t10);
     			append_dev(label1, t11);
     			append_dev(label1, t12);
+    			append_dev(div1, input1);
+    			set_input_value(input1, /*module*/ ctx[1].state.decay);
     			append_dev(div1, t13);
     			append_dev(div1, label2);
-    			append_dev(label2, input2);
-    			set_input_value(input2, /*module*/ ctx[1].state.sustain);
     			append_dev(label2, t14);
     			append_dev(label2, t15);
     			append_dev(label2, t16);
+    			append_dev(div1, input2);
+    			set_input_value(input2, /*module*/ ctx[1].state.sustain);
     			append_dev(div1, t17);
     			append_dev(div1, label3);
-    			append_dev(label3, input3);
-    			set_input_value(input3, /*module*/ ctx[1].state.release);
     			append_dev(label3, t18);
     			append_dev(label3, t19);
     			append_dev(label3, t20);
+    			append_dev(div1, input3);
+    			set_input_value(input3, /*module*/ ctx[1].state.release);
     			append_dev(main, t21);
     			append_dev(main, br);
     			/*main_binding*/ ctx[21](main);
@@ -3751,30 +3816,29 @@ var app = (function () {
     			const deletebutton_changes = {};
     			if (dirty & /*module*/ 2) deletebutton_changes.module = /*module*/ ctx[1];
     			deletebutton.$set(deletebutton_changes);
+    			if ((!current || dirty & /*attack*/ 32) && t7_value !== (t7_value = /*attack*/ ctx[5].toFixed(2) + "")) set_data_dev(t7, t7_value);
 
     			if (dirty & /*module*/ 2) {
     				set_input_value(input0, /*module*/ ctx[1].state.attack);
     			}
 
-    			if ((!current || dirty & /*attack*/ 32) && t7_value !== (t7_value = /*attack*/ ctx[5].toFixed(2) + "")) set_data_dev(t7, t7_value);
+    			if ((!current || dirty & /*decay*/ 64) && t11_value !== (t11_value = /*decay*/ ctx[6].toFixed(2) + "")) set_data_dev(t11, t11_value);
 
     			if (dirty & /*module*/ 2) {
     				set_input_value(input1, /*module*/ ctx[1].state.decay);
     			}
 
-    			if ((!current || dirty & /*decay*/ 64) && t11_value !== (t11_value = /*decay*/ ctx[6].toFixed(2) + "")) set_data_dev(t11, t11_value);
+    			if ((!current || dirty & /*module*/ 2) && t15_value !== (t15_value = /*module*/ ctx[1].state.sustain.toFixed(2) + "")) set_data_dev(t15, t15_value);
 
     			if (dirty & /*module*/ 2) {
     				set_input_value(input2, /*module*/ ctx[1].state.sustain);
     			}
 
-    			if ((!current || dirty & /*module*/ 2) && t15_value !== (t15_value = /*module*/ ctx[1].state.sustain.toFixed(2) + "")) set_data_dev(t15, t15_value);
+    			if ((!current || dirty & /*release*/ 128) && t19_value !== (t19_value = /*release*/ ctx[7].toFixed(2) + "")) set_data_dev(t19, t19_value);
 
     			if (dirty & /*module*/ 2) {
     				set_input_value(input3, /*module*/ ctx[1].state.release);
     			}
-
-    			if ((!current || dirty & /*release*/ 128) && t19_value !== (t19_value = /*release*/ ctx[7].toFixed(2) + "")) set_data_dev(t19, t19_value);
     		},
     		i: function intro(local) {
     			if (current) return;
@@ -4176,7 +4240,7 @@ var app = (function () {
     			t = text(t_value);
     			option.__value = option_value_value = /*m*/ ctx[31];
     			option.value = option.__value;
-    			add_location(option, file$2, 153, 16, 4702);
+    			add_location(option, file$2, 153, 16, 4703);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, option, anchor);
@@ -4279,26 +4343,23 @@ var app = (function () {
     	let select1;
     	let option1;
     	let t8;
+    	let br0;
     	let t9;
     	let label2;
     	let input0;
-    	let t10;
     	let t11;
-    	let br0;
-    	let section;
-    	let label3;
-    	let input1;
-    	let t12;
-    	let t13;
-    	let label4;
-    	let input2;
-    	let t14;
-    	let t15;
-    	let label5;
-    	let input3;
-    	let t16;
-    	let t17;
     	let br1;
+    	let section;
+    	let input1;
+    	let label3;
+    	let t13;
+    	let input2;
+    	let label4;
+    	let t15;
+    	let input3;
+    	let label5;
+    	let t17;
+    	let br2;
     	let current;
     	let binding_group;
     	let mounted;
@@ -4320,7 +4381,7 @@ var app = (function () {
     		/*modulemovement_nodePos_binding*/ ctx[19](value);
     	}
 
-    	let modulemovement_props = { nodeSize: { x: 320, y: 330 } };
+    	let modulemovement_props = { nodeSize: { x: 280, y: 350 } };
 
     	if (/*moduleNode*/ ctx[4] !== void 0) {
     		modulemovement_props.moduleNode = /*moduleNode*/ ctx[4];
@@ -4395,7 +4456,7 @@ var app = (function () {
     			}
 
     			option0 = element("option");
-    			t6 = text("Input");
+    			t6 = text(" Input");
     			t7 = space();
     			label1 = element("label");
     			select1 = element("select");
@@ -4405,30 +4466,31 @@ var app = (function () {
     			}
 
     			option1 = element("option");
-    			t8 = text("CV");
+    			t8 = text(" CV");
+    			br0 = element("br");
     			t9 = space();
     			label2 = element("label");
+    			label2.textContent = "Frequency";
     			input0 = element("input");
-    			t10 = text("Frequency");
     			t11 = space();
-    			br0 = element("br");
-    			section = element("section");
-    			label3 = element("label");
-    			input1 = element("input");
-    			t12 = text(" Lowpass");
-    			t13 = space();
-    			label4 = element("label");
-    			input2 = element("input");
-    			t14 = text(" Highpass");
-    			t15 = space();
-    			label5 = element("label");
-    			input3 = element("input");
-    			t16 = text(" Bandpass");
-    			t17 = space();
     			br1 = element("br");
+    			section = element("section");
+    			input1 = element("input");
+    			label3 = element("label");
+    			label3.textContent = "Lowpass";
+    			t13 = space();
+    			input2 = element("input");
+    			label4 = element("label");
+    			label4.textContent = "Highpass";
+    			t15 = space();
+    			input3 = element("input");
+    			label5 = element("label");
+    			label5.textContent = "Bandpass";
+    			t17 = space();
+    			br2 = element("br");
     			add_location(h1, file$2, 138, 8, 4009);
     			add_location(h2, file$2, 139, 8, 4045);
-    			attr_dev(div0, "class", "delete svelte-gtgbu8");
+    			attr_dev(div0, "class", "delete svelte-17igmc3");
     			add_location(div0, file$2, 140, 8, 4070);
     			option0.__value = null;
     			option0.value = option0.__value;
@@ -4438,43 +4500,55 @@ var app = (function () {
     			add_location(label0, file$2, 142, 12, 4201);
     			option1.__value = null;
     			option1.value = option1.__value;
-    			add_location(option1, file$2, 156, 12, 4791);
+    			add_location(option1, file$2, 156, 12, 4792);
     			if (/*cv_module*/ ctx[2] === void 0) add_render_callback(() => /*select1_change_handler*/ ctx[21].call(select1));
-    			add_location(select1, file$2, 150, 19, 4550);
-    			add_location(label1, file$2, 150, 12, 4543);
+    			add_location(select1, file$2, 150, 19, 4551);
+    			add_location(label1, file$2, 150, 12, 4544);
+    			add_location(br0, file$2, 157, 32, 4856);
+    			attr_dev(label2, "for", "freq");
+    			add_location(label2, file$2, 158, 12, 4874);
+    			attr_dev(input0, "id", "freq");
     			attr_dev(input0, "type", "range");
     			attr_dev(input0, "min", "2.78135971352466");
     			attr_dev(input0, "max", "14.78135971352466");
     			attr_dev(input0, "step", "0.0001");
-    			add_location(input0, file$2, 158, 19, 4875);
-    			add_location(label2, file$2, 158, 12, 4868);
-    			add_location(br0, file$2, 159, 12, 5018);
+    			add_location(input0, file$2, 158, 47, 4909);
+    			add_location(br1, file$2, 159, 12, 5045);
+    			attr_dev(input1, "id", "lowpass");
     			attr_dev(input1, "type", "radio");
     			input1.__value = "lowpass";
     			input1.value = input1.__value;
-    			add_location(input1, file$2, 160, 23, 5069);
-    			attr_dev(label3, "class", "svelte-gtgbu8");
-    			add_location(label3, file$2, 160, 16, 5062);
+    			attr_dev(input1, "class", "svelte-17igmc3");
+    			add_location(input1, file$2, 160, 16, 5089);
+    			attr_dev(label3, "for", "lowpass");
+    			attr_dev(label3, "class", "svelte-17igmc3");
+    			add_location(label3, file$2, 160, 104, 5177);
+    			attr_dev(input2, "id", "highpass");
     			attr_dev(input2, "type", "radio");
     			input2.__value = "highpass";
     			input2.value = input2.__value;
-    			add_location(input2, file$2, 161, 23, 5185);
-    			attr_dev(label4, "class", "svelte-gtgbu8");
-    			add_location(label4, file$2, 161, 16, 5178);
+    			attr_dev(input2, "class", "svelte-17igmc3");
+    			add_location(input2, file$2, 161, 16, 5231);
+    			attr_dev(label4, "for", "highpass");
+    			attr_dev(label4, "class", "svelte-17igmc3");
+    			add_location(label4, file$2, 161, 106, 5321);
+    			attr_dev(input3, "id", "bandpass");
     			attr_dev(input3, "type", "radio");
     			input3.__value = "bandpass";
     			input3.value = input3.__value;
-    			add_location(input3, file$2, 162, 23, 5303);
-    			attr_dev(label5, "class", "svelte-gtgbu8");
-    			add_location(label5, file$2, 162, 16, 5296);
-    			attr_dev(section, "class", "type svelte-gtgbu8");
-    			add_location(section, file$2, 159, 16, 5022);
+    			attr_dev(input3, "class", "svelte-17igmc3");
+    			add_location(input3, file$2, 162, 16, 5377);
+    			attr_dev(label5, "for", "bandpass");
+    			attr_dev(label5, "class", "svelte-17igmc3");
+    			add_location(label5, file$2, 162, 106, 5467);
+    			attr_dev(section, "class", "type svelte-17igmc3");
+    			add_location(section, file$2, 159, 16, 5049);
     			attr_dev(div1, "id", "controls");
     			add_location(div1, file$2, 141, 8, 4152);
     			attr_dev(div2, "id", "module");
-    			attr_dev(div2, "class", "svelte-gtgbu8");
+    			attr_dev(div2, "class", "svelte-17igmc3");
     			add_location(div2, file$2, 137, 4, 3968);
-    			add_location(br1, file$2, 166, 4, 5454);
+    			add_location(br2, file$2, 166, 4, 5563);
     			add_location(main, file$2, 135, 0, 3797);
     			binding_group.p(input1, input2, input3);
     		},
@@ -4520,30 +4594,27 @@ var app = (function () {
     			append_dev(select1, option1);
     			select_option(select1, /*cv_module*/ ctx[2], true);
     			append_dev(label1, t8);
+    			append_dev(div1, br0);
     			append_dev(div1, t9);
     			append_dev(div1, label2);
-    			append_dev(label2, input0);
+    			append_dev(div1, input0);
     			set_input_value(input0, /*module*/ ctx[1].state.voct);
-    			append_dev(label2, t10);
     			append_dev(div1, t11);
-    			append_dev(div1, br0);
+    			append_dev(div1, br1);
     			append_dev(div1, section);
-    			append_dev(section, label3);
-    			append_dev(label3, input1);
+    			append_dev(section, input1);
     			input1.checked = input1.__value === /*module*/ ctx[1].state.filterType;
-    			append_dev(label3, t12);
+    			append_dev(section, label3);
     			append_dev(section, t13);
-    			append_dev(section, label4);
-    			append_dev(label4, input2);
+    			append_dev(section, input2);
     			input2.checked = input2.__value === /*module*/ ctx[1].state.filterType;
-    			append_dev(label4, t14);
+    			append_dev(section, label4);
     			append_dev(section, t15);
-    			append_dev(section, label5);
-    			append_dev(label5, input3);
+    			append_dev(section, input3);
     			input3.checked = input3.__value === /*module*/ ctx[1].state.filterType;
-    			append_dev(label5, t16);
+    			append_dev(section, label5);
     			append_dev(main, t17);
-    			append_dev(main, br1);
+    			append_dev(main, br2);
     			/*main_binding*/ ctx[27](main);
     			current = true;
 
@@ -5178,7 +5249,7 @@ var app = (function () {
     			}
 
     			option = element("option");
-    			t0 = text("Input ");
+    			t0 = text(" Input ");
     			t1 = text(/*inpid*/ ctx[22]);
     			option.__value = null;
     			option.value = option.__value;
@@ -5371,7 +5442,7 @@ var app = (function () {
     			attr_dev(div2, "id", "module");
     			attr_dev(div2, "class", "svelte-when5m");
     			add_location(div2, file$1, 89, 0, 2589);
-    			add_location(br, file$1, 106, 0, 3235);
+    			add_location(br, file$1, 106, 0, 3236);
     			add_location(main, file$1, 87, 0, 2422);
     		},
     		l: function claim(nodes) {
@@ -5896,19 +5967,26 @@ var app = (function () {
     				each_blocks[i].c();
     			}
 
-    			add_location(button0, file, 151, 2, 2825);
-    			add_location(button1, file, 152, 2, 2872);
-    			add_location(button2, file, 153, 2, 2919);
-    			add_location(button3, file, 154, 2, 2986);
-    			add_location(button4, file, 155, 2, 3052);
-    			add_location(button5, file, 156, 2, 3115);
-    			add_location(button6, file, 157, 2, 3181);
-    			attr_dev(div0, "class", "menu svelte-sn6ws2");
-    			add_location(div0, file, 150, 1, 2803);
-    			attr_dev(div1, "class", "modules svelte-sn6ws2");
-    			add_location(div1, file, 161, 1, 3279);
-    			attr_dev(main, "class", "svelte-sn6ws2");
-    			add_location(main, file, 149, 0, 2794);
+    			attr_dev(button0, "class", "svelte-1kr57ov");
+    			add_location(button0, file, 151, 2, 2824);
+    			attr_dev(button1, "class", "svelte-1kr57ov");
+    			add_location(button1, file, 152, 2, 2871);
+    			attr_dev(button2, "class", "svelte-1kr57ov");
+    			add_location(button2, file, 153, 2, 2918);
+    			attr_dev(button3, "class", "svelte-1kr57ov");
+    			add_location(button3, file, 154, 2, 2985);
+    			attr_dev(button4, "class", "svelte-1kr57ov");
+    			add_location(button4, file, 155, 2, 3051);
+    			attr_dev(button5, "class", "svelte-1kr57ov");
+    			add_location(button5, file, 156, 2, 3114);
+    			attr_dev(button6, "class", "svelte-1kr57ov");
+    			add_location(button6, file, 157, 2, 3180);
+    			attr_dev(div0, "class", "menu svelte-1kr57ov");
+    			add_location(div0, file, 150, 1, 2802);
+    			attr_dev(div1, "class", "modules svelte-1kr57ov");
+    			add_location(div1, file, 161, 1, 3278);
+    			attr_dev(main, "class", "svelte-1kr57ov");
+    			add_location(main, file, 149, 0, 2793);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -6030,7 +6108,7 @@ var app = (function () {
     	return block;
     }
 
-    const DEBUG = false;
+    const DEBUG = true;
 
     function instance($$self, $$props, $$invalidate) {
     	let $modules;
@@ -6154,6 +6232,8 @@ var app = (function () {
     			"position": { "x": 837, "y": 553 }
     		}
     	];
+
+    	addPatch(debugPatch);
     	const writable_props = [];
 
     	Object_1.keys($$props).forEach(key => {

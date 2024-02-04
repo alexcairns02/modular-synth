@@ -79,17 +79,17 @@
 </script>
 
 <main bind:this={module.component}>
-    <ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 400, y: 350 }} bind:nodePos={state.position} />
+    <ModuleMovement hasTrigger={true} bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 280, y: 400 }} bind:nodePos={state.position} />
     <div id="module" use:setModule>
         <h1>{module.state.id}</h1>
         <h2>Envelope</h2>
         <div class="delete" use:setDelete><DeleteButton module={module} /></div>
         <div id="controls" use:setControls>
             <div class="params">
-                <label><input bind:value={module.state.attack} type='range' min='0' max='1' step='0.001'>Attack ({attack.toFixed(2)}s)</label>
-                <label><input bind:value={module.state.decay} type='range' min='0' max='1' step='0.001'>Decay ({decay.toFixed(2)}s)</label>
-                <label><input bind:value={module.state.sustain} type='range' min='0' max='1' step='0.001'>Sustain ({module.state.sustain.toFixed(2)})</label>
-                <label><input bind:value={module.state.release} type='range' min='0' max='1' step='0.001'>Release ({release.toFixed(2)}s)</label>
+                <label for='attack'>Attack ({attack.toFixed(2)}s)</label><input id='attack' bind:value={module.state.attack} type='range' min='0' max='1' step='0.001'>
+                <label for='decay'>Decay ({decay.toFixed(2)}s)</label><input id='decay' bind:value={module.state.decay} type='range' min='0' max='1' step='0.001'>
+                <label for='sustain'>Sustain ({module.state.sustain.toFixed(2)})</label><input id='sustain' bind:value={module.state.sustain} type='range' min='0' max='1' step='0.001'>
+                <label for='release'>Release ({release.toFixed(2)}s)</label><input id='release' bind:value={module.state.release} type='range' min='0' max='1' step='0.001'>
             </div>
         </div>
     </div>

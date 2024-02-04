@@ -132,7 +132,7 @@
 </script>
 
 <main bind:this={module.component}>
-<ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 300, y: 300 }} bind:nodePos={state.position} />
+<ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 280, y: 310 }} bind:nodePos={state.position} />
 <div id="module" use:setModule>
     <div class="delete" use:setDelete><DeleteButton module={module} /></div>
     <h1>{module.state.id}</h1>
@@ -145,7 +145,7 @@
             {/if}
         {/each}
         <option value={null}></option>
-        </select>Input</label>
+        </select> Input</label>
         <label><select bind:value={cv_module}>
         {#each Object.entries($modules) as [id, m]}
             {#if m.state.type == 'adsr'}
@@ -153,8 +153,8 @@
             {/if}
         {/each}
         <option value={null}></option>
-        </select>CV</label>
-        <label><input bind:value={module.state.gain} type='range' min='0' max='1' step='0.001'>Gain</label>
+        </select> CV</label><br>
+        <label for='gain'>Gain</label><input id='gain' bind:value={module.state.gain} type='range' min='0' max='1' step='0.001'>
     </div>
 </div>
 <br>
@@ -162,7 +162,7 @@
 
 <style>
     #module {
-        background-color: #77ff77;
+        background-color: #88ff88;
         border-style: solid;
         position: absolute;
         user-select: none;
