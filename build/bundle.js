@@ -5968,25 +5968,25 @@ var app = (function () {
     			}
 
     			attr_dev(button0, "class", "svelte-1kr57ov");
-    			add_location(button0, file, 151, 2, 2824);
+    			add_location(button0, file, 151, 2, 2825);
     			attr_dev(button1, "class", "svelte-1kr57ov");
-    			add_location(button1, file, 152, 2, 2871);
+    			add_location(button1, file, 152, 2, 2872);
     			attr_dev(button2, "class", "svelte-1kr57ov");
-    			add_location(button2, file, 153, 2, 2918);
+    			add_location(button2, file, 153, 2, 2919);
     			attr_dev(button3, "class", "svelte-1kr57ov");
-    			add_location(button3, file, 154, 2, 2985);
+    			add_location(button3, file, 154, 2, 2986);
     			attr_dev(button4, "class", "svelte-1kr57ov");
-    			add_location(button4, file, 155, 2, 3051);
+    			add_location(button4, file, 155, 2, 3052);
     			attr_dev(button5, "class", "svelte-1kr57ov");
-    			add_location(button5, file, 156, 2, 3114);
+    			add_location(button5, file, 156, 2, 3115);
     			attr_dev(button6, "class", "svelte-1kr57ov");
-    			add_location(button6, file, 157, 2, 3180);
+    			add_location(button6, file, 157, 2, 3181);
     			attr_dev(div0, "class", "menu svelte-1kr57ov");
-    			add_location(div0, file, 150, 1, 2802);
+    			add_location(div0, file, 150, 1, 2803);
     			attr_dev(div1, "class", "modules svelte-1kr57ov");
-    			add_location(div1, file, 161, 1, 3278);
+    			add_location(div1, file, 161, 1, 3279);
     			attr_dev(main, "class", "svelte-1kr57ov");
-    			add_location(main, file, 149, 0, 2793);
+    			add_location(main, file, 149, 0, 2794);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -6108,7 +6108,7 @@ var app = (function () {
     	return block;
     }
 
-    const DEBUG = true;
+    const DEBUG = false;
 
     function instance($$self, $$props, $$invalidate) {
     	let $modules;
@@ -6232,8 +6232,6 @@ var app = (function () {
     			"position": { "x": 837, "y": 553 }
     		}
     	];
-
-    	addPatch(debugPatch);
     	const writable_props = [];
 
     	Object_1.keys($$props).forEach(key => {
