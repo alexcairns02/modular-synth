@@ -1738,16 +1738,28 @@ var app = (function () {
     	let br0;
     	let section;
     	let input1;
+    	let input1_id_value;
     	let label1;
+    	let t8;
+    	let label1_for_value;
     	let t9;
     	let input2;
+    	let input2_id_value;
     	let label2;
+    	let t10;
+    	let label2_for_value;
     	let t11;
     	let input3;
+    	let input3_id_value;
     	let label3;
+    	let t12;
+    	let label3_for_value;
     	let t13;
     	let input4;
+    	let input4_id_value;
     	let label4;
+    	let t14;
+    	let label4_for_value;
     	let t15;
     	let br1;
     	let current;
@@ -1830,19 +1842,19 @@ var app = (function () {
     			section = element("section");
     			input1 = element("input");
     			label1 = element("label");
-    			label1.textContent = "Sine";
+    			t8 = text("Sine");
     			t9 = space();
     			input2 = element("input");
     			label2 = element("label");
-    			label2.textContent = "Triangle";
+    			t10 = text("Triangle");
     			t11 = space();
     			input3 = element("input");
     			label3 = element("label");
-    			label3.textContent = "Sawtooth";
+    			t12 = text("Sawtooth");
     			t13 = space();
     			input4 = element("input");
     			label4 = element("label");
-    			label4.textContent = "Square";
+    			t14 = text("Square");
     			t15 = space();
     			br1 = element("br");
     			attr_dev(div0, "class", "delete svelte-i9ryvh");
@@ -1858,42 +1870,42 @@ var app = (function () {
     			attr_dev(input0, "step", "0.083333333333333");
     			add_location(input0, file$6, 78, 43, 2265);
     			add_location(br0, file$6, 79, 8, 2383);
-    			attr_dev(input1, "id", "sine");
+    			attr_dev(input1, "id", input1_id_value = 'sine' + /*module*/ ctx[1].state.id);
     			attr_dev(input1, "type", "radio");
     			input1.__value = "sine";
     			input1.value = input1.__value;
     			attr_dev(input1, "class", "svelte-i9ryvh");
     			add_location(input1, file$6, 80, 12, 2424);
-    			attr_dev(label1, "for", "sine");
+    			attr_dev(label1, "for", label1_for_value = 'sine' + /*module*/ ctx[1].state.id);
     			attr_dev(label1, "class", "svelte-i9ryvh");
-    			add_location(label1, file$6, 80, 89, 2501);
-    			attr_dev(input2, "id", "triangle");
+    			add_location(label1, file$6, 80, 107, 2519);
+    			attr_dev(input2, "id", input2_id_value = 'triangle' + /*module*/ ctx[1].state.id);
     			attr_dev(input2, "type", "radio");
     			input2.__value = "triangle";
     			input2.value = input2.__value;
     			attr_dev(input2, "class", "svelte-i9ryvh");
-    			add_location(input2, file$6, 81, 12, 2545);
-    			attr_dev(label2, "for", "triangle");
+    			add_location(input2, file$6, 81, 12, 2581);
+    			attr_dev(label2, "for", label2_for_value = 'triangle' + /*module*/ ctx[1].state.id);
     			attr_dev(label2, "class", "svelte-i9ryvh");
-    			add_location(label2, file$6, 81, 98, 2631);
-    			attr_dev(input3, "id", "sawtooth");
+    			add_location(label2, file$6, 81, 116, 2685);
+    			attr_dev(input3, "id", input3_id_value = 'sawtooth' + /*module*/ ctx[1].state.id);
     			attr_dev(input3, "type", "radio");
     			input3.__value = "sawtooth";
     			input3.value = input3.__value;
     			attr_dev(input3, "class", "svelte-i9ryvh");
-    			add_location(input3, file$6, 82, 12, 2683);
-    			attr_dev(label3, "for", "sawtooth");
+    			add_location(input3, file$6, 82, 12, 2755);
+    			attr_dev(label3, "for", label3_for_value = 'sawtooth' + /*module*/ ctx[1].state.id);
     			attr_dev(label3, "class", "svelte-i9ryvh");
-    			add_location(label3, file$6, 82, 97, 2768);
-    			attr_dev(input4, "id", "square");
+    			add_location(label3, file$6, 82, 115, 2858);
+    			attr_dev(input4, "id", input4_id_value = 'square' + /*module*/ ctx[1].state.id);
     			attr_dev(input4, "type", "radio");
     			input4.__value = "square";
     			input4.value = input4.__value;
     			attr_dev(input4, "class", "svelte-i9ryvh");
-    			add_location(input4, file$6, 83, 12, 2820);
-    			attr_dev(label4, "for", "square");
+    			add_location(input4, file$6, 83, 12, 2928);
+    			attr_dev(label4, "for", label4_for_value = 'square' + /*module*/ ctx[1].state.id);
     			attr_dev(label4, "class", "svelte-i9ryvh");
-    			add_location(label4, file$6, 83, 93, 2901);
+    			add_location(label4, file$6, 83, 111, 3027);
     			attr_dev(section, "class", "shape svelte-i9ryvh");
     			add_location(section, file$6, 79, 12, 2387);
     			attr_dev(div1, "id", "controls");
@@ -1901,7 +1913,7 @@ var app = (function () {
     			attr_dev(div2, "id", "module");
     			attr_dev(div2, "class", "svelte-i9ryvh");
     			add_location(div2, file$6, 73, 0, 2013);
-    			add_location(br1, file$6, 87, 0, 2977);
+    			add_location(br1, file$6, 87, 0, 3121);
     			add_location(main, file$6, 71, 0, 1846);
     			binding_group.p(input1, input2, input3, input4);
     		},
@@ -1931,18 +1943,22 @@ var app = (function () {
     			append_dev(section, input1);
     			input1.checked = input1.__value === /*module*/ ctx[1].state.shape;
     			append_dev(section, label1);
+    			append_dev(label1, t8);
     			append_dev(section, t9);
     			append_dev(section, input2);
     			input2.checked = input2.__value === /*module*/ ctx[1].state.shape;
     			append_dev(section, label2);
+    			append_dev(label2, t10);
     			append_dev(section, t11);
     			append_dev(section, input3);
     			input3.checked = input3.__value === /*module*/ ctx[1].state.shape;
     			append_dev(section, label3);
+    			append_dev(label3, t12);
     			append_dev(section, t13);
     			append_dev(section, input4);
     			input4.checked = input4.__value === /*module*/ ctx[1].state.shape;
     			append_dev(section, label4);
+    			append_dev(label4, t14);
     			append_dev(main, t15);
     			append_dev(main, br1);
     			/*main_binding*/ ctx[20](main);
@@ -2001,20 +2017,52 @@ var app = (function () {
     				set_input_value(input0, /*module*/ ctx[1].state.frequency);
     			}
 
+    			if (!current || dirty & /*module*/ 2 && input1_id_value !== (input1_id_value = 'sine' + /*module*/ ctx[1].state.id)) {
+    				attr_dev(input1, "id", input1_id_value);
+    			}
+
     			if (dirty & /*module*/ 2) {
     				input1.checked = input1.__value === /*module*/ ctx[1].state.shape;
+    			}
+
+    			if (!current || dirty & /*module*/ 2 && label1_for_value !== (label1_for_value = 'sine' + /*module*/ ctx[1].state.id)) {
+    				attr_dev(label1, "for", label1_for_value);
+    			}
+
+    			if (!current || dirty & /*module*/ 2 && input2_id_value !== (input2_id_value = 'triangle' + /*module*/ ctx[1].state.id)) {
+    				attr_dev(input2, "id", input2_id_value);
     			}
 
     			if (dirty & /*module*/ 2) {
     				input2.checked = input2.__value === /*module*/ ctx[1].state.shape;
     			}
 
+    			if (!current || dirty & /*module*/ 2 && label2_for_value !== (label2_for_value = 'triangle' + /*module*/ ctx[1].state.id)) {
+    				attr_dev(label2, "for", label2_for_value);
+    			}
+
+    			if (!current || dirty & /*module*/ 2 && input3_id_value !== (input3_id_value = 'sawtooth' + /*module*/ ctx[1].state.id)) {
+    				attr_dev(input3, "id", input3_id_value);
+    			}
+
     			if (dirty & /*module*/ 2) {
     				input3.checked = input3.__value === /*module*/ ctx[1].state.shape;
     			}
 
+    			if (!current || dirty & /*module*/ 2 && label3_for_value !== (label3_for_value = 'sawtooth' + /*module*/ ctx[1].state.id)) {
+    				attr_dev(label3, "for", label3_for_value);
+    			}
+
+    			if (!current || dirty & /*module*/ 2 && input4_id_value !== (input4_id_value = 'square' + /*module*/ ctx[1].state.id)) {
+    				attr_dev(input4, "id", input4_id_value);
+    			}
+
     			if (dirty & /*module*/ 2) {
     				input4.checked = input4.__value === /*module*/ ctx[1].state.shape;
+    			}
+
+    			if (!current || dirty & /*module*/ 2 && label4_for_value !== (label4_for_value = 'square' + /*module*/ ctx[1].state.id)) {
+    				attr_dev(label4, "for", label4_for_value);
     			}
     		},
     		i: function intro(local) {
@@ -4351,13 +4399,22 @@ var app = (function () {
     	let br1;
     	let section;
     	let input1;
+    	let input1_id_value;
     	let label3;
+    	let t12;
+    	let label3_for_value;
     	let t13;
     	let input2;
+    	let input2_id_value;
     	let label4;
+    	let t14;
+    	let label4_for_value;
     	let t15;
     	let input3;
+    	let input3_id_value;
     	let label5;
+    	let t16;
+    	let label5_for_value;
     	let t17;
     	let br2;
     	let current;
@@ -4477,15 +4534,15 @@ var app = (function () {
     			section = element("section");
     			input1 = element("input");
     			label3 = element("label");
-    			label3.textContent = "Lowpass";
+    			t12 = text("Lowpass");
     			t13 = space();
     			input2 = element("input");
     			label4 = element("label");
-    			label4.textContent = "Highpass";
+    			t14 = text("Highpass");
     			t15 = space();
     			input3 = element("input");
     			label5 = element("label");
-    			label5.textContent = "Bandpass";
+    			t16 = text("Bandpass");
     			t17 = space();
     			br2 = element("br");
     			add_location(h1, file$2, 138, 8, 4009);
@@ -4514,33 +4571,33 @@ var app = (function () {
     			attr_dev(input0, "step", "0.0001");
     			add_location(input0, file$2, 158, 47, 4909);
     			add_location(br1, file$2, 159, 12, 5045);
-    			attr_dev(input1, "id", "lowpass");
+    			attr_dev(input1, "id", input1_id_value = 'lowpass' + /*module*/ ctx[1].state.id);
     			attr_dev(input1, "type", "radio");
     			input1.__value = "lowpass";
     			input1.value = input1.__value;
     			attr_dev(input1, "class", "svelte-17igmc3");
     			add_location(input1, file$2, 160, 16, 5089);
-    			attr_dev(label3, "for", "lowpass");
+    			attr_dev(label3, "for", label3_for_value = 'lowpass' + /*module*/ ctx[1].state.id);
     			attr_dev(label3, "class", "svelte-17igmc3");
-    			add_location(label3, file$2, 160, 104, 5177);
-    			attr_dev(input2, "id", "highpass");
+    			add_location(label3, file$2, 160, 122, 5195);
+    			attr_dev(input2, "id", input2_id_value = 'highpass' + /*module*/ ctx[1].state.id);
     			attr_dev(input2, "type", "radio");
     			input2.__value = "highpass";
     			input2.value = input2.__value;
     			attr_dev(input2, "class", "svelte-17igmc3");
-    			add_location(input2, file$2, 161, 16, 5231);
-    			attr_dev(label4, "for", "highpass");
+    			add_location(input2, file$2, 161, 16, 5267);
+    			attr_dev(label4, "for", label4_for_value = 'highpass' + /*module*/ ctx[1].state.id);
     			attr_dev(label4, "class", "svelte-17igmc3");
-    			add_location(label4, file$2, 161, 106, 5321);
-    			attr_dev(input3, "id", "bandpass");
+    			add_location(label4, file$2, 161, 124, 5375);
+    			attr_dev(input3, "id", input3_id_value = 'bandpass' + /*module*/ ctx[1].state.id);
     			attr_dev(input3, "type", "radio");
     			input3.__value = "bandpass";
     			input3.value = input3.__value;
     			attr_dev(input3, "class", "svelte-17igmc3");
-    			add_location(input3, file$2, 162, 16, 5377);
-    			attr_dev(label5, "for", "bandpass");
+    			add_location(input3, file$2, 162, 16, 5449);
+    			attr_dev(label5, "for", label5_for_value = 'bandpass' + /*module*/ ctx[1].state.id);
     			attr_dev(label5, "class", "svelte-17igmc3");
-    			add_location(label5, file$2, 162, 106, 5467);
+    			add_location(label5, file$2, 162, 124, 5557);
     			attr_dev(section, "class", "type svelte-17igmc3");
     			add_location(section, file$2, 159, 16, 5049);
     			attr_dev(div1, "id", "controls");
@@ -4548,7 +4605,7 @@ var app = (function () {
     			attr_dev(div2, "id", "module");
     			attr_dev(div2, "class", "svelte-17igmc3");
     			add_location(div2, file$2, 137, 4, 3968);
-    			add_location(br2, file$2, 166, 4, 5563);
+    			add_location(br2, file$2, 166, 4, 5671);
     			add_location(main, file$2, 135, 0, 3797);
     			binding_group.p(input1, input2, input3);
     		},
@@ -4605,14 +4662,17 @@ var app = (function () {
     			append_dev(section, input1);
     			input1.checked = input1.__value === /*module*/ ctx[1].state.filterType;
     			append_dev(section, label3);
+    			append_dev(label3, t12);
     			append_dev(section, t13);
     			append_dev(section, input2);
     			input2.checked = input2.__value === /*module*/ ctx[1].state.filterType;
     			append_dev(section, label4);
+    			append_dev(label4, t14);
     			append_dev(section, t15);
     			append_dev(section, input3);
     			input3.checked = input3.__value === /*module*/ ctx[1].state.filterType;
     			append_dev(section, label5);
+    			append_dev(label5, t16);
     			append_dev(main, t17);
     			append_dev(main, br2);
     			/*main_binding*/ ctx[27](main);
@@ -4728,16 +4788,40 @@ var app = (function () {
     				set_input_value(input0, /*module*/ ctx[1].state.voct);
     			}
 
+    			if (!current || dirty[0] & /*module, $modules*/ 10 && input1_id_value !== (input1_id_value = 'lowpass' + /*module*/ ctx[1].state.id)) {
+    				attr_dev(input1, "id", input1_id_value);
+    			}
+
     			if (dirty[0] & /*module, $modules*/ 10) {
     				input1.checked = input1.__value === /*module*/ ctx[1].state.filterType;
+    			}
+
+    			if (!current || dirty[0] & /*module, $modules*/ 10 && label3_for_value !== (label3_for_value = 'lowpass' + /*module*/ ctx[1].state.id)) {
+    				attr_dev(label3, "for", label3_for_value);
+    			}
+
+    			if (!current || dirty[0] & /*module, $modules*/ 10 && input2_id_value !== (input2_id_value = 'highpass' + /*module*/ ctx[1].state.id)) {
+    				attr_dev(input2, "id", input2_id_value);
     			}
 
     			if (dirty[0] & /*module, $modules*/ 10) {
     				input2.checked = input2.__value === /*module*/ ctx[1].state.filterType;
     			}
 
+    			if (!current || dirty[0] & /*module, $modules*/ 10 && label4_for_value !== (label4_for_value = 'highpass' + /*module*/ ctx[1].state.id)) {
+    				attr_dev(label4, "for", label4_for_value);
+    			}
+
+    			if (!current || dirty[0] & /*module, $modules*/ 10 && input3_id_value !== (input3_id_value = 'bandpass' + /*module*/ ctx[1].state.id)) {
+    				attr_dev(input3, "id", input3_id_value);
+    			}
+
     			if (dirty[0] & /*module, $modules*/ 10) {
     				input3.checked = input3.__value === /*module*/ ctx[1].state.filterType;
+    			}
+
+    			if (!current || dirty[0] & /*module, $modules*/ 10 && label5_for_value !== (label5_for_value = 'bandpass' + /*module*/ ctx[1].state.id)) {
+    				attr_dev(label5, "for", label5_for_value);
     			}
     		},
     		i: function intro(local) {

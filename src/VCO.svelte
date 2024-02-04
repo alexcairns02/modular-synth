@@ -78,10 +78,10 @@
     <div id="controls" use:setControls>
         <label for="freq">Frequency</label><input id="freq" bind:value={module.state.frequency} type='range' min='-2' max='2' step='0.083333333333333'>
         <br><section class="shape">
-            <input id='sine' type='radio' value='sine' bind:group={module.state.shape} /><label for='sine'>Sine</label>
-            <input id ='triangle' type='radio' value='triangle' bind:group={module.state.shape} /><label for='triangle'>Triangle</label>
-            <input id='sawtooth' type='radio' value='sawtooth' bind:group={module.state.shape} /><label for='sawtooth'>Sawtooth</label>
-            <input id='square' type='radio' value='square' bind:group={module.state.shape} /><label for='square'>Square</label>
+            <input id={'sine'+module.state.id} type='radio' value='sine' bind:group={module.state.shape} /><label for={'sine'+module.state.id}>Sine</label>
+            <input id ={'triangle'+module.state.id} type='radio' value='triangle' bind:group={module.state.shape} /><label for={'triangle'+module.state.id}>Triangle</label>
+            <input id={'sawtooth'+module.state.id} type='radio' value='sawtooth' bind:group={module.state.shape} /><label for={'sawtooth'+module.state.id}>Sawtooth</label>
+            <input id={'square'+module.state.id} type='radio' value='square' bind:group={module.state.shape} /><label for={'square'+module.state.id}>Square</label>
         </section>
     </div>
 </div>

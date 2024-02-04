@@ -158,9 +158,9 @@
             </select> CV</label><br>
             <label for='freq'>Frequency</label><input id='freq' bind:value={module.state.voct} type='range' min='2.78135971352466' max='14.78135971352466' step='0.0001'>
             <br><section class="type">
-                <input id='lowpass' type='radio' value='lowpass' bind:group={module.state.filterType} /><label for='lowpass'>Lowpass</label>
-                <input id='highpass' type='radio' value='highpass' bind:group={module.state.filterType} /><label for='highpass'>Highpass</label>
-                <input id='bandpass' type='radio' value='bandpass' bind:group={module.state.filterType} /><label for='bandpass'>Bandpass</label>
+                <input id={'lowpass'+module.state.id} type='radio' value='lowpass' bind:group={module.state.filterType} /><label for={'lowpass'+module.state.id}>Lowpass</label>
+                <input id={'highpass'+module.state.id} type='radio' value='highpass' bind:group={module.state.filterType} /><label for={'highpass'+module.state.id}>Highpass</label>
+                <input id={'bandpass'+module.state.id} type='radio' value='bandpass' bind:group={module.state.filterType} /><label for={'bandpass'+module.state.id}>Bandpass</label>
             </section>
         </div>
     </div>
