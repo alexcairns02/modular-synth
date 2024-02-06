@@ -56,7 +56,7 @@
         width: 250px;
         margin-top: 310px;
         padding: 1%;
-        background-color: white;    
+        background-color: rgba(255, 255, 255, 0.7);
     }
 
 	input {

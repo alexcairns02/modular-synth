@@ -1,6 +1,8 @@
 <script>
     import { onMount } from 'svelte';
     import { spring } from 'svelte/motion';
+    import { destroyModule } from './utils';
+
     export let module;
 
     let size = spring(25, {
@@ -19,7 +21,7 @@
 
     const buttonUnClick = () => {
         if (clicking) {
-            module.destroy();
+            destroyModule(module);
         }
     };
 

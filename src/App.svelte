@@ -9,6 +9,7 @@
 	import VCF from './VCF.svelte';
 	import Mixer from './Mixer.svelte';
     import LFO from './LFO.svelte';
+    import { destroyModule } from './utils.js';
 
 	const DEBUG = false;
 
@@ -25,7 +26,7 @@
 
 	const addPatch = (patch) => {
 		Object.values($modules).forEach((module) => {
-			module.destroy();
+			destroyModule(module);
 		});
 		patch.modules.forEach((module) => {
 			switch (module.type) {
@@ -90,6 +91,8 @@
 			}
 		})
 	};
+
+	const clear = () => addPatch({output: {volume: $output.state.volume, inputId: null}, modules: []});
 
 	const debugPatch = [{
 		"type": "vco",
@@ -164,6 +167,7 @@
 		<button on:click={() => addModule(ADSR)}>Add Envelope</button>
 		<button on:click={() => addModule(Mixer)}>Add Mixer</button>
 		<button on:click={() => addModule(LFO)}>Add LFO</button>
+		<button on:click={clear}>Clear Patch</button>
 		<MIDI />
 		<Output />
 	</div>

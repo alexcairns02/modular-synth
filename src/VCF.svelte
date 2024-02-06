@@ -1,7 +1,9 @@
 <script>
-    import { modules, context, output } from './stores.js';
+    import { modules, context } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
     import DeleteButton from './DeleteButton.svelte';
+    import { createNewId, cvsAllHover, inputsAllHover, unhover } from './utils.js';
+    import { spring } from 'svelte/motion';
     
     export let state = {
         type: 'vcf',
@@ -16,22 +18,20 @@
     const module = $modules[state.id];
     module.state = state;
 
-    module.inputs = {};
-
     let moduleNode;
     let controlsNode;
     let deleteNode
 
-    $: if (state.inputId != null) {
-        module.input = $modules[state.inputId];
+    $: if (module.state.inputId != null) {
+        module.input = $modules[module.state.inputId];
     } else {
         module.input = null;
     }
 
     let cv_module;
     
-    $: if (state.cvId != null) {
-        cv_module = $modules[state.cvId];
+    $: if (module.state.cvId != null) {
+        cv_module = $modules[module.state.cvId];
     } else {
         cv_module = null;
     }
@@ -70,7 +70,7 @@
 
     var currentCvModule;
 
-    $: if (cv_module) {
+    $: if (cv_module && cv_module.inputs) {
         filterNode.frequency.cancelScheduledValues($context.currentTime);
         filterNode.frequency.setValueAtTime(0, $context.currentTime);
         if (currentCvModule) {
@@ -91,31 +91,6 @@
         module.input = module.input;
     }
 
-    module.destroy = () => {
-        module.component.parentNode.removeChild(module.component);
-        delete $modules[module.state.id];
-        $modules = $modules;
-        if ($output.input == module) $output.input = null;
-        Object.values($modules).forEach((m) => {
-            if (m.input && m.input == module) {
-                m.input = null;
-                m.update();
-            }
-            if (m.state.type == 'mixer') {
-                m.inputs.forEach((input, i) => {
-                    if (input && input.state.id == module.state.id) m.inputs[i] = null;
-                });
-                m.update();
-            }
-        });
-    };
-
-    function createNewId() {
-        for (let i=0; i<Object.keys($modules).length+1; i++) {
-            if (!$modules[i]) return i;
-        }
-    }
-
     function setModule(node) {
         moduleNode = node;
     }
@@ -127,6 +102,21 @@
     function setDelete(node) {
         deleteNode = node;
     }
+    
+    let opacity = spring(1, {
+        stiffness: 0.3,
+        damping: 0.3
+    });
+
+    $: if (moduleNode) moduleNode.style.opacity = `${$opacity}`;
+
+    module.fade = () => {
+        opacity.set(0.3);
+    }
+
+    module.unfade = () => {
+        opacity.set(1);
+    }
 </script>
 
 <main bind:this={module.component}>
@@ -136,22 +126,22 @@
         <h2>Filter</h2>
         <div class="delete" use:setDelete><DeleteButton module={module} /></div>
         <div id="controls" use:setControls>
-            <label><select bind:value={module.state.inputId}>
-            {#each Object.entries($modules) as [id, m]}
-                {#if m.output && id != module.state.id}
-                <option value={id}>{id}</option>
-                {/if}
-            {/each}
-            <option value={null}></option>
-            </select> Input</label>
-            <label><select bind:value={module.state.cvId}>
-            {#each Object.entries($modules) as [id, m]}
-                {#if m.state.type == 'adsr' || m.state.type == 'lfo'}
-                <option value={id}>{id}</option>
-                {/if}
-            {/each}
-            <option value={null}></option>
-            </select> CV</label><br>
+            <label><select on:mouseenter={() => inputsAllHover(module)} on:mouseleave={() => unhover()} bind:value={module.state.inputId}>
+                {#each Object.entries($modules) as [id, m]}
+                    {#if m.output && id != module.state.id}
+                    <option value={id}>{id}</option>
+                    {/if}
+                {/each}
+                <option value={null}></option>
+                </select> Input</label>
+                <label><select on:mouseenter={() => cvsAllHover(module)} on:mouseleave={() => unhover()} bind:value={module.state.cvId}>
+                {#each Object.entries($modules) as [id, m]}
+                    {#if m.state.type == 'adsr' || m.state.type == 'lfo'}
+                    <option value={id}>{id}</option>
+                    {/if}
+                {/each}
+                <option value={null}></option>
+                </select> Control</label><br>
             <label for='freq'>Cutoff Frequency ({frequency.toFixed(1)}Hz)</label><input id='freq' bind:value={module.state.voct} type='range' min='{Math.log2(20)}' max='{Math.log2(18000)}' step='0.0001'>
             <br><section class="type">
                 <input id={'lowpass'+module.state.id} type='radio' value='lowpass' bind:group={module.state.filterType} /><label for={'lowpass'+module.state.id}>Lowpass</label>

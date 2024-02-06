@@ -1,7 +1,9 @@
 <script>
-    import { modules, context, midi, output } from './stores.js';
+    import { modules, context, midi } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
     import DeleteButton from './DeleteButton.svelte';
+    import { createNewId } from './utils.js';
+    import { spring } from 'svelte/motion';
 
     export let state = {
         type: 'vco',
@@ -31,31 +33,6 @@
     
     oscNode.start(0);
 
-    module.destroy = () => {
-        module.component.parentNode.removeChild(module.component);
-        delete $modules[module.state.id];
-        $modules = $modules;
-        if ($output.input == module) $output.input = null;
-        Object.values($modules).forEach((m) => {
-            if (m.input && m.input == module) {
-                m.input = null;
-                m.update();
-            }
-            if (m.state.type == 'mixer') {
-                m.inputs.forEach((input, i) => {
-                    if (input && input.state.id == module.state.id) m.inputs[i] = null;
-                });
-                m.update();
-            }
-        });
-    };
-
-    function createNewId() {
-        for (let i=0; i<Object.keys($modules).length+1; i++) {
-            if (!$modules[i]) return i;
-        }
-    }
-
     function setModule(node) {
         moduleNode = node;
     }
@@ -66,6 +43,21 @@
 
     function setDelete(node) {
         deleteNode = node;
+    }
+    
+    let opacity = spring(1, {
+        stiffness: 0.3,
+        damping: 0.3
+    });
+
+    $: if (moduleNode) moduleNode.style.opacity = `${$opacity}`;
+
+    module.fade = () => {
+        opacity.set(0.3);
+    }
+
+    module.unfade = () => {
+        opacity.set(1);
     }
 </script>
 

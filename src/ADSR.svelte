@@ -2,6 +2,8 @@
     import { modules, context, midi } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
     import DeleteButton from './DeleteButton.svelte';
+    import { createNewId, inputsAllHover, unhover } from './utils.js';
+    import { spring } from 'svelte/motion';
     
     export let state = {
         type: 'adsr',
@@ -53,19 +55,6 @@
 
     $: if (notePlaying) fireEnv(); else unFireEnv();
 
-    module.destroy = () => {
-        //if (module.inputs) delete module.inputs;
-        module.component.parentNode.removeChild(module.component);
-        delete $modules[module.state.id];
-        $modules = $modules;
-    };
-
-    function createNewId() {
-        for (let i=0; i<Object.keys($modules).length+1; i++) {
-            if (!$modules[i]) return i;
-        }
-    }
-
     function setModule(node) {
         moduleNode = node;
     }
@@ -76,6 +65,21 @@
 
     function setDelete(node) {
         deleteNode = node;
+    }
+    
+    let opacity = spring(1, {
+        stiffness: 0.3,
+        damping: 0.3
+    });
+
+    $: if (moduleNode) moduleNode.style.opacity = `${$opacity}`;
+
+    module.fade = () => {
+        opacity.set(0.3);
+    }
+
+    module.unfade = () => {
+        opacity.set(1);
     }
 </script>
 

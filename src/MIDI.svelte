@@ -166,7 +166,7 @@
     <h2>Note Input</h2>
     <p>Play notes by pressing keys on keyboard<br>
     White notes: 'Z'-'/'<br>
-    Black notes: 'A'-'''<br>
+    Black notes: 'S'-';'<br>
     Change octave: '-' and '='<br>
     Noteless trigger: 'SPACE'<br></p>
     <p>Note played: <b class:active={trigger}>{note}{#if note}{newOct+newOctUp}{/if}</b></p>
@@ -180,7 +180,7 @@
         position: absolute;
         width: 250px;
         padding: 1%;
-        background-color: white;
+        background-color: rgba(255, 255, 255, 0.7);
     }
 
     .active {

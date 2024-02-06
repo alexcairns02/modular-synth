@@ -1,7 +1,9 @@
 <script>
-    import { modules, context, output } from './stores.js';
+    import { modules, context } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
     import DeleteButton from './DeleteButton.svelte';
+    import { createNewId, cvsAllHover, inputsAllHover, unhover } from './utils.js';
+    import { spring } from 'svelte/motion';
     
     export let state = {
         type: 'vca',
@@ -87,31 +89,6 @@
         module.input = module.input;
     }
 
-    module.destroy = () => {
-        module.component.parentNode.removeChild(module.component);
-        delete $modules[module.state.id];
-        $modules = $modules;
-        if ($output.input == module) $output.input = null;
-        Object.values($modules).forEach((m) => {
-            if (m.input && m.input == module) {
-                m.input = null;
-                m.update();
-            }
-            if (m.state.type == 'mixer') {
-                m.inputs.forEach((input, i) => {
-                    if (input && input.state.id == module.state.id) m.inputs[i] = null;
-                });
-                m.update();
-            }
-        });
-    };
-
-    function createNewId() {
-        for (let i=0; i<Object.keys($modules).length+1; i++) {
-            if (!$modules[i]) return i;
-        }
-    }
-
     function setModule(node) {
         moduleNode = node;
     }
@@ -123,6 +100,31 @@
     function setDelete(node) {
         deleteNode = node;
     }
+    
+    let opacity = spring(1, {
+        stiffness: 0.3,
+        damping: 0.3
+    });
+
+    $: if (moduleNode) moduleNode.style.opacity = `${$opacity}`;
+
+    module.fade = () => {
+        opacity.set(0.3);
+    }
+
+    module.unfade = () => {
+        opacity.set(1);
+    }
+
+    let selectingInput = false;
+
+    $: console.log(selectingInput)
+
+    $: if (selectingInput) {
+        inputsAllHover(module);
+    } else {
+        unhover();
+    }
 </script>
 
 <main bind:this={module.component}>
@@ -132,7 +134,7 @@
     <h1>{module.state.id}</h1>
     <h2>Amplifier</h2>
     <div id="controls" use:setControls>
-        <label><select bind:value={module.state.inputId}>
+        <label><select on:mouseenter={() => {if (!selectingInput) inputsAllHover(module)}} on:mouseleave={() => {if (!selectingInput) unhover()}} bind:value={module.state.inputId}>
         {#each Object.entries($modules) as [id, m]}
             {#if m.output && id != module.state.id}
             <option value={id}>{id}</option>
@@ -140,14 +142,14 @@
         {/each}
         <option value={null}></option>
         </select> Input</label>
-        <label><select bind:value={module.state.cvId}>
+        <label><select on:mouseenter={() => cvsAllHover(module)} on:mouseleave={() => unhover()} bind:value={module.state.cvId}>
         {#each Object.entries($modules) as [id, m]}
             {#if m.state.type == 'adsr' || m.state.type == 'lfo'}
             <option value={id}>{id}</option>
             {/if}
         {/each}
         <option value={null}></option>
-        </select> CV</label><br>
+        </select> Control</label><br>
         <label for='gain'>Volume</label><input id='gain' bind:value={module.state.gain} type='range' min='0' max='1' step='0.001'>
     </div>
 </div>
