@@ -6,7 +6,8 @@
     export let state = {
         type: 'mixer',
         id: createNewId(),
-        inputIds: [null, null, null, null]
+        inputIds: [null, null, null, null],
+        position: {x: 300, y: 100}
     };
 
     $modules[state.id] = {};
@@ -22,7 +23,8 @@
     module.output = gainNode;
 
     module.inputs = [null, null, null, null];
-    state.inputIds.forEach((id, i) => {
+    
+    $: state.inputIds.forEach((id, i) => {
         if (id != null && $modules[id] != null) {
             module.inputs[i] = $modules[id];
         }
@@ -35,11 +37,9 @@
             if (currentInputs[i]) currentInputs[i].disconnect();
             currentInputs[i] = input.output;
             currentInputs[i].connect(gainNode);
-            module.state.inputIds[i] = input.state.id;
         } else {
             if (currentInputs[i]) currentInputs[i].disconnect();
             currentInputs[i] = null;
-            module.state.inputIds[i] = null;
         }
     });
 
@@ -57,7 +57,7 @@
                 m.input = null;
                 m.update();
             }
-            if (m.inputs) {
+            if (m.state.type == 'mixer') {
                 m.inputs.forEach((input, i) => {
                     if (input && input.state.id == module.state.id) m.inputs[i] = null;
                 });
@@ -92,15 +92,15 @@
     <h1>{module.state.id}</h1>
     <h2>Mixer</h2>
     <div id="controls" use:setControls>
-    {#each module.inputs as input, inpid}
-        <label><select bind:value={input}>
+    {#each module.inputs as input, i}
+        <label><select bind:value={module.state.inputIds[i]}>
         {#each Object.entries($modules) as [id, m]}
             {#if m && m.output && id != module.state.id && (!module.inputs.includes(m) || m == input)}
-            <option value={m}>{id}</option>
+            <option value={id}>{id}</option>
             {/if}
         {/each}
             <option value={null}></option>
-        </select> Input {inpid}</label>
+        </select> Input {i}</label>
     {/each}
     </div>
 </div>

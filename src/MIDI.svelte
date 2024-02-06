@@ -163,9 +163,12 @@
 
 <main>
 <div>
-    <h2>MIDI</h2>
-    Play notes by pressing keys on keyboard. Row Z-/ is white notes, row A-' is black notes.
-    <br>Press - to lower octave and = to raise octave. Press space to trigger envelope without giving note input.
+    <h2>Note Input</h2>
+    <p>Play notes by pressing keys on keyboard<br>
+    White notes: 'Z'-'/'<br>
+    Black notes: 'A'-'''<br>
+    Change octave: '-' and '='<br>
+    Noteless trigger: 'SPACE'<br></p>
     <p>Note played: <b class:active={trigger}>{note}{#if note}{newOct+newOctUp}{/if}</b></p>
 </div>
 <br>
@@ -182,6 +185,10 @@
 
     .active {
         color:red;
+    }
+
+    p {
+        line-height: 25px;
     }
 </style>
 

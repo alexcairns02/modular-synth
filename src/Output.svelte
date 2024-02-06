@@ -1,16 +1,28 @@
 <script>
     import { modules, context, output } from './stores.js';
     
-    export const state = {};
+    export let state = {
+        volume: 0.2,
+        inputId: null
+    };
+
+    $output.state = state;
 
     var gainNode = $context.createGain();
-    gainNode.gain.value = 0.2;
+
+    $: gainNode.gain.value = $output.state.volume;
+
     gainNode.connect($context.destination);
 
-    $output.input;
+    $: if ($output.state.inputId != null) {
+        $output.input = $modules[$output.state.inputId];
+    } else {
+        $output.input = null;
+    }
+
     var currentInput;
 
-    $: if ($output.input && $output.input.output) {
+    $: if ($output.input) {
         if (currentInput) currentInput.disconnect();
         currentInput = $output.input.output;
         currentInput.connect(gainNode);
@@ -23,16 +35,16 @@
 
 <main>
     <div>
-        <h2>Output</h2>
-        <label><select bind:value={$output.input}>
+        <h2>Audio Output</h2>
+        <label><select bind:value={$output.state.inputId}>
         {#each Object.entries($modules) as [id, m]}
             {#if m.output}
-            <option value={m}>{id}</option>
+            <option value={id}>{id}</option>
             {/if}
         {/each}
         <option value={null}></option>
-        </select> Input</label>
-        <label><input bind:value={gainNode.gain.value} type='range' min='0' max='1' step='0.001'>Gain</label>
+        </select> Input</label><br>
+        <label for='gain'>Volume</label><input id='gain' bind:value={$output.state.volume} type='range' min='0' max='1' step='0.001'>
     </div>
     <br>
 </main>

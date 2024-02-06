@@ -16,6 +16,8 @@
     const module = $modules[state.id];
     module.state = state;
 
+    module.inputs = {};
+
     let moduleNode;
     let controlsNode;
     let deleteNode;
@@ -29,20 +31,20 @@
     $: release = Math.pow(10, module.state.release) - 1;
 
     const fireEnv = () => {
-        if (module.cv) {
-            module.cv.cancelScheduledValues($context.currentTime);
-            module.cv.setValueAtTime(0, $context.currentTime);
-            module.cv.linearRampToValueAtTime(module.max_cv, $context.currentTime + attack);
-            module.cv.linearRampToValueAtTime(module.max_cv*module.state.sustain, $context.currentTime + attack + decay);
-        }
+        Object.values(module.inputs).forEach((input) => {
+            input.cv.cancelScheduledValues($context.currentTime);
+            input.cv.setValueAtTime(0, $context.currentTime);
+            input.cv.linearRampToValueAtTime(input.max_cv, $context.currentTime + attack);
+            input.cv.linearRampToValueAtTime(input.max_cv*module.state.sustain, $context.currentTime + attack + decay);
+        });
     }
 
     const unFireEnv = () => {
-        if (module.cv) {
-            module.cv.cancelScheduledValues($context.currentTime);
-            module.cv.setValueAtTime(module.max_cv*module.state.sustain, $context.currentTime);
-            module.cv.linearRampToValueAtTime(0, $context.currentTime + release);
-        }
+        Object.values(module.inputs).forEach((input) => {
+            input.cv.cancelScheduledValues($context.currentTime);
+            input.cv.setValueAtTime(input.max_cv*module.state.sustain, $context.currentTime);
+            input.cv.linearRampToValueAtTime(0, $context.currentTime + release);
+        });
     }
 
     $: if ($midi.trigger && !notePlaying) notePlaying = true;
@@ -52,8 +54,7 @@
     $: if (notePlaying) fireEnv(); else unFireEnv();
 
     module.destroy = () => {
-        module.cv = null;
-        module.max_cv = null;
+        //if (module.inputs) delete module.inputs;
         module.component.parentNode.removeChild(module.component);
         delete $modules[module.state.id];
         $modules = $modules;

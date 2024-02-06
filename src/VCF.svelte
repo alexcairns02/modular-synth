@@ -16,18 +16,21 @@
     const module = $modules[state.id];
     module.state = state;
 
+    module.inputs = {};
+
     let moduleNode;
     let controlsNode;
     let deleteNode
 
-    if (state.inputId != null) {
+    $: if (state.inputId != null) {
         module.input = $modules[state.inputId];
     } else {
         module.input = null;
     }
 
     let cv_module;
-    if (state.cvId != null) {
+    
+    $: if (state.cvId != null) {
         cv_module = $modules[state.cvId];
     } else {
         cv_module = null;
@@ -60,11 +63,9 @@
         currentInput = module.input.output;
         currentInput.connect(filterNode);
         if (module.input.input || module.input.inputs) module.input.update();
-        state.inputId = module.input.state.id;
     } else {
         if (currentInput) currentInput.disconnect();
         currentInput = null;
-        state.inputId = null;
     }
 
     var currentCvModule;
@@ -73,22 +74,17 @@
         filterNode.frequency.cancelScheduledValues($context.currentTime);
         filterNode.frequency.setValueAtTime(0, $context.currentTime);
         if (currentCvModule) {
-            currentCvModule.cv = null;
-            currentCvModule.max_cv = null;
+            if (currentCvModule.inputs[module.state.id]) delete currentCvModule.inputs[module.state.id];
         }
         currentCvModule = cv_module;
-        currentCvModule.cv = filterNode.frequency;
-        currentCvModule.max_cv = frequency;
-        state.cvId = cv_module.state.id;
+        currentCvModule.inputs[module.state.id] = {cv: filterNode.frequency, max_cv: frequency};
     } else {
         filterNode.frequency.cancelScheduledValues($context.currentTime);
         filterNode.frequency.setValueAtTime(frequency, $context.currentTime);
         if (currentCvModule) {
-            currentCvModule.cv = null;
-            currentCvModule.max_cv = null;
+            if (currentCvModule.inputs[module.state.id]) delete currentCvModule.inputs[module.state.id];
         }
         currentCvModule = null;
-        state.cvId = null;
     }
 
     module.update = () => {
@@ -105,7 +101,7 @@
                 m.input = null;
                 m.update();
             }
-            if (m.inputs) {
+            if (m.state.type == 'mixer') {
                 m.inputs.forEach((input, i) => {
                     if (input && input.state.id == module.state.id) m.inputs[i] = null;
                 });
@@ -140,23 +136,23 @@
         <h2>Filter</h2>
         <div class="delete" use:setDelete><DeleteButton module={module} /></div>
         <div id="controls" use:setControls>
-            <label><select bind:value={module.input}>
+            <label><select bind:value={module.state.inputId}>
             {#each Object.entries($modules) as [id, m]}
                 {#if m.output && id != module.state.id}
-                <option value={m}>{id}</option>
+                <option value={id}>{id}</option>
                 {/if}
             {/each}
             <option value={null}></option>
             </select> Input</label>
-            <label><select bind:value={cv_module}>
+            <label><select bind:value={module.state.cvId}>
             {#each Object.entries($modules) as [id, m]}
-                {#if m.state.type == 'adsr'}
-                <option value={m}>{id}</option>
+                {#if m.state.type == 'adsr' || m.state.type == 'lfo'}
+                <option value={id}>{id}</option>
                 {/if}
             {/each}
             <option value={null}></option>
             </select> CV</label><br>
-            <label for='freq'>Frequency</label><input id='freq' bind:value={module.state.voct} type='range' min='2.78135971352466' max='14.78135971352466' step='0.0001'>
+            <label for='freq'>Cutoff Frequency ({frequency.toFixed(1)}Hz)</label><input id='freq' bind:value={module.state.voct} type='range' min='{Math.log2(20)}' max='{Math.log2(18000)}' step='0.0001'>
             <br><section class="type">
                 <input id={'lowpass'+module.state.id} type='radio' value='lowpass' bind:group={module.state.filterType} /><label for={'lowpass'+module.state.id}>Lowpass</label>
                 <input id={'highpass'+module.state.id} type='radio' value='highpass' bind:group={module.state.filterType} /><label for={'highpass'+module.state.id}>Highpass</label>
@@ -190,6 +186,14 @@
     .type label {
         margin: auto;
         padding: 5px;
+    }
+
+    .type input[type="radio"]:hover + label {
+        color: #555555;
+    }
+
+    .type input[type="radio"]:active + label {
+        color: #ffffff;
     }
 
     .type input[type="radio"]:checked + label {

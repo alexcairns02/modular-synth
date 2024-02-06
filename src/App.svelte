@@ -1,5 +1,5 @@
 <script>
-	import { context, modules } from './stores.js';
+	import { context, modules, output } from './stores.js';
 	import fileDialog from 'file-dialog';
 	import MIDI from './MIDI.svelte';
 	import VCO from './VCO.svelte';
@@ -8,6 +8,7 @@
 	import ADSR from './ADSR.svelte';
 	import VCF from './VCF.svelte';
 	import Mixer from './Mixer.svelte';
+    import LFO from './LFO.svelte';
 
 	const DEBUG = false;
 
@@ -26,7 +27,7 @@
 		Object.values($modules).forEach((module) => {
 			module.destroy();
 		});
-		patch.forEach((module) => {
+		patch.modules.forEach((module) => {
 			switch (module.type) {
 				case "vco":
 					addModule(VCO, {state: module});
@@ -43,16 +44,22 @@
 				case "adsr":
 					addModule(ADSR, {state: module});
 					break;
+				case "lfo":
+					addModule(LFO, {state: module});
+					break;
 			}
 		});
+		$output.state = patch.output;
 	};
 
 	const save = () => {
-		const patch = [];
+		const patchModules = [];
 		Object.entries($modules).forEach(module => {
-			patch.push(module[1].state);
+			patchModules.push(module[1].state);
 		});
 		
+		const patch = {output: $output.state, modules: patchModules};
+
 		const json = JSON.stringify(patch);
 
 		var a = document.createElement("a");
@@ -156,6 +163,7 @@
 		<button on:click={() => addModule(VCF)}>Add Filter</button>
 		<button on:click={() => addModule(ADSR)}>Add Envelope</button>
 		<button on:click={() => addModule(Mixer)}>Add Mixer</button>
+		<button on:click={() => addModule(LFO)}>Add LFO</button>
 		<MIDI />
 		<Output />
 	</div>

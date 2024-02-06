@@ -41,7 +41,7 @@
                 m.input = null;
                 m.update();
             }
-            if (m.inputs) {
+            if (m.state.type == 'mixer') {
                 m.inputs.forEach((input, i) => {
                     if (input && input.state.id == module.state.id) m.inputs[i] = null;
                 });
@@ -76,7 +76,7 @@
     <h1>{module.state.id}</h1>
     <h2>Oscillator</h2>
     <div id="controls" use:setControls>
-        <label for="freq">Frequency</label><input id="freq" bind:value={module.state.frequency} type='range' min='-2' max='2' step='0.083333333333333'>
+        <label for="freq">Frequency ({oscNode.frequency.value.toFixed(1)}Hz)</label><input id="freq" bind:value={module.state.frequency} type='range' min='-2' max='2' step='0.083333333333333'>
         <br><section class="shape">
             <input id={'sine'+module.state.id} type='radio' value='sine' bind:group={module.state.shape} /><label for={'sine'+module.state.id}>Sine</label>
             <input id ={'triangle'+module.state.id} type='radio' value='triangle' bind:group={module.state.shape} /><label for={'triangle'+module.state.id}>Triangle</label>
@@ -111,6 +111,14 @@
     .shape label {
         margin: auto;
         padding: 5px;
+    }
+
+    .shape input[type="radio"]:hover + label {
+        color: #555555;
+    }
+
+    .shape input[type="radio"]:active + label {
+        color: #ffffff;
     }
 
     .shape input[type="radio"]:checked + label {

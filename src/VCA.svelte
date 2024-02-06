@@ -19,14 +19,15 @@
     let controlsNode;
     let deleteNode;
 
-    if (state.inputId != null) {
+    $: if (state.inputId != null) {
         module.input = $modules[state.inputId];
     } else {
         module.input = null;
     }
 
     let cv_module;
-    if (state.cvId != null) {
+
+    $: if (state.cvId != null) {
         cv_module = $modules[state.cvId];
     } else {
         cv_module = null;
@@ -53,16 +54,14 @@
 
     var currentInput;
 
-    $: if (module.input) {
+    $: if (module.input && module.input.output) {
         if (currentInput) currentInput.disconnect();
         currentInput = module.input.output;
         currentInput.connect(gainNode);
         if (module.input.input || module.input.inputs) module.input.update();
-        module.state.inputId = module.input.state.id;
     } else {
         if (currentInput) currentInput.disconnect();
         currentInput = null;
-        module.state.inputId = null;
     }
 
     var currentCvModule;
@@ -71,22 +70,17 @@
         gainNode.gain.cancelScheduledValues($context.currentTime);
         gainNode.gain.setValueAtTime(0, $context.currentTime);
         if (currentCvModule) {
-            currentCvModule.cv = null;
-            currentCvModule.max_cv = null;
+            if (currentCvModule.inputs[module.state.id]) delete currentCvModule.inputs[module.state.id];
         }
         currentCvModule = cv_module;
-        currentCvModule.cv = gainNode.gain;
-        currentCvModule.max_cv = module.state.gain;
-        module.state.cvId = cv_module.state.id;
+        currentCvModule.inputs[module.state.id] = {cv: gainNode.gain, max_cv: module.state.gain};
     } else {
         gainNode.gain.cancelScheduledValues($context.currentTime);
         gainNode.gain.setValueAtTime(module.state.gain, $context.currentTime);
         if (currentCvModule) {
-            currentCvModule.cv = null;
-            currentCvModule.max_cv = null;
+            if (currentCvModule.inputs[module.state.id]) delete currentCvModule.inputs[module.state.id];
         }
         currentCvModule = null;
-        module.state.cvId = null;
     }
 
     module.update = () => {
@@ -103,7 +97,7 @@
                 m.input = null;
                 m.update();
             }
-            if (m.inputs) {
+            if (m.state.type == 'mixer') {
                 m.inputs.forEach((input, i) => {
                     if (input && input.state.id == module.state.id) m.inputs[i] = null;
                 });
@@ -138,23 +132,23 @@
     <h1>{module.state.id}</h1>
     <h2>Amplifier</h2>
     <div id="controls" use:setControls>
-        <label><select bind:value={module.input}>
+        <label><select bind:value={module.state.inputId}>
         {#each Object.entries($modules) as [id, m]}
             {#if m.output && id != module.state.id}
-            <option value={m}>{id}</option>
+            <option value={id}>{id}</option>
             {/if}
         {/each}
         <option value={null}></option>
         </select> Input</label>
-        <label><select bind:value={cv_module}>
+        <label><select bind:value={module.state.cvId}>
         {#each Object.entries($modules) as [id, m]}
-            {#if m.state.type == 'adsr'}
-            <option value={m}>{id}</option>
+            {#if m.state.type == 'adsr' || m.state.type == 'lfo'}
+            <option value={id}>{id}</option>
             {/if}
         {/each}
         <option value={null}></option>
         </select> CV</label><br>
-        <label for='gain'>Gain</label><input id='gain' bind:value={module.state.gain} type='range' min='0' max='1' step='0.001'>
+        <label for='gain'>Volume</label><input id='gain' bind:value={module.state.gain} type='range' min='0' max='1' step='0.001'>
     </div>
 </div>
 <br>
