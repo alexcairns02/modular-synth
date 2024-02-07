@@ -161,12 +161,12 @@
 	<div class="menu">
 		<button on:click={save}>Save patch</button>
 		<button on:click={load}>Load patch</button>
-		<button on:click={() => addModule(VCO)}>Add Oscillator</button>
-		<button on:click={() => addModule(VCA)}>Add Amplifier</button>
-		<button on:click={() => addModule(VCF)}>Add Filter</button>
-		<button on:click={() => addModule(ADSR)}>Add Envelope</button>
-		<button on:click={() => addModule(Mixer)}>Add Mixer</button>
-		<button on:click={() => addModule(LFO)}>Add LFO</button>
+		<button id='vcoBtn' on:click={() => addModule(VCO)}>Add Oscillator</button>
+		<button id='vcaBtn' on:click={() => addModule(VCA)}>Add Amplifier</button>
+		<button id='vcfBtn' on:click={() => addModule(VCF)}>Add Filter</button>
+		<button id='adsrBtn' on:click={() => addModule(ADSR)}>Add Envelope</button>
+		<button id='mixerBtn' on:click={() => addModule(Mixer)}>Add Mixer</button>
+		<button id='lfoBtn' on:click={() => addModule(LFO)}>Add LFO</button>
 		<button on:click={clear}>Clear Patch</button>
 		<MIDI />
 		<Output />
@@ -199,5 +199,30 @@
 
 	button {
 		pointer-events: all;
+		padding: 10px;
+	}
+
+	#vcoBtn {
+		background-color: #ff6666;
+	}
+
+	#vcaBtn {
+		background-color: #88ff88;
+	}
+
+	#vcfBtn {
+		background-color: #ff9955;
+	}
+
+	#adsrBtn {
+		background-color: #7788ff;
+	}
+
+	#mixerBtn {
+		background-color: #ffff77;
+	}
+
+	#lfoBtn {
+		background-color: #dd88ff;
 	}
 </style>

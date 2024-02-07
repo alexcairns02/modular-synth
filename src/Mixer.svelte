@@ -2,19 +2,20 @@
     import { modules, context } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
     import DeleteButton from './DeleteButton.svelte';
-    import { createNewId, inputsAllHover, unhover } from './utils.js';
+    import { createNewId, mixerInputHover, unhover, setPosition } from './utils.js';
     import { spring } from 'svelte/motion';
 
     export let state = {
         type: 'mixer',
         id: createNewId(),
-        inputIds: [null, null, null, null],
-        position: {x: 300, y: 100}
+        inputIds: [null, null, null, null]
     };
 
     $modules[state.id] = {};
     const module = $modules[state.id];
     module.state = state;
+
+    if (!module.state.position) module.state.position = setPosition();
 
     let moduleNode;
     let controlsNode;
@@ -26,10 +27,11 @@
 
     module.inputs = [null, null, null, null];
     
-    $: state.inputIds.forEach((id, i) => {
+    $: module.state.inputIds.forEach((id, i) => {
         if (id != null && $modules[id] != null) {
             module.inputs[i] = $modules[id];
         }
+        module.inputs = module.inputs;
     });
 
     const currentInputs = [null, null, null, null];
@@ -63,31 +65,48 @@
     
     let opacity = spring(1, {
         stiffness: 0.3,
-        damping: 0.3
+        damping: 0.5
+    });
+    let bobSize = spring(0, {
+        stiffness: 0.3,
+        damping: 0.2
     });
 
     $: if (moduleNode) moduleNode.style.opacity = `${$opacity}`;
 
     module.fade = () => {
-        opacity.set(0.3);
+        opacity.set(0.2);
+    }
+
+    module.halfFade = () => {
+        opacity.set(0.8)
     }
 
     module.unfade = () => {
         opacity.set(1);
     }
+
+    module.bob = () => {
+        bobSize.set(10);
+        setTimeout(() => {
+            bobSize.set(0);
+        }, 50);
+    }
+
+    module.bob();
 </script>
 
 <main bind:this={module.component}>
-<ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 200, y: 320 }} bind:nodePos={state.position} />
+<ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 200, y: 320 }} bind:nodePos={module.state.position} bind:bobSize />
 <div id="module" use:setModule>
     <div class="delete" use:setDelete><DeleteButton module={module} /></div>
     <h1>{module.state.id}</h1>
     <h2>Mixer</h2>
     <div id="controls" use:setControls>
-    {#each module.inputs as input, i}
-        <label><select on:mouseenter={() => inputsAllHover(module)} on:mouseleave={() => unhover()} bind:value={module.state.inputIds[i]}>
+    {#each module.state.inputIds as inputId, i}
+        <label><select on:mouseenter={() => mixerInputHover(module, inputId)} on:mouseleave={() => unhover()} bind:value={inputId}>
         {#each Object.entries($modules) as [id, m]}
-            {#if m && m.output && id != module.state.id && (!module.inputs.includes(m) || m == input)}
+            {#if id && m && m.output && id != module.state.id && (!module.state.inputIds.includes(id) || id == inputId)}
             <option value={id}>{id}</option>
             {/if}
         {/each}

@@ -9,6 +9,7 @@
     export let deleteNode;
     export let nodeSize = { x: 300, y: 300 };
     export let nodePos = { x: 300, y: 100 };
+    export let bobSize;
 
     let coords = spring({ x: nodePos.x, y: nodePos.y}, {
         stiffness: 0.3,
@@ -75,9 +76,9 @@
     }
 
     $: if (moduleNode) {
-        moduleNode.style.left = `${$coords.x-$size/2-$triggerSize/2}px`;
-        moduleNode.style.top = `${$coords.y-$size/2-$triggerSize/2}px`;
-        moduleNode.style.width = `${nodeSize.x+$size+$triggerSize}px`;
-        moduleNode.style.height = `${nodeSize.y+$size+$triggerSize}px`;
+        moduleNode.style.left = `${$coords.x - $size/2 - $triggerSize/2 - $bobSize/2}px`;
+        moduleNode.style.top = `${$coords.y - $size/2 - $triggerSize/2 - $bobSize/2}px`;
+        moduleNode.style.width = `${nodeSize.x + $size + $triggerSize + $bobSize}px`;
+        moduleNode.style.height = `${nodeSize.y + $size + $triggerSize + $bobSize}px`;
     }
 </script>

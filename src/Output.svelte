@@ -1,10 +1,14 @@
 <script>
     import { modules, context, output } from './stores.js';
-    
+    import { inputsAllHover, unhover } from './utils.js';
+    import { spring } from 'svelte/motion';
+
     export let state = {
         volume: 0.2,
         inputId: null
     };
+
+    let divNode;
 
     $output.state = state;
 
@@ -31,12 +35,42 @@
         if (currentInput) currentInput.disconnect();
         currentInput = null;
     }
+
+    const setDiv = (node) => {
+        divNode = node;
+    };
+
+    let redness = spring(0, {
+        stiffness: 0.05,
+        damping: 0.3
+    });
+
+    $: if (divNode) divNode.style.backgroundColor = `rgba(255, ${255-$redness}, ${255-$redness}, 0.7)`;
+
+    let loaded = false;
+
+    let connectedString = "disconnected";
+
+    setTimeout(() => {
+        loaded = true;
+    }, 500);
+
+    $: if (loaded && $output.state.inputId == null) {
+        redness.set(255);
+        connectedString = "disconnected";
+    } else {
+        redness.set(0);
+        connectedString = "connected";
+    }
 </script>
 
 <main>
-    <div>
-        <h2>Audio Output</h2>
-        <label><select bind:value={$output.state.inputId}>
+    <div use:setDiv>
+        <h2>Audio Output ({connectedString})</h2>
+        {#if Object.values($modules).length == 0}<p>Add modules using buttons above</p>
+        {:else if $output.state.inputId == null}<p>Select input module below</p>
+        {/if}
+        <label><select bind:value={$output.state.inputId} on:mouseenter={() => {inputsAllHover(null)}} on:mouseleave={unhover}>
         {#each Object.entries($modules) as [id, m]}
             {#if m.output}
             <option value={id}>{id}</option>

@@ -2,7 +2,7 @@
     import { modules, context, midi } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
     import DeleteButton from './DeleteButton.svelte';
-    import { createNewId, inputsAllHover, unhover } from './utils.js';
+    import { createNewId, inputsAllHover, unhover, setPosition } from './utils.js';
     import { spring } from 'svelte/motion';
     
     export let state = {
@@ -17,6 +17,8 @@
     $modules[state.id] = {};
     const module = $modules[state.id];
     module.state = state;
+
+    if (!module.state.position) module.state.position = setPosition();
 
     module.inputs = {};
 
@@ -69,22 +71,39 @@
     
     let opacity = spring(1, {
         stiffness: 0.3,
-        damping: 0.3
+        damping: 0.5
+    });
+    let bobSize = spring(0, {
+        stiffness: 0.3,
+        damping: 0.2
     });
 
     $: if (moduleNode) moduleNode.style.opacity = `${$opacity}`;
 
     module.fade = () => {
-        opacity.set(0.3);
+        opacity.set(0.2);
+    }
+
+    module.halfFade = () => {
+        opacity.set(0.8);
     }
 
     module.unfade = () => {
         opacity.set(1);
     }
+
+    module.bob = () => {
+        bobSize.set(10);
+        setTimeout(() => {
+            bobSize.set(0);
+        }, 50);
+    }
+    
+    module.bob();
 </script>
 
 <main bind:this={module.component}>
-    <ModuleMovement hasTrigger={true} bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 280, y: 400 }} bind:nodePos={state.position} />
+    <ModuleMovement hasTrigger={true} bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 280, y: 400 }} bind:nodePos={state.position} bind:bobSize />
     <div id="module" use:setModule>
         <h1>{module.state.id}</h1>
         <h2>Envelope</h2>
