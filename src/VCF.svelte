@@ -11,7 +11,8 @@
         filterType: 'lowpass',
         id: createNewId(),
         inputId: null,
-        cvId: null
+        cvId: null,
+        title: 'Filter'
     };
 
     $modules[state.id] = {};
@@ -46,7 +47,7 @@
     $: {
         isEnv = false;
         Object.entries($modules).forEach(m => {
-            if (m[1].state.type == 'adsr') isEnv = true;
+            if (m[1].state.type == 'adsr' || m[1].state.type == 'lfo') isEnv = true;
         });
     }
 
@@ -106,7 +107,7 @@
     }
     
     let opacity = spring(1, {
-        stiffness: 0.3,
+        stiffness: 0.1,
         damping: 0.5
     });
     let bobSize = spring(0, {
@@ -142,25 +143,28 @@
 <ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 280, y: 350 }} bind:nodePos={state.position} bind:bobSize />
     <div id="module" use:setModule>
         <h1>{module.state.id}</h1>
-        <h2>Filter</h2>
         <div class="delete" use:setDelete><DeleteButton module={module} /></div>
         <div id="controls" use:setControls>
-            <label><select on:mouseenter={() => inputsAllHover(module)} on:mouseleave={() => unhover()} bind:value={module.state.inputId}>
+            <h2 class='editableTitle' bind:textContent={module.state.title} contenteditable='true'>{module.state.title}</h2>
+            <div class='inputDiv' on:mouseenter={() => inputsAllHover(module)} on:mouseleave={() => unhover()}>
+            <label><select bind:value={module.state.inputId}>
                 {#each Object.entries($modules) as [id, m]}
                     {#if m.output && id != module.state.id}
-                    <option value={id}>{id}</option>
+                    <option value={id}>{id} {m.state.title}</option>
                     {/if}
                 {/each}
                 <option value={null}></option>
-                </select> Input</label>
-                <label><select on:mouseenter={() => cvsAllHover(module)} on:mouseleave={() => unhover()} bind:value={module.state.cvId}>
+                </select> Input</label></div>
+                <div class='inputDiv' on:mouseenter={() => cvsAllHover(module)} on:mouseleave={() => unhover()}>
+                <label><select bind:value={module.state.cvId}>
                 {#each Object.entries($modules) as [id, m]}
                     {#if m.state.type == 'adsr' || m.state.type == 'lfo'}
-                    <option value={id}>{id}</option>
+                    <option value={id}>{id} {m.state.title}</option>
                     {/if}
                 {/each}
                 <option value={null}></option>
-                </select> Control</label><br>
+                </select> Control</label>
+                </div><br>
             <label for='freq'>Cutoff Frequency ({frequency.toFixed(1)}Hz)</label><input id='freq' bind:value={module.state.voct} type='range' min='{Math.log2(20)}' max='{Math.log2(18000)}' step='0.0001'>
             <br><section class="type">
                 <input id={'lowpass'+module.state.id} type='radio' value='lowpass' bind:group={module.state.filterType} /><label for={'lowpass'+module.state.id}>Lowpass</label>
@@ -180,6 +184,12 @@
         user-select: none;
         border-radius: 50px;
         border-color: #222222;
+    }
+
+    select {
+        width: 120px;
+        text-overflow: ellipsis;
+        overflow: hidden;
     }
 
     .type {
@@ -213,6 +223,19 @@
         position: absolute;
         right: 20px;
         top: 20px;
+    }
+
+    .editableTitle {
+        width: fit-content;
+        min-width: 50px;
+        max-width: 90%;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: -10px;
+        margin-bottom: 10px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        padding: 10px
     }
 </style>
 

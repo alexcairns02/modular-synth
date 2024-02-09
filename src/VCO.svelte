@@ -10,11 +10,13 @@
         frequency: 0,
         shape: 'sine',
         id: createNewId(),
+        title: 'Oscillator'
     };
 
     let moduleNode;
     let controlsNode;
     let deleteNode;
+    let titleNode;
 
     $modules[state.id] = {};
     const module = $modules[state.id];
@@ -48,7 +50,7 @@
     }
     
     let opacity = spring(1, {
-        stiffness: 0.3,
+        stiffness: 0.1,
         damping: 0.5
     });
     let bobSize = spring(0, {
@@ -85,8 +87,8 @@
 <div id="module" use:setModule>
     <div class="delete" use:setDelete><DeleteButton module={module} /></div>
     <h1>{module.state.id}</h1>
-    <h2>Oscillator</h2>
     <div id="controls" use:setControls>
+        <h2 class='editableTitle' bind:textContent={module.state.title} contenteditable='true'>{module.state.title}</h2>
         <label for="freq">Frequency ({oscNode.frequency.value.toFixed(1)}Hz)</label><input id="freq" bind:value={module.state.frequency} type='range' min='-2' max='2' step='0.083333333333333'>
         <br><section class="shape">
             <input id={'sine'+module.state.id} type='radio' value='sine' bind:group={module.state.shape} /><label for={'sine'+module.state.id}>Sine</label>
@@ -140,6 +142,19 @@
         position: absolute;
         right: 20px;
         top: 20px;
+    }
+
+    .editableTitle {
+        width: fit-content;
+        min-width: 50px;
+        max-width: 90%;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: -10px;
+        margin-bottom: 10px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        padding: 10px
     }
 </style>
 

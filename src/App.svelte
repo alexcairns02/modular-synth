@@ -157,6 +157,7 @@
 	if (DEBUG) addPatch(debugPatch);
 </script>
 
+<body>
 <main>
 	<div class="menu">
 		<button on:click={save}>Save patch</button>
@@ -177,6 +178,7 @@
 	{/each}
 	</div>
 </main>
+</body>
 
 <style>
 	main {
@@ -225,4 +227,10 @@
 	#lfoBtn {
 		background-color: #dd88ff;
 	}
+    
+    .inputDiv {
+        margin-left: 70px;
+        margin-right: 70px;
+        padding: 5px;
+    }
 </style>

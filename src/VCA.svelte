@@ -10,7 +10,8 @@
         gain: 1,
         id: createNewId(),
         inputId: null,
-        cvId: null
+        cvId: null,
+        title: 'Amplifier'
     };
 
     $modules[state.id] = {};
@@ -23,16 +24,16 @@
     let controlsNode;
     let deleteNode;
 
-    $: if (state.inputId != null) {
-        module.input = $modules[state.inputId];
+    $: if (module.state.inputId != null) {
+        module.input = $modules[module.state.inputId];
     } else {
         module.input = null;
     }
 
     let cv_module;
 
-    $: if (state.cvId != null) {
-        cv_module = $modules[state.cvId];
+    $: if (module.state.cvId != null) {
+        cv_module = $modules[module.state.cvId];
     } else {
         cv_module = null;
     }
@@ -45,7 +46,7 @@
     $: {
         isEnv = false;
         Object.entries($modules).forEach(m => {
-            if (m[1].state.type == 'adsr') isEnv = true;
+            if (m[1].state.type == 'adsr' || m[1].state.type == 'lfo') isEnv = true;
         });
     }
 
@@ -104,7 +105,7 @@
     }
     
     let opacity = spring(1, {
-        stiffness: 0.3,
+        stiffness: 0.1,
         damping: 0.5
     });
     let bobSize = spring(0, {
@@ -141,24 +142,26 @@
 <div id="module" use:setModule>
     <div class="delete" use:setDelete><DeleteButton module={module} /></div>
     <h1>{module.state.id}</h1>
-    <h2>Amplifier</h2>
     <div id="controls" use:setControls>
-        <label><select on:mouseenter={() => {inputsAllHover(module)}} on:mouseleave={unhover} bind:value={module.state.inputId}>
+        <h2 class='editableTitle' bind:textContent={module.state.title} contenteditable='true'>{module.state.title}</h2>
+        <div class='inputDiv' on:mouseenter={() => {inputsAllHover(module)}} on:mouseleave={unhover}>
+        <label><select bind:value={module.state.inputId}>
         {#each Object.entries($modules) as [id, m]}
             {#if m.output && id != module.state.id}
-            <option value={id}>{id}</option>
+            <option value={id}>{id} {m.state.title}</option>
             {/if}
         {/each}
         <option value={null}></option>
-        </select> Input</label>
-        <label><select on:mouseenter={() => cvsAllHover(module)} on:mouseleave={unhover} bind:value={module.state.cvId}>
+        </select> Input</label></div>
+        <div class='inputDiv' on:mouseenter={() => cvsAllHover(module)} on:mouseleave={unhover}>
+        <label><select bind:value={module.state.cvId}>
         {#each Object.entries($modules) as [id, m]}
             {#if m.state.type == 'adsr' || m.state.type == 'lfo'}
-            <option value={id}>{id}</option>
+            <option value={id}>{id} {m.state.title}</option>
             {/if}
         {/each}
         <option value={null}></option>
-        </select> Control</label><br>
+        </select> Control</label></div><br>
         <label for='gain'>Volume</label><input id='gain' bind:value={module.state.gain} type='range' min='0' max='1' step='0.001'>
     </div>
 </div>
@@ -175,10 +178,29 @@
         border-color: #222222;
     }
 
+    select {
+        width: 120px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+
     .delete {
         position: absolute;
         right: 20px;
         top: 20px;
+    }
+
+    .editableTitle {
+        width: fit-content;
+        min-width: 50px;
+        max-width: 90%;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: -10px;
+        margin-bottom: 10px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        padding: 10px
     }
 </style>
 

@@ -18,6 +18,7 @@ export function createNewId() {
 export function destroyModule(module) {
     module.component.parentNode.removeChild(module.component);
     modules.update((ms) => {delete ms[module.state.id]; return ms;});
+    
     if (out.state.inputId == module.state.id) output.update((o) => {o.state.inputId = null; return o});
     Object.values(mods).forEach((m) => {
         if (m.state.inputId && m.state.inputId == module.state.id) {
@@ -28,8 +29,8 @@ export function destroyModule(module) {
         }
         if (m.state.type == 'mixer') {
             modules.update((ms) => {
-                ms[m.state.id].state.inputIds.forEach((inputId) => {
-                    if (inputId == module.state.id) inputId = null;
+                ms[m.state.id].state.inputIds.forEach((inputId, i) => {
+                    if (inputId == module.state.id) ms[m.state.id].state.inputIds[i] = null;
                 });
                 return ms;
             });
@@ -89,4 +90,19 @@ export function setPosition() {
         }
     }
     return pos;
+}
+
+export function moduleInUse(module) {
+    if (out.state.inputId == module.state.id) return true;
+    Object.values(mods).forEach((m) => {
+        if (m.state.inputId && m.state.inputId == module.state.id) {
+            return true;
+        }
+        if (m.state.type == 'mixer') {
+            m.state.inputIds.forEach((inputId) => {
+                if (inputId == module.state.id) return true;
+            });
+        }
+    });
+    return false;
 }

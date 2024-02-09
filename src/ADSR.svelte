@@ -11,7 +11,8 @@
         decay: 0.1,
         sustain: 0.5,
         release: 0.1,
-        id: createNewId()
+        id: createNewId(),
+        title: 'Envelope'
     };
 
     $modules[state.id] = {};
@@ -70,7 +71,7 @@
     }
     
     let opacity = spring(1, {
-        stiffness: 0.3,
+        stiffness: 0.1,
         damping: 0.5
     });
     let bobSize = spring(0, {
@@ -106,9 +107,9 @@
     <ModuleMovement hasTrigger={true} bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 280, y: 400 }} bind:nodePos={state.position} bind:bobSize />
     <div id="module" use:setModule>
         <h1>{module.state.id}</h1>
-        <h2>Envelope</h2>
         <div class="delete" use:setDelete><DeleteButton module={module} /></div>
         <div id="controls" use:setControls>
+            <h2 class='editableTitle' bind:textContent={module.state.title} contenteditable='true'>{module.state.title}</h2>
             <div class="params">
                 <label for='attack'>Attack ({attack.toFixed(2)}s)</label><input id='attack' bind:value={module.state.attack} type='range' min='0' max='1' step='0.001'>
                 <label for='decay'>Decay ({decay.toFixed(2)}s)</label><input id='decay' bind:value={module.state.decay} type='range' min='0' max='1' step='0.001'>
@@ -134,6 +135,19 @@
         position: absolute;
         right: 20px;
         top: 20px;
+    }
+
+    .editableTitle {
+        width: fit-content;
+        min-width: 50px;
+        max-width: 90%;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: -10px;
+        margin-bottom: 10px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        padding: 10px
     }
 </style>
 
