@@ -141,6 +141,7 @@
         width: fit-content;
         min-width: 50px;
         max-width: 90%;
+        max-height: 28px;
         margin-left: auto;
         margin-right: auto;
         margin-top: -10px;

@@ -26,15 +26,15 @@
     let deleteNode;
 
     let oscNode = $context.createOscillator();
-    let gainNode = $context.createGain();
 
     $: oscNode.frequency.value = module.state.frequency;
     $: oscNode.type = module.state.shape;
 
     oscNode.start(0);
-    oscNode.connect(gainNode);
 
     $: if (module.inputs) Object.values(module.inputs).forEach((input) => {
+        let gainNode = $context.createGain();
+        oscNode.connect(gainNode);
         gainNode.gain.value = input.max_cv;
         gainNode.connect(input.cv);
     });
@@ -151,6 +151,7 @@
         width: fit-content;
         min-width: 50px;
         max-width: 90%;
+        max-height: 28px;
         margin-left: auto;
         margin-right: auto;
         margin-top: -10px;

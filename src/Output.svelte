@@ -27,12 +27,12 @@
     var currentInput;
 
     $: if ($output.input) {
-        if (currentInput) currentInput.disconnect();
+        if (currentInput) currentInput.disconnect(gainNode);
         currentInput = $output.input.output;
         currentInput.connect(gainNode);
         if ($output.input.input || $output.input.inputs) $output.input.update();
     } else {
-        if (currentInput) currentInput.disconnect();
+        if (currentInput) currentInput.disconnect(gainNode);
         currentInput = null;
     }
 

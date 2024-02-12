@@ -16,6 +16,10 @@ export function createNewId() {
 }
 
 export function destroyModule(module) {
+    if (module.state.type == 'mixer' || module.state.type == 'vca' || module.state.type == 'vcf') module.clearCurrents();
+
+    module.destroyed = true;
+
     module.component.parentNode.removeChild(module.component);
     modules.update((ms) => {delete ms[module.state.id]; return ms;});
     

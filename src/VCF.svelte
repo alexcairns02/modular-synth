@@ -51,7 +51,7 @@
         });
     }
 
-    $: if (!isEnv) cv_module = null;
+    //$: if (!isEnv) cv_module = null;
 
     var frequency;
     $: frequency = Math.pow(2, module.state.voct);
@@ -61,32 +61,42 @@
 
     var currentInput;
 
-    $: if (module.input) {
-        if (currentInput) currentInput.disconnect();
-        currentInput = module.input.output;
-        currentInput.connect(filterNode);
-        if (module.input.input || module.input.inputs) module.input.update();
-    } else {
-        if (currentInput) currentInput.disconnect();
-        currentInput = null;
+    $: if (!module.destroyed) {
+        if (module.input) {
+            if (currentInput) currentInput.disconnect(filterNode);
+            currentInput = module.input.output;
+            currentInput.connect(filterNode);
+            if (module.input.input || module.input.inputs) module.input.update();
+        } else {
+            if (currentInput) currentInput.disconnect(filterNode);
+            currentInput = null;
+        }
     }
 
     var currentCvModule;
 
-    $: if (cv_module && cv_module.inputs) {
-        filterNode.frequency.cancelScheduledValues($context.currentTime);
-        filterNode.frequency.setValueAtTime(0, $context.currentTime);
-        if (currentCvModule) {
-            if (currentCvModule.inputs[module.state.id]) delete currentCvModule.inputs[module.state.id];
+    $: if (!module.destroyed) {
+        if (cv_module && cv_module.inputs) {
+            filterNode.frequency.cancelScheduledValues($context.currentTime);
+            filterNode.frequency.setValueAtTime(0, $context.currentTime);
+            if (currentCvModule) {
+                if (currentCvModule.inputs[module.state.id]) delete currentCvModule.inputs[module.state.id];
+            }
+            currentCvModule = cv_module;
+            currentCvModule.inputs[module.state.id] = {cv: filterNode.frequency, max_cv: frequency};
+        } else {
+            filterNode.frequency.cancelScheduledValues($context.currentTime);
+            filterNode.frequency.setValueAtTime(frequency, $context.currentTime);
+            if (currentCvModule) {
+                if (currentCvModule.inputs[module.state.id]) delete currentCvModule.inputs[module.state.id];
+            }
+            currentCvModule = null;
         }
-        currentCvModule = cv_module;
-        currentCvModule.inputs[module.state.id] = {cv: filterNode.frequency, max_cv: frequency};
-    } else {
-        filterNode.frequency.cancelScheduledValues($context.currentTime);
-        filterNode.frequency.setValueAtTime(frequency, $context.currentTime);
-        if (currentCvModule) {
-            if (currentCvModule.inputs[module.state.id]) delete currentCvModule.inputs[module.state.id];
-        }
+    }
+
+    module.clearCurrents = () => {
+        currentInput = null;
+        cv_module = null;
         currentCvModule = null;
     }
 
@@ -229,6 +239,7 @@
         width: fit-content;
         min-width: 50px;
         max-width: 90%;
+        max-height: 28px;
         margin-left: auto;
         margin-right: auto;
         margin-top: -10px;

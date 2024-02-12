@@ -59,32 +59,42 @@
 
     var currentInput;
 
-    $: if (module.input && module.input.output) {
-        if (currentInput) currentInput.disconnect();
-        currentInput = module.input.output;
-        currentInput.connect(gainNode);
-        if (module.input.input || module.input.inputs) module.input.update();
-    } else {
-        if (currentInput) currentInput.disconnect();
-        currentInput = null;
+    $: if (!module.destroyed) {
+        if (module.input && module.input.output) {
+            if (currentInput) currentInput.disconnect(gainNode);
+            currentInput = module.input.output;
+            currentInput.connect(gainNode);
+            if (module.input.input || module.input.inputs) module.input.update();
+        } else {
+            if (currentInput) currentInput.disconnect(gainNode);
+            currentInput = null;
+        }
     }
 
     var currentCvModule;
 
-    $: if (cv_module) {
-        gainNode.gain.cancelScheduledValues($context.currentTime);
-        gainNode.gain.setValueAtTime(0, $context.currentTime);
-        if (currentCvModule) {
-            if (currentCvModule.inputs[module.state.id]) delete currentCvModule.inputs[module.state.id];
+    $: if (!module.destroyed) {
+        if (cv_module) {
+            gainNode.gain.cancelScheduledValues($context.currentTime);
+            gainNode.gain.setValueAtTime(0, $context.currentTime);
+            if (currentCvModule) {
+                if (currentCvModule.inputs[module.state.id]) delete currentCvModule.inputs[module.state.id];
+            }
+            currentCvModule = cv_module;
+            currentCvModule.inputs[module.state.id] = {cv: gainNode.gain, max_cv: module.state.gain};
+        } else {
+            gainNode.gain.cancelScheduledValues($context.currentTime);
+            gainNode.gain.setValueAtTime(module.state.gain, $context.currentTime);
+            if (currentCvModule) {
+                if (currentCvModule.inputs[module.state.id]) delete currentCvModule.inputs[module.state.id];
+            }
+            currentCvModule = null;
         }
-        currentCvModule = cv_module;
-        currentCvModule.inputs[module.state.id] = {cv: gainNode.gain, max_cv: module.state.gain};
-    } else {
-        gainNode.gain.cancelScheduledValues($context.currentTime);
-        gainNode.gain.setValueAtTime(module.state.gain, $context.currentTime);
-        if (currentCvModule) {
-            if (currentCvModule.inputs[module.state.id]) delete currentCvModule.inputs[module.state.id];
-        }
+    }
+
+    module.clearCurrents = () => {
+        currentInput = null;
+        cv_module = null;
         currentCvModule = null;
     }
 
@@ -194,6 +204,7 @@
         width: fit-content;
         min-width: 50px;
         max-width: 90%;
+        max-height: 28px;
         margin-left: auto;
         margin-right: auto;
         margin-top: -10px;

@@ -37,18 +37,22 @@
         module.inputs = module.inputs;
     });
 
-    const currentInputs = [null, null, null, null];
+    let currentInputs = [null, null, null, null];
 
     $: module.inputs.forEach((input, i) => {
         if (input) {
-            if (currentInputs[i]) currentInputs[i].disconnect();
+            if (currentInputs[i]) currentInputs[i].disconnect(gainNode);
             currentInputs[i] = input.output;
             currentInputs[i].connect(gainNode);
         } else {
-            if (currentInputs[i]) currentInputs[i].disconnect();
+            if (currentInputs[i]) currentInputs[i].disconnect(gainNode);
             currentInputs[i] = null;
         }
     });
+
+    module.clearCurrents = () => {
+        currentInputs = [null, null, null, null];
+    }
 
     module.update = () => {
         module.inputs = module.inputs;
@@ -149,6 +153,7 @@
         width: fit-content;
         min-width: 50px;
         max-width: 90%;
+        max-height: 28px;
         margin-left: auto;
         margin-right: auto;
         margin-top: -10px;
