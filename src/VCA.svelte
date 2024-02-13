@@ -30,12 +30,12 @@
         module.input = null;
     }
 
-    let cv_module;
+    let cvModule;
 
     $: if (module.state.cvId != null) {
-        cv_module = $modules[module.state.cvId];
+        cvModule = $modules[module.state.cvId];
     } else {
-        cv_module = null;
+        cvModule = null;
     }
 
     var gainNode = $context.createGain();
@@ -50,7 +50,7 @@
         });
     }
 
-    $: if (!isEnv) cv_module = null;
+    $: if (!isEnv) cvModule = null;
 
     $: module.cv_in = gainNode.gain;
     $: module.max_cv = module.state.gain;
@@ -73,20 +73,25 @@
 
     var currentCvModule;
 
-    $: if (!module.destroyed) {
-        if (cv_module) {
+    $: if (currentCvModule) {
+        currentCvModule.setGain(module.state.id, module.state.gain);
+    }
+
+    function connectCv(e) {
+        cvModule = $modules[e.target.selectedOptions[0].value];
+        if (cvModule) {
             gainNode.gain.cancelScheduledValues($context.currentTime);
             gainNode.gain.setValueAtTime(0, $context.currentTime);
             if (currentCvModule) {
-                if (currentCvModule.inputs[module.state.id]) delete currentCvModule.inputs[module.state.id];
+                if (currentCvModule.outputs[module.state.id]); currentCvModule.removeOutput(module.state.id);
             }
-            currentCvModule = cv_module;
-            currentCvModule.inputs[module.state.id] = {cv: gainNode.gain, max_cv: module.state.gain};
+            currentCvModule = cvModule;
+            if (!currentCvModule.outputs[module.state.id]) currentCvModule.addOutput(module.state.id, gainNode.gain);
         } else {
             gainNode.gain.cancelScheduledValues($context.currentTime);
             gainNode.gain.setValueAtTime(module.state.gain, $context.currentTime);
             if (currentCvModule) {
-                if (currentCvModule.inputs[module.state.id]) delete currentCvModule.inputs[module.state.id];
+                if (currentCvModule.outputs[module.state.id]) currentCvModule.removeOutput(module.state.id);
             }
             currentCvModule = null;
         }
@@ -94,7 +99,7 @@
 
     module.clearCurrents = () => {
         currentInput = null;
-        cv_module = null;
+        cvModule = null;
         currentCvModule = null;
     }
 
@@ -164,7 +169,7 @@
         <option value={null}></option>
         </select> Input</label></div>
         <div class='inputDiv' on:mouseenter={() => cvsAllHover(module)} on:mouseleave={unhover}>
-        <label><select bind:value={module.state.cvId}>
+        <label><select bind:value={module.state.cvId} on:change={connectCv}>
         {#each Object.entries($modules) as [id, m]}
             {#if m.state.type == 'adsr' || m.state.type == 'lfo'}
             <option value={id}>{id} {m.state.title}</option>

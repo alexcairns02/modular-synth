@@ -4,6 +4,7 @@
     import DeleteButton from './DeleteButton.svelte';
     import { createNewId, cvsAllHover, inputsAllHover, unhover, setPosition } from './utils.js';
     import { spring } from 'svelte/motion';
+    import { disconnect } from 'tone';
     
     export let state = {
         type: 'vcf',
@@ -31,12 +32,12 @@
         module.input = null;
     }
 
-    let cv_module;
+    let cvModule;
     
     $: if (module.state.cvId != null) {
-        cv_module = $modules[module.state.cvId];
+        cvModule = $modules[module.state.cvId];
     } else {
-        cv_module = null;
+        cvModule = null;
     }
 
     var filterNode = $context.createBiquadFilter();
@@ -51,7 +52,7 @@
         });
     }
 
-    //$: if (!isEnv) cv_module = null;
+    //$: if (!isEnv) cvModule = null;
 
     var frequency;
     $: frequency = Math.pow(2, module.state.voct);
@@ -75,20 +76,25 @@
 
     var currentCvModule;
 
-    $: if (!module.destroyed) {
-        if (cv_module && cv_module.inputs) {
+    $: if (currentCvModule) {
+        currentCvModule.setGain(module.state.id, frequency);
+    }
+
+    function connectCV(e) {
+        cvModule = $modules[e.target.selectedOptions[0].value];
+        if (cvModule) {
             filterNode.frequency.cancelScheduledValues($context.currentTime);
             filterNode.frequency.setValueAtTime(0, $context.currentTime);
             if (currentCvModule) {
-                if (currentCvModule.inputs[module.state.id]) delete currentCvModule.inputs[module.state.id];
+                if (currentCvModule.outputs[module.state.id]); currentCvModule.removeOutput(module.state.id);
             }
-            currentCvModule = cv_module;
-            currentCvModule.inputs[module.state.id] = {cv: filterNode.frequency, max_cv: frequency};
+            currentCvModule = cvModule;
+            if (!currentCvModule.outputs[module.state.id]) currentCvModule.addOutput(module.state.id, filterNode.frequency);
         } else {
             filterNode.frequency.cancelScheduledValues($context.currentTime);
             filterNode.frequency.setValueAtTime(frequency, $context.currentTime);
             if (currentCvModule) {
-                if (currentCvModule.inputs[module.state.id]) delete currentCvModule.inputs[module.state.id];
+                if (currentCvModule.outputs[module.state.id]); currentCvModule.removeOutput(module.state.id);
             }
             currentCvModule = null;
         }
@@ -96,7 +102,7 @@
 
     module.clearCurrents = () => {
         currentInput = null;
-        cv_module = null;
+        cvModule = null;
         currentCvModule = null;
     }
 
@@ -166,7 +172,7 @@
                 <option value={null}></option>
                 </select> Input</label></div>
                 <div class='inputDiv' on:mouseenter={() => cvsAllHover(module)} on:mouseleave={() => unhover()}>
-                <label><select bind:value={module.state.cvId}>
+                <label><select bind:value={module.state.cvId} on:change={connectCV}>
                 {#each Object.entries($modules) as [id, m]}
                     {#if m.state.type == 'adsr' || m.state.type == 'lfo'}
                     <option value={id}>{id} {m.state.title}</option>

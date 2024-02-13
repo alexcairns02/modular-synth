@@ -21,7 +21,9 @@
 
     if (!module.state.position) module.state.position = setPosition();
 
-    module.inputs = {};
+    module.outputs = {};
+
+    let maxCvs = {};
 
     let moduleNode;
     let controlsNode;
@@ -36,20 +38,34 @@
     $: release = Math.pow(10, module.state.release) - 1;
 
     const fireEnv = () => {
-        Object.values(module.inputs).forEach((input) => {
-            input.cv.cancelScheduledValues($context.currentTime);
-            input.cv.setValueAtTime(0, $context.currentTime);
-            input.cv.linearRampToValueAtTime(input.max_cv, $context.currentTime + attack);
-            input.cv.linearRampToValueAtTime(input.max_cv*module.state.sustain, $context.currentTime + attack + decay);
+        Object.entries(module.outputs).forEach(([id, output]) => {
+            output.cancelScheduledValues($context.currentTime);
+            output.setValueAtTime(0, $context.currentTime);
+            output.linearRampToValueAtTime(maxCvs[id], $context.currentTime + attack);
+            output.linearRampToValueAtTime(maxCvs[id]*module.state.sustain, $context.currentTime + attack + decay);
         });
     }
 
     const unFireEnv = () => {
-        Object.values(module.inputs).forEach((input) => {
-            input.cv.cancelScheduledValues($context.currentTime);
-            input.cv.setValueAtTime(input.max_cv*module.state.sustain, $context.currentTime);
-            input.cv.linearRampToValueAtTime(0, $context.currentTime + release);
+        Object.entries(module.outputs).forEach(([id, output]) => {
+            output.cancelScheduledValues($context.currentTime);
+            output.setValueAtTime(maxCvs[id]*module.state.sustain, $context.currentTime);
+            output.linearRampToValueAtTime(0, $context.currentTime + release);
         });
+    }
+
+    module.addOutput = (id, cv) => {
+        module.outputs[id] = cv;
+        maxCvs[id] = 1;
+        unFireEnv();
+    }
+
+    module.removeOutput = (id) => {
+        delete module.outputs[id];
+    }
+
+    module.setGain = (id, gain) => {
+        maxCvs[id] = gain;
     }
 
     $: if ($midi.trigger && !notePlaying) notePlaying = true;

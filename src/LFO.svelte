@@ -19,7 +19,7 @@
     
     if (!module.state.position) module.state.position = setPosition();
 
-    module.inputs = {};
+    module.outputs = {};
 
     let moduleNode;
     let controlsNode;
@@ -32,12 +32,25 @@
 
     oscNode.start(0);
 
-    $: if (module.inputs) Object.values(module.inputs).forEach((input) => {
-        let gainNode = $context.createGain();
-        oscNode.connect(gainNode);
-        gainNode.gain.value = input.max_cv;
-        gainNode.connect(input.cv);
-    });
+    module.addOutput = (id, cv) => {
+        module.outputs[id] = $context.createGain();
+        let output = module.outputs[id];
+        oscNode.connect(output);
+        output.connect(cv);
+    }
+
+    module.removeOutput = (id) => {
+        let output = module.outputs[id];
+        oscNode.disconnect(output);
+        //output.disconnect(cv);
+        delete module.outputs[id];
+    }
+
+    module.setGain = (id, gain) => {
+        if (module.outputs[id]) {
+            module.outputs[id].gain.value = gain;
+        }
+    }
 
     function setModule(node) {
         moduleNode = node;
