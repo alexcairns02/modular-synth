@@ -39,10 +39,10 @@
         output.connect(cv);
     }
 
-    module.removeOutput = (id) => {
+    module.removeOutput = (id, cv) => {
         let output = module.outputs[id];
         oscNode.disconnect(output);
-        //output.disconnect(cv);
+        output.disconnect(cv);
         delete module.outputs[id];
     }
 

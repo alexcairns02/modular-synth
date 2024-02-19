@@ -22,6 +22,13 @@ export function destroyModule(module) {
 
     module.component.parentNode.removeChild(module.component);
     modules.update((ms) => {delete ms[module.state.id]; return ms;});
+
+    if (module.state.cvId) {
+        modules.update((ms) => {
+            ms[module.state.cvId].removeOutput(module.state.id, module.cv);
+            return ms;
+        })
+    }
     
     if (out.state.inputId == module.state.id) output.update((o) => {o.state.inputId = null; return o});
     Object.values(mods).forEach((m) => {

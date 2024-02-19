@@ -62,15 +62,6 @@
         redness.set(0);
         connectedString = "connected";
     }
-
-    let isAudioSource = false;
-
-    $: { Object.values($modules).forEach((m) => {
-        if (m.state.type == 'vco') {
-            isAudioSource = true;
-            return;
-        }
-    }); isAudioSource = false; };
 </script>
 
 <main>

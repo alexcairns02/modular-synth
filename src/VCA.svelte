@@ -41,26 +41,14 @@
     var gainNode = $context.createGain();
 
     module.output = gainNode;
-
-    var isEnv = false;
-    $: {
-        isEnv = false;
-        Object.entries($modules).forEach(m => {
-            if (m[1].state.type == 'adsr' || m[1].state.type == 'lfo') isEnv = true;
-        });
-    }
-
-    $: if (!isEnv) cvModule = null;
-
-    $: module.cv_in = gainNode.gain;
-    $: module.max_cv = module.state.gain;
+    module.cv = gainNode.gain;
 
     $: gainNode.gain.setValueAtTime(module.state.gain, $context.currentTime);
 
     var currentInput;
 
     $: if (!module.destroyed) {
-        if (module.input && module.input.output) {
+        if (module.input) {
             if (currentInput) currentInput.disconnect(gainNode);
             currentInput = module.input.output;
             currentInput.connect(gainNode);
@@ -77,24 +65,27 @@
         currentCvModule.setGain(module.state.id, module.state.gain);
     }
 
-    function connectCv(e) {
-        cvModule = $modules[e.target.selectedOptions[0].value];
+    $: if (!module.destroyed) {
         if (cvModule) {
             gainNode.gain.cancelScheduledValues($context.currentTime);
             gainNode.gain.setValueAtTime(0, $context.currentTime);
             if (currentCvModule) {
-                if (currentCvModule.outputs[module.state.id]); currentCvModule.removeOutput(module.state.id);
+                if (currentCvModule.outputs[module.state.id]); currentCvModule.removeOutput(module.state.id, module.cv);
             }
             currentCvModule = cvModule;
-            if (!currentCvModule.outputs[module.state.id]) currentCvModule.addOutput(module.state.id, gainNode.gain);
+            if (!currentCvModule.outputs[module.state.id]) currentCvModule.addOutput(module.state.id, module.cv);
         } else {
             gainNode.gain.cancelScheduledValues($context.currentTime);
             gainNode.gain.setValueAtTime(module.state.gain, $context.currentTime);
             if (currentCvModule) {
-                if (currentCvModule.outputs[module.state.id]) currentCvModule.removeOutput(module.state.id);
+                if (currentCvModule.outputs[module.state.id]) currentCvModule.removeOutput(module.state.id, module.cv);
             }
             currentCvModule = null;
         }
+    }
+
+    function connectCV(e) {
+        module.state.cvId = e.target.selectedOptions[0].value;
     }
 
     module.clearCurrents = () => {
@@ -169,7 +160,7 @@
         <option value={null}></option>
         </select> Input</label></div>
         <div class='inputDiv' on:mouseenter={() => cvsAllHover(module)} on:mouseleave={unhover}>
-        <label><select bind:value={module.state.cvId} on:change={connectCv}>
+        <label><select value={null} on:change={connectCV}>
         {#each Object.entries($modules) as [id, m]}
             {#if m.state.type == 'adsr' || m.state.type == 'lfo'}
             <option value={id}>{id} {m.state.title}</option>
@@ -177,7 +168,7 @@
         {/each}
         <option value={null}></option>
         </select> Control</label></div><br>
-        <label for='gain'>Volume</label><input id='gain' bind:value={module.state.gain} type='range' min='0' max='1' step='0.001'>
+        <label for='gain'>Volume ({module.state.gain.toFixed(2)})</label><input id='gain' bind:value={module.state.gain} type='range' min='0' max='1' step='0.001'>
     </div>
 </div>
 <br>

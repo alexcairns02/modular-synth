@@ -157,6 +157,7 @@
 	if (DEBUG) addPatch(debugPatch);
 </script>
 
+<html lang="UTF-8">
 <body>
 <main>
 	<div class="menu">
@@ -179,11 +180,26 @@
 	</div>
 </main>
 </body>
+</html>
 
 <style>
+	:global(html) {
+		background-color: #f4f4f4;
+		opacity: 1;
+		background-size: 12px 12px;
+		background-image: repeating-linear-gradient(45deg, #f0f0f0 0, #f0f0f0 1.2000000000000002px, #f4f4f4 0, #f4f4f4 50%);
+	}
+
+	body {
+		margin: 0;
+		padding: 0;
+	}
+
 	main {
         font-family: "Monaco", monospace;
 		color: "#222222";
+		width: 100%;
+		height: 100%;
 	}
 
 	.modules {
@@ -194,7 +210,7 @@
 	}
 
 	.menu {
-		position: relative;
+		position: fixed;
 		z-index: 1;
 		pointer-events: none;
 	}
@@ -202,6 +218,7 @@
 	button {
 		pointer-events: all;
 		padding: 10px;
+		background-color: #f4f4f4;
 	}
 
 	#vcoBtn {

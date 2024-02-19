@@ -180,7 +180,7 @@
         position: absolute;
         width: 250px;
         padding: 1%;
-        background-color: rgba(255, 255, 255, 0.7);
+        background-color: rgba(244, 244, 244, 0.7);
     }
 
     .active {
