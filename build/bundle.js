@@ -167,22 +167,6 @@ var app = (function () {
             node.style.setProperty(key, value, important ? 'important' : '');
         }
     }
-    function select_option(select, value, mounting) {
-        for (let i = 0; i < select.options.length; i += 1) {
-            const option = select.options[i];
-            if (option.__value === value) {
-                option.selected = true;
-                return;
-            }
-        }
-        if (!mounting || value !== undefined) {
-            select.selectedIndex = -1; // no option should be selected
-        }
-    }
-    function select_value(select) {
-        const selected_option = select.querySelector(':checked');
-        return selected_option && selected_option.__value;
-    }
     function toggle_class(element, name, toggle) {
         element.classList[toggle ? 'add' : 'remove'](name);
     }
@@ -580,10 +564,6 @@ var app = (function () {
         else
             dispatch_dev('SvelteDOMSetAttribute', { node, attribute, value });
     }
-    function prop_dev(node, property, value) {
-        node[property] = value;
-        dispatch_dev('SvelteDOMSetProperty', { node, property, value });
-    }
     function set_data_dev(text, data) {
         data = '' + data;
         if (text.data === data)
@@ -655,6 +635,16 @@ var app = (function () {
 
     const subscriber_queue = [];
     /**
+     * Creates a `Readable` store that allows reading by subscription.
+     * @param value initial value
+     * @param {StartStopNotifier} [start]
+     */
+    function readable(value, start) {
+        return {
+            subscribe: writable(value, start).subscribe
+        };
+    }
+    /**
      * Create a `Writable` store that allows both updating and reading by subscription.
      * @param {*=}value initial value
      * @param {StartStopNotifier=} start
@@ -709,6 +699,17 @@ var app = (function () {
 
     const output = writable({});
 
+    const colours = readable({
+        vco: "#ff6666",
+        mixer: "#ffff77",
+        vca: "#88ff88",
+        vcf: "#ff9955",
+        lfo: "#dd88ff",
+        adsr: "#7788ff",
+    });
+
+    const selectingModule = writable(null);
+
     function getDefaultExportFromCjs (x) {
     	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
     }
@@ -726,7 +727,7 @@ var app = (function () {
     const file$9 = "src\\MIDI.svelte";
 
     // (172:52) {#if note}
-    function create_if_block$4(ctx) {
+    function create_if_block$8(ctx) {
     	let t_value = /*newOct*/ ctx[0] + /*newOctUp*/ ctx[3] + "";
     	let t;
 
@@ -747,7 +748,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block$4.name,
+    		id: create_if_block$8.name,
     		type: "if",
     		source: "(172:52) {#if note}",
     		ctx
@@ -781,7 +782,7 @@ var app = (function () {
     	let br5;
     	let mounted;
     	let dispose;
-    	let if_block = /*note*/ ctx[2] && create_if_block$4(ctx);
+    	let if_block = /*note*/ ctx[2] && create_if_block$8(ctx);
 
     	const block = {
     		c: function create() {
@@ -791,11 +792,11 @@ var app = (function () {
     			h2.textContent = "Note Input";
     			t1 = space();
     			p0 = element("p");
-    			t2 = text("Play notes by pressing keys on keyboard");
+    			t2 = text("Play notes by pressing keys on keyboard (requires oscillator)");
     			br0 = element("br");
     			t3 = text("\r\n    White notes: 'Z'-'/'");
     			br1 = element("br");
-    			t4 = text("\r\n    Black notes: 'S'-';'");
+    			t4 = text("    \r\n    Black notes: 'S'-';'");
     			br2 = element("br");
     			t5 = text("\r\n    Change octave: '-' and '='");
     			br3 = element("br");
@@ -810,21 +811,21 @@ var app = (function () {
     			t10 = space();
     			br5 = element("br");
     			add_location(h2, file$9, 165, 4, 4327);
-    			add_location(br0, file$9, 166, 46, 4394);
-    			add_location(br1, file$9, 167, 24, 4424);
-    			add_location(br2, file$9, 168, 24, 4454);
-    			add_location(br3, file$9, 169, 30, 4490);
-    			add_location(br4, file$9, 170, 29, 4525);
-    			attr_dev(p0, "class", "svelte-3gyfhz");
+    			add_location(br0, file$9, 166, 68, 4416);
+    			add_location(br1, file$9, 167, 24, 4446);
+    			add_location(br2, file$9, 168, 24, 4480);
+    			add_location(br3, file$9, 169, 30, 4516);
+    			add_location(br4, file$9, 170, 29, 4551);
+    			attr_dev(p0, "class", "svelte-fwrw15");
     			add_location(p0, file$9, 166, 4, 4352);
-    			attr_dev(b, "class", "svelte-3gyfhz");
+    			attr_dev(b, "class", "svelte-fwrw15");
     			toggle_class(b, "active", /*trigger*/ ctx[1]);
-    			add_location(b, file$9, 171, 20, 4555);
-    			attr_dev(p1, "class", "svelte-3gyfhz");
-    			add_location(p1, file$9, 171, 4, 4539);
-    			attr_dev(div, "class", "svelte-3gyfhz");
+    			add_location(b, file$9, 171, 20, 4581);
+    			attr_dev(p1, "class", "svelte-fwrw15");
+    			add_location(p1, file$9, 171, 4, 4565);
+    			attr_dev(div, "class", "svelte-fwrw15");
     			add_location(div, file$9, 164, 0, 4316);
-    			add_location(br5, file$9, 173, 0, 4637);
+    			add_location(br5, file$9, 173, 0, 4663);
     			add_location(main, file$9, 163, 0, 4308);
     		},
     		l: function claim(nodes) {
@@ -871,7 +872,7 @@ var app = (function () {
     				if (if_block) {
     					if_block.p(ctx, dirty);
     				} else {
-    					if_block = create_if_block$4(ctx);
+    					if_block = create_if_block$8(ctx);
     					if_block.c();
     					if_block.m(b, null);
     				}
@@ -1276,8 +1277,11 @@ var app = (function () {
     	let $size;
     	let $coords;
     	let $midi;
+    	let $selectingModule;
     	validate_store(midi, 'midi');
     	component_subscribe($$self, midi, $$value => $$invalidate(14, $midi = $$value));
+    	validate_store(selectingModule, 'selectingModule');
+    	component_subscribe($$self, selectingModule, $$value => $$invalidate(17, $selectingModule = $$value));
     	$$self.$$.on_destroy.push(() => $$unsubscribe_bobSize());
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('ModuleMovement', slots, []);
@@ -1304,7 +1308,7 @@ var app = (function () {
 
     	const moduleClick = () => {
     		moving = true;
-    		if (!controlling) size.set(20);
+    		if (!controlling && $selectingModule == null) size.set(20); else if (!controlling) size.set(10);
     	};
 
     	const controlsClick = () => {
@@ -1318,7 +1322,7 @@ var app = (function () {
     	};
 
     	const windowMouseMove = e => {
-    		if (moving && !controlling) {
+    		if (moving && !controlling && $selectingModule == null) {
     			$$invalidate(5, nodePos.x += e.movementX, nodePos);
     			$$invalidate(5, nodePos.y += e.movementY, nodePos);
     			coords.set({ x: nodePos.x, y: nodePos.y });
@@ -1375,6 +1379,7 @@ var app = (function () {
     	$$self.$capture_state = () => ({
     		spring,
     		midi,
+    		selectingModule,
     		hasTrigger,
     		moduleNode,
     		controlsNode,
@@ -1395,7 +1400,8 @@ var app = (function () {
     		$triggerSize,
     		$size,
     		$coords,
-    		$midi
+    		$midi,
+    		$selectingModule
     	});
 
     	$$self.$inject_state = $$props => {
@@ -1576,7 +1582,6 @@ var app = (function () {
         module.destroyed = true;
 
         module.component.parentNode.removeChild(module.component);
-        modules.update((ms) => {delete ms[module.state.id]; return ms;});
 
         if (module.state.cvId) {
             modules.update((ms) => {
@@ -1602,6 +1607,8 @@ var app = (function () {
                 });
             }
         });
+
+        modules.update((ms) => {delete ms[module.state.id]; return ms;});
     }
     function inputsAllHover(module) {
         Object.values(mods).forEach((m) => {
@@ -1615,7 +1622,7 @@ var app = (function () {
 
     function mixerInputHover(module, inputId) {
         Object.values(mods).forEach((m) => {
-            if (m.state.id != module.state.id && (!m.output || (module.state.inputIds.includes(String(m.state.id)) && m.state.id != inputId))) {
+            if (m.state.id != module.state.id && (!m.output || (module.state.inputIds.includes(m.state.id) && m.state.id != inputId))) {
                 m.fade();
             } else if (inputId != null && m.state.id == inputId) {
                 m.bob();
@@ -1894,7 +1901,8 @@ var app = (function () {
     /* src\VCO.svelte generated by Svelte v3.59.2 */
     const file$7 = "src\\VCO.svelte";
 
-    function create_fragment$7(ctx) {
+    // (98:0) {#if !module.destroyed}
+    function create_if_block$7(ctx) {
     	let main;
     	let modulemovement;
     	let updating_moduleNode;
@@ -1908,12 +1916,12 @@ var app = (function () {
     	let deletebutton;
     	let t1;
     	let h1;
-    	let t2_value = /*module*/ ctx[2].state.id + "";
+    	let t2_value = /*module*/ ctx[3].state.id + "";
     	let t2;
     	let t3;
     	let div1;
     	let h2;
-    	let t4_value = /*module*/ ctx[2].state.title + "";
+    	let t4_value = /*module*/ ctx[3].state.title + "";
     	let t4;
     	let t5;
     	let label0;
@@ -1948,6 +1956,7 @@ var app = (function () {
     	let label4;
     	let t16;
     	let label4_for_value;
+    	let div2_style_value;
     	let t17;
     	let br1;
     	let current;
@@ -1956,23 +1965,23 @@ var app = (function () {
     	let dispose;
 
     	function modulemovement_moduleNode_binding(value) {
-    		/*modulemovement_moduleNode_binding*/ ctx[14](value);
+    		/*modulemovement_moduleNode_binding*/ ctx[17](value);
     	}
 
     	function modulemovement_controlsNode_binding(value) {
-    		/*modulemovement_controlsNode_binding*/ ctx[15](value);
+    		/*modulemovement_controlsNode_binding*/ ctx[18](value);
     	}
 
     	function modulemovement_deleteNode_binding(value) {
-    		/*modulemovement_deleteNode_binding*/ ctx[16](value);
+    		/*modulemovement_deleteNode_binding*/ ctx[19](value);
     	}
 
     	function modulemovement_nodePos_binding(value) {
-    		/*modulemovement_nodePos_binding*/ ctx[17](value);
+    		/*modulemovement_nodePos_binding*/ ctx[20](value);
     	}
 
     	function modulemovement_bobSize_binding(value) {
-    		/*modulemovement_bobSize_binding*/ ctx[18](value);
+    		/*modulemovement_bobSize_binding*/ ctx[21](value);
     	}
 
     	let modulemovement_props = { nodeSize: { x: 320, y: 250 } };
@@ -1981,8 +1990,8 @@ var app = (function () {
     		modulemovement_props.moduleNode = /*moduleNode*/ ctx[1];
     	}
 
-    	if (/*controlsNode*/ ctx[3] !== void 0) {
-    		modulemovement_props.controlsNode = /*controlsNode*/ ctx[3];
+    	if (/*controlsNode*/ ctx[2] !== void 0) {
+    		modulemovement_props.controlsNode = /*controlsNode*/ ctx[2];
     	}
 
     	if (/*deleteNode*/ ctx[4] !== void 0) {
@@ -2009,11 +2018,11 @@ var app = (function () {
     	binding_callbacks.push(() => bind(modulemovement, 'bobSize', modulemovement_bobSize_binding));
 
     	deletebutton = new DeleteButton({
-    			props: { module: /*module*/ ctx[2] },
+    			props: { module: /*module*/ ctx[3] },
     			$$inline: true
     		});
 
-    	binding_group = init_binding_group(/*$$binding_groups*/ ctx[22][0]);
+    	binding_group = init_binding_group(/*$$binding_groups*/ ctx[25][0]);
 
     	const block = {
     		c: function create() {
@@ -2056,71 +2065,69 @@ var app = (function () {
     			t16 = text("Square");
     			t17 = space();
     			br1 = element("br");
-    			attr_dev(div0, "class", "delete svelte-2m8eme");
-    			add_location(div0, file$7, 87, 4, 2061);
-    			add_location(h1, file$7, 88, 4, 2139);
-    			attr_dev(h2, "class", "editableTitle svelte-2m8eme");
+    			attr_dev(div0, "class", "delete svelte-1qfr2di");
+    			add_location(div0, file$7, 101, 4, 3141);
+    			add_location(h1, file$7, 102, 4, 3219);
+    			attr_dev(h2, "class", "editableTitle svelte-1qfr2di");
     			attr_dev(h2, "contenteditable", "true");
-    			if (/*module*/ ctx[2].state.title === void 0) add_render_callback(() => /*h2_input_handler*/ ctx[19].call(h2));
-    			add_location(h2, file$7, 90, 8, 2219);
+    			if (/*$modules*/ ctx[7][/*module*/ ctx[3].state.id].state.title === void 0) add_render_callback(() => /*h2_input_handler*/ ctx[22].call(h2));
+    			add_location(h2, file$7, 104, 8, 3299);
     			attr_dev(label0, "for", "freq");
-    			add_location(label0, file$7, 91, 8, 2341);
+    			add_location(label0, file$7, 105, 8, 3440);
     			attr_dev(input0, "id", "freq");
     			attr_dev(input0, "type", "range");
     			attr_dev(input0, "min", "-2");
     			attr_dev(input0, "max", "2");
     			attr_dev(input0, "step", "0.083333333333333");
-    			add_location(input0, file$7, 91, 84, 2417);
-    			add_location(br0, file$7, 92, 8, 2535);
-    			attr_dev(input1, "id", input1_id_value = 'sine' + /*module*/ ctx[2].state.id);
+    			add_location(input0, file$7, 105, 84, 3516);
+    			add_location(br0, file$7, 106, 8, 3634);
+    			attr_dev(input1, "id", input1_id_value = 'sine' + /*module*/ ctx[3].state.id);
     			attr_dev(input1, "type", "radio");
     			input1.__value = "sine";
     			input1.value = input1.__value;
-    			attr_dev(input1, "class", "svelte-2m8eme");
-    			add_location(input1, file$7, 93, 12, 2576);
-    			attr_dev(label1, "for", label1_for_value = 'sine' + /*module*/ ctx[2].state.id);
-    			attr_dev(label1, "class", "svelte-2m8eme");
-    			add_location(label1, file$7, 93, 107, 2671);
-    			attr_dev(input2, "id", input2_id_value = 'triangle' + /*module*/ ctx[2].state.id);
+    			attr_dev(input1, "class", "svelte-1qfr2di");
+    			add_location(input1, file$7, 107, 12, 3675);
+    			attr_dev(label1, "for", label1_for_value = 'sine' + /*module*/ ctx[3].state.id);
+    			attr_dev(label1, "class", "svelte-1qfr2di");
+    			add_location(label1, file$7, 107, 107, 3770);
+    			attr_dev(input2, "id", input2_id_value = 'triangle' + /*module*/ ctx[3].state.id);
     			attr_dev(input2, "type", "radio");
     			input2.__value = "triangle";
     			input2.value = input2.__value;
-    			attr_dev(input2, "class", "svelte-2m8eme");
-    			add_location(input2, file$7, 94, 12, 2733);
-    			attr_dev(label2, "for", label2_for_value = 'triangle' + /*module*/ ctx[2].state.id);
-    			attr_dev(label2, "class", "svelte-2m8eme");
-    			add_location(label2, file$7, 94, 116, 2837);
-    			attr_dev(input3, "id", input3_id_value = 'sawtooth' + /*module*/ ctx[2].state.id);
+    			attr_dev(input2, "class", "svelte-1qfr2di");
+    			add_location(input2, file$7, 108, 12, 3832);
+    			attr_dev(label2, "for", label2_for_value = 'triangle' + /*module*/ ctx[3].state.id);
+    			attr_dev(label2, "class", "svelte-1qfr2di");
+    			add_location(label2, file$7, 108, 116, 3936);
+    			attr_dev(input3, "id", input3_id_value = 'sawtooth' + /*module*/ ctx[3].state.id);
     			attr_dev(input3, "type", "radio");
     			input3.__value = "sawtooth";
     			input3.value = input3.__value;
-    			attr_dev(input3, "class", "svelte-2m8eme");
-    			add_location(input3, file$7, 95, 12, 2907);
-    			attr_dev(label3, "for", label3_for_value = 'sawtooth' + /*module*/ ctx[2].state.id);
-    			attr_dev(label3, "class", "svelte-2m8eme");
-    			add_location(label3, file$7, 95, 115, 3010);
-    			attr_dev(input4, "id", input4_id_value = 'square' + /*module*/ ctx[2].state.id);
+    			attr_dev(input3, "class", "svelte-1qfr2di");
+    			add_location(input3, file$7, 109, 12, 4006);
+    			attr_dev(label3, "for", label3_for_value = 'sawtooth' + /*module*/ ctx[3].state.id);
+    			attr_dev(label3, "class", "svelte-1qfr2di");
+    			add_location(label3, file$7, 109, 115, 4109);
+    			attr_dev(input4, "id", input4_id_value = 'square' + /*module*/ ctx[3].state.id);
     			attr_dev(input4, "type", "radio");
     			input4.__value = "square";
     			input4.value = input4.__value;
-    			attr_dev(input4, "class", "svelte-2m8eme");
-    			add_location(input4, file$7, 96, 12, 3080);
-    			attr_dev(label4, "for", label4_for_value = 'square' + /*module*/ ctx[2].state.id);
-    			attr_dev(label4, "class", "svelte-2m8eme");
-    			add_location(label4, file$7, 96, 111, 3179);
-    			attr_dev(section, "class", "shape svelte-2m8eme");
-    			add_location(section, file$7, 92, 12, 2539);
+    			attr_dev(input4, "class", "svelte-1qfr2di");
+    			add_location(input4, file$7, 110, 12, 4179);
+    			attr_dev(label4, "for", label4_for_value = 'square' + /*module*/ ctx[3].state.id);
+    			attr_dev(label4, "class", "svelte-1qfr2di");
+    			add_location(label4, file$7, 110, 111, 4278);
+    			attr_dev(section, "class", "shape svelte-1qfr2di");
+    			add_location(section, file$7, 106, 12, 3638);
     			attr_dev(div1, "class", "controls");
-    			add_location(div1, file$7, 89, 4, 2171);
+    			add_location(div1, file$7, 103, 4, 3251);
     			attr_dev(div2, "id", "module");
-    			attr_dev(div2, "class", "svelte-2m8eme");
-    			add_location(div2, file$7, 86, 0, 2024);
-    			add_location(br1, file$7, 100, 0, 3273);
-    			add_location(main, file$7, 84, 0, 1844);
+    			attr_dev(div2, "style", div2_style_value = "background-color: " + /*$colours*/ ctx[8][/*module*/ ctx[3].state.type]);
+    			attr_dev(div2, "class", "svelte-1qfr2di");
+    			add_location(div2, file$7, 100, 4, 3045);
+    			add_location(br1, file$7, 114, 0, 4372);
+    			add_location(main, file$7, 98, 0, 2857);
     			binding_group.p(input1, input2, input3, input4);
-    		},
-    		l: function claim(nodes) {
-    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
@@ -2137,8 +2144,8 @@ var app = (function () {
     			append_dev(div1, h2);
     			append_dev(h2, t4);
 
-    			if (/*module*/ ctx[2].state.title !== void 0) {
-    				h2.textContent = /*module*/ ctx[2].state.title;
+    			if (/*$modules*/ ctx[7][/*module*/ ctx[3].state.id].state.title !== void 0) {
+    				h2.textContent = /*$modules*/ ctx[7][/*module*/ ctx[3].state.id].state.title;
     			}
 
     			append_dev(div1, t5);
@@ -2147,79 +2154,79 @@ var app = (function () {
     			append_dev(label0, t7);
     			append_dev(label0, t8);
     			append_dev(div1, input0);
-    			set_input_value(input0, /*module*/ ctx[2].state.frequency);
+    			set_input_value(input0, /*module*/ ctx[3].state.frequency);
     			append_dev(div1, t9);
     			append_dev(div1, br0);
     			append_dev(div1, section);
     			append_dev(section, input1);
-    			input1.checked = input1.__value === /*module*/ ctx[2].state.shape;
+    			input1.checked = input1.__value === /*module*/ ctx[3].state.shape;
     			append_dev(section, label1);
     			append_dev(label1, t10);
     			append_dev(section, t11);
     			append_dev(section, input2);
-    			input2.checked = input2.__value === /*module*/ ctx[2].state.shape;
+    			input2.checked = input2.__value === /*module*/ ctx[3].state.shape;
     			append_dev(section, label2);
     			append_dev(label2, t12);
     			append_dev(section, t13);
     			append_dev(section, input3);
-    			input3.checked = input3.__value === /*module*/ ctx[2].state.shape;
+    			input3.checked = input3.__value === /*module*/ ctx[3].state.shape;
     			append_dev(section, label3);
     			append_dev(label3, t14);
     			append_dev(section, t15);
     			append_dev(section, input4);
-    			input4.checked = input4.__value === /*module*/ ctx[2].state.shape;
+    			input4.checked = input4.__value === /*module*/ ctx[3].state.shape;
     			append_dev(section, label4);
     			append_dev(label4, t16);
     			append_dev(main, t17);
     			append_dev(main, br1);
-    			/*main_binding*/ ctx[26](main);
+    			/*main_binding*/ ctx[29](main);
     			current = true;
 
     			if (!mounted) {
     				dispose = [
-    					action_destroyer(/*setDelete*/ ctx[9].call(null, div0)),
-    					listen_dev(h2, "input", /*h2_input_handler*/ ctx[19]),
-    					listen_dev(input0, "change", /*input0_change_input_handler*/ ctx[20]),
-    					listen_dev(input0, "input", /*input0_change_input_handler*/ ctx[20]),
-    					listen_dev(input1, "change", /*input1_change_handler*/ ctx[21]),
-    					listen_dev(input2, "change", /*input2_change_handler*/ ctx[23]),
-    					listen_dev(input3, "change", /*input3_change_handler*/ ctx[24]),
-    					listen_dev(input4, "change", /*input4_change_handler*/ ctx[25]),
-    					action_destroyer(/*setControls*/ ctx[8].call(null, div1)),
-    					action_destroyer(/*setModule*/ ctx[7].call(null, div2))
+    					action_destroyer(/*setDelete*/ ctx[11].call(null, div0)),
+    					listen_dev(h2, "input", /*h2_input_handler*/ ctx[22]),
+    					listen_dev(input0, "change", /*input0_change_input_handler*/ ctx[23]),
+    					listen_dev(input0, "input", /*input0_change_input_handler*/ ctx[23]),
+    					listen_dev(input1, "change", /*input1_change_handler*/ ctx[24]),
+    					listen_dev(input2, "change", /*input2_change_handler*/ ctx[26]),
+    					listen_dev(input3, "change", /*input3_change_handler*/ ctx[27]),
+    					listen_dev(input4, "change", /*input4_change_handler*/ ctx[28]),
+    					action_destroyer(/*setControls*/ ctx[10].call(null, div1)),
+    					action_destroyer(/*setModule*/ ctx[9].call(null, div2))
     				];
 
     				mounted = true;
     			}
     		},
-    		p: function update(ctx, [dirty]) {
+    		p: function update(ctx, dirty) {
     			const modulemovement_changes = {};
 
-    			if (!updating_moduleNode && dirty & /*moduleNode*/ 2) {
+    			if (!updating_moduleNode && dirty[0] & /*moduleNode*/ 2) {
     				updating_moduleNode = true;
     				modulemovement_changes.moduleNode = /*moduleNode*/ ctx[1];
     				add_flush_callback(() => updating_moduleNode = false);
     			}
 
-    			if (!updating_controlsNode && dirty & /*controlsNode*/ 8) {
+    			if (!updating_controlsNode && dirty[0] & /*controlsNode*/ 4) {
     				updating_controlsNode = true;
-    				modulemovement_changes.controlsNode = /*controlsNode*/ ctx[3];
+    				modulemovement_changes.controlsNode = /*controlsNode*/ ctx[2];
     				add_flush_callback(() => updating_controlsNode = false);
     			}
 
-    			if (!updating_deleteNode && dirty & /*deleteNode*/ 16) {
+    			if (!updating_deleteNode && dirty[0] & /*deleteNode*/ 16) {
     				updating_deleteNode = true;
     				modulemovement_changes.deleteNode = /*deleteNode*/ ctx[4];
     				add_flush_callback(() => updating_deleteNode = false);
     			}
 
-    			if (!updating_nodePos && dirty & /*state*/ 1) {
+    			if (!updating_nodePos && dirty[0] & /*state*/ 1) {
     				updating_nodePos = true;
     				modulemovement_changes.nodePos = /*state*/ ctx[0].position;
     				add_flush_callback(() => updating_nodePos = false);
     			}
 
-    			if (!updating_bobSize && dirty & /*bobSize*/ 64) {
+    			if (!updating_bobSize && dirty[0] & /*bobSize*/ 64) {
     				updating_bobSize = true;
     				modulemovement_changes.bobSize = /*bobSize*/ ctx[6];
     				add_flush_callback(() => updating_bobSize = false);
@@ -2227,67 +2234,71 @@ var app = (function () {
 
     			modulemovement.$set(modulemovement_changes);
     			const deletebutton_changes = {};
-    			if (dirty & /*module*/ 4) deletebutton_changes.module = /*module*/ ctx[2];
+    			if (dirty[0] & /*module*/ 8) deletebutton_changes.module = /*module*/ ctx[3];
     			deletebutton.$set(deletebutton_changes);
-    			if ((!current || dirty & /*module*/ 4) && t2_value !== (t2_value = /*module*/ ctx[2].state.id + "")) set_data_dev(t2, t2_value);
-    			if ((!current || dirty & /*module*/ 4) && t4_value !== (t4_value = /*module*/ ctx[2].state.title + "")) set_data_contenteditable_dev(t4, t4_value);
+    			if ((!current || dirty[0] & /*module*/ 8) && t2_value !== (t2_value = /*module*/ ctx[3].state.id + "")) set_data_dev(t2, t2_value);
+    			if ((!current || dirty[0] & /*module*/ 8) && t4_value !== (t4_value = /*module*/ ctx[3].state.title + "")) set_data_contenteditable_dev(t4, t4_value);
 
-    			if (dirty & /*module*/ 4 && /*module*/ ctx[2].state.title !== h2.textContent) {
-    				h2.textContent = /*module*/ ctx[2].state.title;
+    			if (dirty[0] & /*$modules, module*/ 136 && /*$modules*/ ctx[7][/*module*/ ctx[3].state.id].state.title !== h2.textContent) {
+    				h2.textContent = /*$modules*/ ctx[7][/*module*/ ctx[3].state.id].state.title;
     			}
 
-    			if ((!current || dirty & /*oscNode*/ 32) && t7_value !== (t7_value = /*oscNode*/ ctx[5].frequency.value.toFixed(1) + "")) set_data_dev(t7, t7_value);
+    			if ((!current || dirty[0] & /*oscNode*/ 32) && t7_value !== (t7_value = /*oscNode*/ ctx[5].frequency.value.toFixed(1) + "")) set_data_dev(t7, t7_value);
 
-    			if (dirty & /*module*/ 4) {
-    				set_input_value(input0, /*module*/ ctx[2].state.frequency);
+    			if (dirty[0] & /*module*/ 8) {
+    				set_input_value(input0, /*module*/ ctx[3].state.frequency);
     			}
 
-    			if (!current || dirty & /*module*/ 4 && input1_id_value !== (input1_id_value = 'sine' + /*module*/ ctx[2].state.id)) {
+    			if (!current || dirty[0] & /*module*/ 8 && input1_id_value !== (input1_id_value = 'sine' + /*module*/ ctx[3].state.id)) {
     				attr_dev(input1, "id", input1_id_value);
     			}
 
-    			if (dirty & /*module*/ 4) {
-    				input1.checked = input1.__value === /*module*/ ctx[2].state.shape;
+    			if (dirty[0] & /*module*/ 8) {
+    				input1.checked = input1.__value === /*module*/ ctx[3].state.shape;
     			}
 
-    			if (!current || dirty & /*module*/ 4 && label1_for_value !== (label1_for_value = 'sine' + /*module*/ ctx[2].state.id)) {
+    			if (!current || dirty[0] & /*module*/ 8 && label1_for_value !== (label1_for_value = 'sine' + /*module*/ ctx[3].state.id)) {
     				attr_dev(label1, "for", label1_for_value);
     			}
 
-    			if (!current || dirty & /*module*/ 4 && input2_id_value !== (input2_id_value = 'triangle' + /*module*/ ctx[2].state.id)) {
+    			if (!current || dirty[0] & /*module*/ 8 && input2_id_value !== (input2_id_value = 'triangle' + /*module*/ ctx[3].state.id)) {
     				attr_dev(input2, "id", input2_id_value);
     			}
 
-    			if (dirty & /*module*/ 4) {
-    				input2.checked = input2.__value === /*module*/ ctx[2].state.shape;
+    			if (dirty[0] & /*module*/ 8) {
+    				input2.checked = input2.__value === /*module*/ ctx[3].state.shape;
     			}
 
-    			if (!current || dirty & /*module*/ 4 && label2_for_value !== (label2_for_value = 'triangle' + /*module*/ ctx[2].state.id)) {
+    			if (!current || dirty[0] & /*module*/ 8 && label2_for_value !== (label2_for_value = 'triangle' + /*module*/ ctx[3].state.id)) {
     				attr_dev(label2, "for", label2_for_value);
     			}
 
-    			if (!current || dirty & /*module*/ 4 && input3_id_value !== (input3_id_value = 'sawtooth' + /*module*/ ctx[2].state.id)) {
+    			if (!current || dirty[0] & /*module*/ 8 && input3_id_value !== (input3_id_value = 'sawtooth' + /*module*/ ctx[3].state.id)) {
     				attr_dev(input3, "id", input3_id_value);
     			}
 
-    			if (dirty & /*module*/ 4) {
-    				input3.checked = input3.__value === /*module*/ ctx[2].state.shape;
+    			if (dirty[0] & /*module*/ 8) {
+    				input3.checked = input3.__value === /*module*/ ctx[3].state.shape;
     			}
 
-    			if (!current || dirty & /*module*/ 4 && label3_for_value !== (label3_for_value = 'sawtooth' + /*module*/ ctx[2].state.id)) {
+    			if (!current || dirty[0] & /*module*/ 8 && label3_for_value !== (label3_for_value = 'sawtooth' + /*module*/ ctx[3].state.id)) {
     				attr_dev(label3, "for", label3_for_value);
     			}
 
-    			if (!current || dirty & /*module*/ 4 && input4_id_value !== (input4_id_value = 'square' + /*module*/ ctx[2].state.id)) {
+    			if (!current || dirty[0] & /*module*/ 8 && input4_id_value !== (input4_id_value = 'square' + /*module*/ ctx[3].state.id)) {
     				attr_dev(input4, "id", input4_id_value);
     			}
 
-    			if (dirty & /*module*/ 4) {
-    				input4.checked = input4.__value === /*module*/ ctx[2].state.shape;
+    			if (dirty[0] & /*module*/ 8) {
+    				input4.checked = input4.__value === /*module*/ ctx[3].state.shape;
     			}
 
-    			if (!current || dirty & /*module*/ 4 && label4_for_value !== (label4_for_value = 'square' + /*module*/ ctx[2].state.id)) {
+    			if (!current || dirty[0] & /*module*/ 8 && label4_for_value !== (label4_for_value = 'square' + /*module*/ ctx[3].state.id)) {
     				attr_dev(label4, "for", label4_for_value);
+    			}
+
+    			if (!current || dirty[0] & /*$colours, module*/ 264 && div2_style_value !== (div2_style_value = "background-color: " + /*$colours*/ ctx[8][/*module*/ ctx[3].state.type])) {
+    				attr_dev(div2, "style", div2_style_value);
     			}
     		},
     		i: function intro(local) {
@@ -2305,10 +2316,78 @@ var app = (function () {
     			if (detaching) detach_dev(main);
     			destroy_component(modulemovement);
     			destroy_component(deletebutton);
-    			/*main_binding*/ ctx[26](null);
+    			/*main_binding*/ ctx[29](null);
     			binding_group.r();
     			mounted = false;
     			run_all(dispose);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block$7.name,
+    		type: "if",
+    		source: "(98:0) {#if !module.destroyed}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function create_fragment$7(ctx) {
+    	let if_block_anchor;
+    	let current;
+    	let if_block = !/*module*/ ctx[3].destroyed && create_if_block$7(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if (if_block) if_block.c();
+    			if_block_anchor = empty();
+    		},
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+    		m: function mount(target, anchor) {
+    			if (if_block) if_block.m(target, anchor);
+    			insert_dev(target, if_block_anchor, anchor);
+    			current = true;
+    		},
+    		p: function update(ctx, dirty) {
+    			if (!/*module*/ ctx[3].destroyed) {
+    				if (if_block) {
+    					if_block.p(ctx, dirty);
+
+    					if (dirty[0] & /*module*/ 8) {
+    						transition_in(if_block, 1);
+    					}
+    				} else {
+    					if_block = create_if_block$7(ctx);
+    					if_block.c();
+    					transition_in(if_block, 1);
+    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    				}
+    			} else if (if_block) {
+    				group_outros();
+
+    				transition_out(if_block, 1, 1, () => {
+    					if_block = null;
+    				});
+
+    				check_outros();
+    			}
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(if_block);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(if_block);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			if (if_block) if_block.d(detaching);
+    			if (detaching) detach_dev(if_block_anchor);
     		}
     	};
 
@@ -2324,16 +2403,25 @@ var app = (function () {
     }
 
     function instance$7($$self, $$props, $$invalidate) {
+    	let $selectingModule;
     	let $opacity;
+    	let $modules;
+    	let $output;
     	let $midi;
     	let $context;
-    	let $modules;
-    	validate_store(midi, 'midi');
-    	component_subscribe($$self, midi, $$value => $$invalidate(13, $midi = $$value));
-    	validate_store(context, 'context');
-    	component_subscribe($$self, context, $$value => $$invalidate(27, $context = $$value));
+    	let $colours;
+    	validate_store(selectingModule, 'selectingModule');
+    	component_subscribe($$self, selectingModule, $$value => $$invalidate(14, $selectingModule = $$value));
     	validate_store(modules, 'modules');
-    	component_subscribe($$self, modules, $$value => $$invalidate(28, $modules = $$value));
+    	component_subscribe($$self, modules, $$value => $$invalidate(7, $modules = $$value));
+    	validate_store(output, 'output');
+    	component_subscribe($$self, output, $$value => $$invalidate(30, $output = $$value));
+    	validate_store(midi, 'midi');
+    	component_subscribe($$self, midi, $$value => $$invalidate(16, $midi = $$value));
+    	validate_store(context, 'context');
+    	component_subscribe($$self, context, $$value => $$invalidate(31, $context = $$value));
+    	validate_store(colours, 'colours');
+    	component_subscribe($$self, colours, $$value => $$invalidate(8, $colours = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('VCO', slots, []);
 
@@ -2348,7 +2436,6 @@ var app = (function () {
     	let moduleNode;
     	let controlsNode;
     	let deleteNode;
-    	let titleNode;
     	set_store_value(modules, $modules[state.id] = {}, $modules);
     	const module = $modules[state.id];
     	module.state = state;
@@ -2360,10 +2447,20 @@ var app = (function () {
 
     	function setModule(node) {
     		$$invalidate(1, moduleNode = node);
+
+    		moduleNode.addEventListener("mouseup", () => {
+    			if ($selectingModule == "output") {
+    				$output.select(module.state.id);
+    			} else if ($selectingModule != null && $modules[$selectingModule].selectingInput && $selectingModule != module.state.id && ($modules[$selectingModule].state.type != "mixer" || (!$modules[$selectingModule].state.inputIds.includes(module.state.id) || $modules[$selectingModule].state.inputIds[$modules[$selectingModule].inputSelecting] == module.state.id))) {
+    				$modules[$selectingModule].select(module.state.id);
+    			} else if ($selectingModule == module.state.id) {
+    				module.select(null);
+    			}
+    		});
     	}
 
     	function setControls(node) {
-    		$$invalidate(3, controlsNode = node);
+    		$$invalidate(2, controlsNode = node);
     	}
 
     	function setDelete(node) {
@@ -2372,7 +2469,7 @@ var app = (function () {
 
     	let opacity = spring(1, { stiffness: 0.1, damping: 0.5 });
     	validate_store(opacity, 'opacity');
-    	component_subscribe($$self, opacity, value => $$invalidate(12, $opacity = value));
+    	component_subscribe($$self, opacity, value => $$invalidate(15, $opacity = value));
     	let bobSize = spring(0, { stiffness: 0.3, damping: 0.2 });
 
     	module.fade = () => {
@@ -2409,12 +2506,12 @@ var app = (function () {
 
     	function modulemovement_moduleNode_binding(value) {
     		moduleNode = value;
-    		($$invalidate(1, moduleNode), $$invalidate(12, $opacity));
+    		($$invalidate(1, moduleNode), $$invalidate(15, $opacity));
     	}
 
     	function modulemovement_controlsNode_binding(value) {
     		controlsNode = value;
-    		$$invalidate(3, controlsNode);
+    		($$invalidate(2, controlsNode), $$invalidate(14, $selectingModule));
     	}
 
     	function modulemovement_deleteNode_binding(value) {
@@ -2435,39 +2532,39 @@ var app = (function () {
     	}
 
     	function h2_input_handler() {
-    		module.state.title = this.textContent;
-    		$$invalidate(2, module);
+    		$modules[module.state.id].state.title = this.textContent;
+    		modules.set($modules);
     	}
 
     	function input0_change_input_handler() {
     		module.state.frequency = to_number(this.value);
-    		$$invalidate(2, module);
+    		$$invalidate(3, module);
     	}
 
     	function input1_change_handler() {
     		module.state.shape = this.__value;
-    		$$invalidate(2, module);
+    		$$invalidate(3, module);
     	}
 
     	function input2_change_handler() {
     		module.state.shape = this.__value;
-    		$$invalidate(2, module);
+    		$$invalidate(3, module);
     	}
 
     	function input3_change_handler() {
     		module.state.shape = this.__value;
-    		$$invalidate(2, module);
+    		$$invalidate(3, module);
     	}
 
     	function input4_change_handler() {
     		module.state.shape = this.__value;
-    		$$invalidate(2, module);
+    		$$invalidate(3, module);
     	}
 
     	function main_binding($$value) {
     		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
     			module.component = $$value;
-    			$$invalidate(2, module);
+    			$$invalidate(3, module);
     		});
     	}
 
@@ -2479,16 +2576,19 @@ var app = (function () {
     		modules,
     		context,
     		midi,
+    		colours,
+    		selectingModule,
+    		output,
     		ModuleMovement,
     		DeleteButton,
     		createNewId,
     		setPosition,
+    		moduleInUse,
     		spring,
     		state,
     		moduleNode,
     		controlsNode,
     		deleteNode,
-    		titleNode,
     		module,
     		voct,
     		oscNode,
@@ -2497,21 +2597,23 @@ var app = (function () {
     		setDelete,
     		opacity,
     		bobSize,
+    		$selectingModule,
     		$opacity,
+    		$modules,
+    		$output,
     		$midi,
     		$context,
-    		$modules
+    		$colours
     	});
 
     	$$self.$inject_state = $$props => {
     		if ('state' in $$props) $$invalidate(0, state = $$props.state);
     		if ('moduleNode' in $$props) $$invalidate(1, moduleNode = $$props.moduleNode);
-    		if ('controlsNode' in $$props) $$invalidate(3, controlsNode = $$props.controlsNode);
+    		if ('controlsNode' in $$props) $$invalidate(2, controlsNode = $$props.controlsNode);
     		if ('deleteNode' in $$props) $$invalidate(4, deleteNode = $$props.deleteNode);
-    		if ('titleNode' in $$props) titleNode = $$props.titleNode;
-    		if ('voct' in $$props) $$invalidate(11, voct = $$props.voct);
+    		if ('voct' in $$props) $$invalidate(13, voct = $$props.voct);
     		if ('oscNode' in $$props) $$invalidate(5, oscNode = $$props.oscNode);
-    		if ('opacity' in $$props) $$invalidate(10, opacity = $$props.opacity);
+    		if ('opacity' in $$props) $$invalidate(12, opacity = $$props.opacity);
     		if ('bobSize' in $$props) $$invalidate(6, bobSize = $$props.bobSize);
     	};
 
@@ -2520,36 +2622,49 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*$midi*/ 8192) {
-    			if ($midi.voct) $$invalidate(11, voct = $midi.voct);
+    		if ($$self.$$.dirty[0] & /*$midi*/ 65536) {
+    			if ($midi.voct) $$invalidate(13, voct = $midi.voct);
     		}
 
-    		if ($$self.$$.dirty & /*voct, module*/ 2052) {
+    		if ($$self.$$.dirty[0] & /*voct, module*/ 8200) {
     			$$invalidate(5, oscNode.frequency.value = Math.pow(2, voct + module.state.frequency), oscNode);
     		}
 
-    		if ($$self.$$.dirty & /*module*/ 4) {
+    		if ($$self.$$.dirty[0] & /*module*/ 8) {
     			$$invalidate(5, oscNode.type = module.state.shape, oscNode);
     		}
 
-    		if ($$self.$$.dirty & /*moduleNode, $opacity*/ 4098) {
+    		if ($$self.$$.dirty[0] & /*moduleNode, $opacity*/ 32770) {
     			if (moduleNode) $$invalidate(1, moduleNode.style.opacity = `${$opacity}`, moduleNode);
+    		}
+
+    		if ($$self.$$.dirty[0] & /*controlsNode, $selectingModule*/ 16388) {
+    			if (controlsNode) {
+    				if ($selectingModule != null) {
+    					$$invalidate(2, controlsNode.style.pointerEvents = "none", controlsNode);
+    				} else {
+    					$$invalidate(2, controlsNode.style.pointerEvents = "all", controlsNode);
+    				}
+    			}
     		}
     	};
 
     	return [
     		state,
     		moduleNode,
-    		module,
     		controlsNode,
+    		module,
     		deleteNode,
     		oscNode,
     		bobSize,
+    		$modules,
+    		$colours,
     		setModule,
     		setControls,
     		setDelete,
     		opacity,
     		voct,
+    		$selectingModule,
     		$opacity,
     		$midi,
     		modulemovement_moduleNode_binding,
@@ -2571,7 +2686,7 @@ var app = (function () {
     class VCO extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$7, create_fragment$7, safe_not_equal, { state: 0 });
+    		init(this, options, instance$7, create_fragment$7, safe_not_equal, { state: 0 }, null, [-1, -1]);
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
@@ -2592,25 +2707,18 @@ var app = (function () {
 
     /* src\Output.svelte generated by Svelte v3.59.2 */
 
-    const { Object: Object_1$5 } = globals;
+    const { Object: Object_1$2 } = globals;
     const file$6 = "src\\Output.svelte";
 
-    function get_each_context$4(ctx, list, i) {
-    	const child_ctx = ctx.slice();
-    	child_ctx[15] = list[i][0];
-    	child_ctx[16] = list[i][1];
-    	return child_ctx;
-    }
-
-    // (71:48) 
-    function create_if_block_2(ctx) {
+    // (118:48) 
+    function create_if_block_2$2(ctx) {
     	let p;
 
     	const block = {
     		c: function create() {
     			p = element("p");
     			p.textContent = "Select input below";
-    			add_location(p, file$6, 70, 48, 1871);
+    			add_location(p, file$6, 117, 48, 3328);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, p, anchor);
@@ -2622,24 +2730,24 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_2.name,
+    		id: create_if_block_2$2.name,
     		type: "if",
-    		source: "(71:48) ",
+    		source: "(118:48) ",
     		ctx
     	});
 
     	return block;
     }
 
-    // (70:8) {#if Object.values($modules).length == 0}
-    function create_if_block_1$2(ctx) {
+    // (117:8) {#if Object.values($modules).length == 0}
+    function create_if_block_1$3(ctx) {
     	let p;
 
     	const block = {
     		c: function create() {
     			p = element("p");
     			p.textContent = "Add modules using buttons above";
-    			add_location(p, file$6, 69, 49, 1783);
+    			add_location(p, file$6, 116, 49, 3240);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, p, anchor);
@@ -2651,108 +2759,78 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_1$2.name,
+    		id: create_if_block_1$3.name,
     		type: "if",
-    		source: "(70:8) {#if Object.values($modules).length == 0}",
+    		source: "(117:8) {#if Object.values($modules).length == 0}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (76:12) {#if (m.output && !moduleInUse(m) || id == $output.state.inputId)}
-    function create_if_block$3(ctx) {
-    	let option;
-    	let t0_value = /*id*/ ctx[15] + "";
-    	let t0;
-    	let t1;
-    	let t2_value = /*m*/ ctx[16].state.title + "";
-    	let t2;
-    	let option_value_value;
+    // (125:12) {:else}
+    function create_else_block$4(ctx) {
+    	let t;
 
     	const block = {
     		c: function create() {
-    			option = element("option");
+    			t = text("None");
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, t, anchor);
+    		},
+    		p: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(t);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_else_block$4.name,
+    		type: "else",
+    		source: "(125:12) {:else}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (123:12) {#if $output.state.inputId != null && $modules[$output.state.inputId]}
+    function create_if_block$6(ctx) {
+    	let t0_value = /*$output*/ ctx[1].state.inputId + "";
+    	let t0;
+    	let t1;
+    	let t2_value = /*$modules*/ ctx[2][/*$output*/ ctx[1].state.inputId].state.title + "";
+    	let t2;
+
+    	const block = {
+    		c: function create() {
     			t0 = text(t0_value);
     			t1 = space();
     			t2 = text(t2_value);
-    			option.__value = option_value_value = /*id*/ ctx[15];
-    			option.value = option.__value;
-    			add_location(option, file$6, 76, 12, 2216);
     		},
     		m: function mount(target, anchor) {
-    			insert_dev(target, option, anchor);
-    			append_dev(option, t0);
-    			append_dev(option, t1);
-    			append_dev(option, t2);
+    			insert_dev(target, t0, anchor);
+    			insert_dev(target, t1, anchor);
+    			insert_dev(target, t2, anchor);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*$modules*/ 2 && t0_value !== (t0_value = /*id*/ ctx[15] + "")) set_data_dev(t0, t0_value);
-    			if (dirty & /*$modules*/ 2 && t2_value !== (t2_value = /*m*/ ctx[16].state.title + "")) set_data_dev(t2, t2_value);
-
-    			if (dirty & /*$modules*/ 2 && option_value_value !== (option_value_value = /*id*/ ctx[15])) {
-    				prop_dev(option, "__value", option_value_value);
-    				option.value = option.__value;
-    			}
+    			if (dirty & /*$output*/ 2 && t0_value !== (t0_value = /*$output*/ ctx[1].state.inputId + "")) set_data_dev(t0, t0_value);
+    			if (dirty & /*$modules, $output*/ 6 && t2_value !== (t2_value = /*$modules*/ ctx[2][/*$output*/ ctx[1].state.inputId].state.title + "")) set_data_dev(t2, t2_value);
     		},
     		d: function destroy(detaching) {
-    			if (detaching) detach_dev(option);
+    			if (detaching) detach_dev(t0);
+    			if (detaching) detach_dev(t1);
+    			if (detaching) detach_dev(t2);
     		}
     	};
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block$3.name,
+    		id: create_if_block$6.name,
     		type: "if",
-    		source: "(76:12) {#if (m.output && !moduleInUse(m) || id == $output.state.inputId)}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    // (75:8) {#each Object.entries($modules) as [id, m]}
-    function create_each_block$4(ctx) {
-    	let show_if = /*m*/ ctx[16].output && !moduleInUse(/*m*/ ctx[16]) || /*id*/ ctx[15] == /*$output*/ ctx[0].state.inputId;
-    	let if_block_anchor;
-    	let if_block = show_if && create_if_block$3(ctx);
-
-    	const block = {
-    		c: function create() {
-    			if (if_block) if_block.c();
-    			if_block_anchor = empty();
-    		},
-    		m: function mount(target, anchor) {
-    			if (if_block) if_block.m(target, anchor);
-    			insert_dev(target, if_block_anchor, anchor);
-    		},
-    		p: function update(ctx, dirty) {
-    			if (dirty & /*$modules, $output*/ 3) show_if = /*m*/ ctx[16].output && !moduleInUse(/*m*/ ctx[16]) || /*id*/ ctx[15] == /*$output*/ ctx[0].state.inputId;
-
-    			if (show_if) {
-    				if (if_block) {
-    					if_block.p(ctx, dirty);
-    				} else {
-    					if_block = create_if_block$3(ctx);
-    					if_block.c();
-    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
-    				}
-    			} else if (if_block) {
-    				if_block.d(1);
-    				if_block = null;
-    			}
-    		},
-    		d: function destroy(detaching) {
-    			if (if_block) if_block.d(detaching);
-    			if (detaching) detach_dev(if_block_anchor);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_each_block$4.name,
-    		type: "each",
-    		source: "(75:8) {#each Object.entries($modules) as [id, m]}",
+    		source: "(123:12) {#if $output.state.inputId != null && $modules[$output.state.inputId]}",
     		ctx
     	});
 
@@ -2761,7 +2839,7 @@ var app = (function () {
 
     function create_fragment$6(ctx) {
     	let main;
-    	let div1;
+    	let div2;
     	let h2;
     	let t0;
     	let t1;
@@ -2769,10 +2847,10 @@ var app = (function () {
     	let t3;
     	let show_if;
     	let t4;
+    	let div1;
     	let div0;
     	let label0;
-    	let select;
-    	let option;
+    	let button;
     	let t5;
     	let t6;
     	let br0;
@@ -2785,42 +2863,39 @@ var app = (function () {
     	let dispose;
 
     	function select_block_type(ctx, dirty) {
-    		if (dirty & /*$modules*/ 2) show_if = null;
-    		if (show_if == null) show_if = !!(Object.values(/*$modules*/ ctx[1]).length == 0);
-    		if (show_if) return create_if_block_1$2;
-    		if (/*$output*/ ctx[0].state.inputId == null) return create_if_block_2;
+    		if (dirty & /*$modules*/ 4) show_if = null;
+    		if (show_if == null) show_if = !!(Object.values(/*$modules*/ ctx[2]).length == 0);
+    		if (show_if) return create_if_block_1$3;
+    		if (/*$output*/ ctx[1].state.inputId == null) return create_if_block_2$2;
     	}
 
     	let current_block_type = select_block_type(ctx, -1);
-    	let if_block = current_block_type && current_block_type(ctx);
-    	let each_value = Object.entries(/*$modules*/ ctx[1]);
-    	validate_each_argument(each_value);
-    	let each_blocks = [];
+    	let if_block0 = current_block_type && current_block_type(ctx);
 
-    	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block$4(get_each_context$4(ctx, each_value, i));
+    	function select_block_type_1(ctx, dirty) {
+    		if (/*$output*/ ctx[1].state.inputId != null && /*$modules*/ ctx[2][/*$output*/ ctx[1].state.inputId]) return create_if_block$6;
+    		return create_else_block$4;
     	}
+
+    	let current_block_type_1 = select_block_type_1(ctx);
+    	let if_block1 = current_block_type_1(ctx);
 
     	const block = {
     		c: function create() {
     			main = element("main");
-    			div1 = element("div");
+    			div2 = element("div");
     			h2 = element("h2");
     			t0 = text("Audio Output (");
-    			t1 = text(/*connectedString*/ ctx[2]);
+    			t1 = text(/*connectedString*/ ctx[3]);
     			t2 = text(")");
     			t3 = space();
-    			if (if_block) if_block.c();
+    			if (if_block0) if_block0.c();
     			t4 = space();
+    			div1 = element("div");
     			div0 = element("div");
     			label0 = element("label");
-    			select = element("select");
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].c();
-    			}
-
-    			option = element("option");
+    			button = element("button");
+    			if_block1.c();
     			t5 = text(" Input");
     			t6 = space();
     			br0 = element("br");
@@ -2830,124 +2905,99 @@ var app = (function () {
     			input = element("input");
     			t9 = space();
     			br1 = element("br");
-    			add_location(h2, file$6, 68, 8, 1691);
-    			option.__value = null;
-    			option.value = option.__value;
-    			add_location(option, file$6, 79, 8, 2310);
-    			attr_dev(select, "class", "svelte-thaehr");
-    			if (/*$output*/ ctx[0].state.inputId === void 0) add_render_callback(() => /*select_change_handler*/ ctx[11].call(select));
-    			add_location(select, file$6, 73, 15, 2026);
-    			add_location(label0, file$6, 73, 8, 2019);
+    			add_location(h2, file$6, 115, 8, 3148);
+    			attr_dev(button, "class", "svelte-1ogz0su");
+    			add_location(button, file$6, 121, 15, 3555);
+    			add_location(label0, file$6, 121, 8, 3548);
     			attr_dev(div0, "id", "inputDiv");
-    			attr_dev(div0, "class", "svelte-thaehr");
-    			add_location(div0, file$6, 72, 8, 1921);
-    			add_location(br0, file$6, 81, 14, 2389);
+    			attr_dev(div0, "class", "svelte-1ogz0su");
+    			add_location(div0, file$6, 120, 8, 3409);
+    			add_location(br0, file$6, 128, 14, 3884);
     			attr_dev(label1, "for", "gain");
-    			add_location(label1, file$6, 82, 8, 2403);
+    			add_location(label1, file$6, 129, 8, 3898);
     			attr_dev(input, "id", "gain");
     			attr_dev(input, "type", "range");
     			attr_dev(input, "min", "0");
     			attr_dev(input, "max", "1");
     			attr_dev(input, "step", "0.001");
-    			attr_dev(input, "class", "svelte-thaehr");
-    			add_location(input, file$6, 82, 40, 2435);
-    			attr_dev(div1, "id", "mainDiv");
-    			attr_dev(div1, "class", "svelte-thaehr");
-    			add_location(div1, file$6, 67, 4, 1652);
-    			add_location(br1, file$6, 84, 4, 2546);
-    			add_location(main, file$6, 66, 0, 1640);
+    			add_location(input, file$6, 129, 40, 3930);
+    			add_location(div1, file$6, 119, 8, 3378);
+    			attr_dev(div2, "id", "mainDiv");
+    			attr_dev(div2, "class", "svelte-1ogz0su");
+    			add_location(div2, file$6, 114, 4, 3109);
+    			add_location(br1, file$6, 132, 4, 4057);
+    			add_location(main, file$6, 113, 0, 3097);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
-    			append_dev(main, div1);
-    			append_dev(div1, h2);
+    			append_dev(main, div2);
+    			append_dev(div2, h2);
     			append_dev(h2, t0);
     			append_dev(h2, t1);
     			append_dev(h2, t2);
-    			append_dev(div1, t3);
-    			if (if_block) if_block.m(div1, null);
-    			append_dev(div1, t4);
+    			append_dev(div2, t3);
+    			if (if_block0) if_block0.m(div2, null);
+    			append_dev(div2, t4);
+    			append_dev(div2, div1);
     			append_dev(div1, div0);
     			append_dev(div0, label0);
-    			append_dev(label0, select);
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				if (each_blocks[i]) {
-    					each_blocks[i].m(select, null);
-    				}
-    			}
-
-    			append_dev(select, option);
-    			select_option(select, /*$output*/ ctx[0].state.inputId, true);
+    			append_dev(label0, button);
+    			if_block1.m(button, null);
     			append_dev(label0, t5);
     			append_dev(div0, t6);
     			append_dev(div1, br0);
     			append_dev(div1, t7);
     			append_dev(div1, label1);
     			append_dev(div1, input);
-    			set_input_value(input, /*$output*/ ctx[0].state.volume);
+    			set_input_value(input, /*$output*/ ctx[1].state.volume);
     			append_dev(main, t9);
     			append_dev(main, br1);
 
     			if (!mounted) {
     				dispose = [
-    					listen_dev(select, "change", /*select_change_handler*/ ctx[11]),
-    					listen_dev(div0, "mouseenter", /*mouseenter_handler*/ ctx[12], false, false, false, false),
-    					listen_dev(div0, "mouseleave", unhover, false, false, false, false),
-    					listen_dev(input, "change", /*input_change_input_handler*/ ctx[13]),
-    					listen_dev(input, "input", /*input_change_input_handler*/ ctx[13]),
-    					action_destroyer(/*setDiv*/ ctx[3].call(null, div1))
+    					action_destroyer(/*setInputBtn*/ ctx[6].call(null, button)),
+    					listen_dev(button, "click", /*chooseInput*/ ctx[8], false, false, false, false),
+    					listen_dev(div0, "mouseenter", /*mouseenter_handler*/ ctx[18], false, false, false, false),
+    					listen_dev(div0, "mouseleave", /*mouseleave_handler*/ ctx[19], false, false, false, false),
+    					listen_dev(input, "change", /*input_change_input_handler*/ ctx[20]),
+    					listen_dev(input, "input", /*input_change_input_handler*/ ctx[20]),
+    					action_destroyer(/*setControls*/ ctx[5].call(null, div1)),
+    					action_destroyer(/*setDiv*/ ctx[4].call(null, div2))
     				];
 
     				mounted = true;
     			}
     		},
     		p: function update(ctx, [dirty]) {
-    			if (dirty & /*connectedString*/ 4) set_data_dev(t1, /*connectedString*/ ctx[2]);
+    			if (dirty & /*connectedString*/ 8) set_data_dev(t1, /*connectedString*/ ctx[3]);
 
     			if (current_block_type !== (current_block_type = select_block_type(ctx, dirty))) {
-    				if (if_block) if_block.d(1);
-    				if_block = current_block_type && current_block_type(ctx);
+    				if (if_block0) if_block0.d(1);
+    				if_block0 = current_block_type && current_block_type(ctx);
 
-    				if (if_block) {
-    					if_block.c();
-    					if_block.m(div1, t4);
+    				if (if_block0) {
+    					if_block0.c();
+    					if_block0.m(div2, t4);
     				}
     			}
 
-    			if (dirty & /*Object, $modules, moduleInUse, $output*/ 3) {
-    				each_value = Object.entries(/*$modules*/ ctx[1]);
-    				validate_each_argument(each_value);
-    				let i;
+    			if (current_block_type_1 === (current_block_type_1 = select_block_type_1(ctx)) && if_block1) {
+    				if_block1.p(ctx, dirty);
+    			} else {
+    				if_block1.d(1);
+    				if_block1 = current_block_type_1(ctx);
 
-    				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context$4(ctx, each_value, i);
-
-    					if (each_blocks[i]) {
-    						each_blocks[i].p(child_ctx, dirty);
-    					} else {
-    						each_blocks[i] = create_each_block$4(child_ctx);
-    						each_blocks[i].c();
-    						each_blocks[i].m(select, option);
-    					}
+    				if (if_block1) {
+    					if_block1.c();
+    					if_block1.m(button, null);
     				}
-
-    				for (; i < each_blocks.length; i += 1) {
-    					each_blocks[i].d(1);
-    				}
-
-    				each_blocks.length = each_value.length;
     			}
 
-    			if (dirty & /*$output, Object, $modules*/ 3) {
-    				select_option(select, /*$output*/ ctx[0].state.inputId);
-    			}
-
-    			if (dirty & /*$output, Object, $modules*/ 3) {
-    				set_input_value(input, /*$output*/ ctx[0].state.volume);
+    			if (dirty & /*$output*/ 2) {
+    				set_input_value(input, /*$output*/ ctx[1].state.volume);
     			}
     		},
     		i: noop,
@@ -2955,11 +3005,11 @@ var app = (function () {
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(main);
 
-    			if (if_block) {
-    				if_block.d();
+    			if (if_block0) {
+    				if_block0.d();
     			}
 
-    			destroy_each(each_blocks, detaching);
+    			if_block1.d();
     			mounted = false;
     			run_all(dispose);
     		}
@@ -2977,55 +3027,105 @@ var app = (function () {
     }
 
     function instance$6($$self, $$props, $$invalidate) {
+    	let $selectingModule;
     	let $output;
-    	let $redness;
     	let $modules;
+    	let $colours;
+    	let $redness;
     	let $context;
+    	validate_store(selectingModule, 'selectingModule');
+    	component_subscribe($$self, selectingModule, $$value => $$invalidate(0, $selectingModule = $$value));
     	validate_store(output, 'output');
-    	component_subscribe($$self, output, $$value => $$invalidate(0, $output = $$value));
+    	component_subscribe($$self, output, $$value => $$invalidate(1, $output = $$value));
     	validate_store(modules, 'modules');
-    	component_subscribe($$self, modules, $$value => $$invalidate(1, $modules = $$value));
+    	component_subscribe($$self, modules, $$value => $$invalidate(2, $modules = $$value));
+    	validate_store(colours, 'colours');
+    	component_subscribe($$self, colours, $$value => $$invalidate(16, $colours = $$value));
     	validate_store(context, 'context');
-    	component_subscribe($$self, context, $$value => $$invalidate(14, $context = $$value));
+    	component_subscribe($$self, context, $$value => $$invalidate(21, $context = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('Output', slots, []);
     	let { state = { volume: 0.2, inputId: null } } = $$props;
     	let divNode;
+    	let controlsNode;
+    	let inputBtn;
+    	set_store_value(output, $output.selectingInput = false, $output);
     	set_store_value(output, $output.state = state, $output);
     	var gainNode = $context.createGain();
     	gainNode.connect($context.destination);
     	var currentInput;
 
     	const setDiv = node => {
-    		$$invalidate(6, divNode = node);
+    		$$invalidate(10, divNode = node);
+
+    		divNode.addEventListener("mousedown", () => {
+    			if ($selectingModule == "output") {
+    				$output.select(null);
+    			}
+    		});
+    	};
+
+    	const setControls = node => {
+    		$$invalidate(11, controlsNode = node);
+    	};
+
+    	const setInputBtn = node => {
+    		$$invalidate(12, inputBtn = node);
     	};
 
     	let redness = spring(0, { stiffness: 0.05, damping: 0.3 });
     	validate_store(redness, 'redness');
-    	component_subscribe($$self, redness, value => $$invalidate(10, $redness = value));
+    	component_subscribe($$self, redness, value => $$invalidate(17, $redness = value));
     	let loaded = false;
     	let connectedString = "disconnected";
 
     	setTimeout(
     		() => {
-    			$$invalidate(9, loaded = true);
+    			$$invalidate(15, loaded = true);
     		},
     		500
     	);
 
+    	function chooseInput() {
+    		inputsAllHover(null);
+    		if (!inputBtn) return;
+
+    		if (!$output.selectingInput) {
+    			set_store_value(output, $output.selectingInput = true, $output);
+    			$$invalidate(12, inputBtn.style.opacity = 0.5, inputBtn);
+    			set_store_value(selectingModule, $selectingModule = "output", $selectingModule);
+    		} else {
+    			set_store_value(output, $output.selectingInput = false, $output);
+    		}
+    	}
+
+    	set_store_value(
+    		output,
+    		$output.select = id => {
+    			if ($output.selectingInput) {
+    				set_store_value(output, $output.state.inputId = id, $output);
+    				$$invalidate(12, inputBtn.style.opacity = 1, inputBtn);
+    				set_store_value(output, $output.selectingInput = false, $output);
+    			}
+
+    			set_store_value(selectingModule, $selectingModule = null, $selectingModule);
+    			unhover();
+    		},
+    		$output
+    	);
+
     	const writable_props = ['state'];
 
-    	Object_1$5.keys($$props).forEach(key => {
+    	Object_1$2.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<Output> was created with unknown prop '${key}'`);
     	});
 
-    	function select_change_handler() {
-    		$output.state.inputId = select_value(this);
-    		output.set($output);
-    	}
-
     	const mouseenter_handler = () => {
     		inputsAllHover(null);
+    	};
+
+    	const mouseleave_handler = () => {
+    		if ($selectingModule == null) unhover();
     	};
 
     	function input_change_input_handler() {
@@ -3034,39 +3134,49 @@ var app = (function () {
     	}
 
     	$$self.$$set = $$props => {
-    		if ('state' in $$props) $$invalidate(5, state = $$props.state);
+    		if ('state' in $$props) $$invalidate(9, state = $$props.state);
     	};
 
     	$$self.$capture_state = () => ({
     		modules,
     		context,
     		output,
+    		selectingModule,
+    		colours,
     		inputsAllHover,
-    		moduleInUse,
     		unhover,
     		spring,
     		state,
     		divNode,
+    		controlsNode,
+    		inputBtn,
     		gainNode,
     		currentInput,
     		setDiv,
+    		setControls,
+    		setInputBtn,
     		redness,
     		loaded,
     		connectedString,
+    		chooseInput,
+    		$selectingModule,
     		$output,
-    		$redness,
     		$modules,
+    		$colours,
+    		$redness,
     		$context
     	});
 
     	$$self.$inject_state = $$props => {
-    		if ('state' in $$props) $$invalidate(5, state = $$props.state);
-    		if ('divNode' in $$props) $$invalidate(6, divNode = $$props.divNode);
-    		if ('gainNode' in $$props) $$invalidate(7, gainNode = $$props.gainNode);
-    		if ('currentInput' in $$props) $$invalidate(8, currentInput = $$props.currentInput);
-    		if ('redness' in $$props) $$invalidate(4, redness = $$props.redness);
-    		if ('loaded' in $$props) $$invalidate(9, loaded = $$props.loaded);
-    		if ('connectedString' in $$props) $$invalidate(2, connectedString = $$props.connectedString);
+    		if ('state' in $$props) $$invalidate(9, state = $$props.state);
+    		if ('divNode' in $$props) $$invalidate(10, divNode = $$props.divNode);
+    		if ('controlsNode' in $$props) $$invalidate(11, controlsNode = $$props.controlsNode);
+    		if ('inputBtn' in $$props) $$invalidate(12, inputBtn = $$props.inputBtn);
+    		if ('gainNode' in $$props) $$invalidate(13, gainNode = $$props.gainNode);
+    		if ('currentInput' in $$props) $$invalidate(14, currentInput = $$props.currentInput);
+    		if ('redness' in $$props) $$invalidate(7, redness = $$props.redness);
+    		if ('loaded' in $$props) $$invalidate(15, loaded = $$props.loaded);
+    		if ('connectedString' in $$props) $$invalidate(3, connectedString = $$props.connectedString);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -3074,59 +3184,86 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*$output, $modules*/ 3) {
-    			if ($output.state.inputId) {
+    		if ($$self.$$.dirty & /*$output, $modules*/ 6) {
+    			if ($output.state.inputId != null) {
     				set_store_value(output, $output.input = $modules[$output.state.inputId], $output);
     			} else {
     				set_store_value(output, $output.input = null, $output);
     			}
     		}
 
-    		if ($$self.$$.dirty & /*$output*/ 1) {
-    			$$invalidate(7, gainNode.gain.value = $output.state.volume, gainNode);
+    		if ($$self.$$.dirty & /*$output*/ 2) {
+    			$$invalidate(13, gainNode.gain.value = $output.state.volume, gainNode);
     		}
 
-    		if ($$self.$$.dirty & /*$output, currentInput, gainNode*/ 385) {
+    		if ($$self.$$.dirty & /*$output, currentInput, gainNode*/ 24578) {
     			if ($output.input) {
     				if (currentInput) currentInput.disconnect(gainNode);
-    				$$invalidate(8, currentInput = $output.input.output);
+    				$$invalidate(14, currentInput = $output.input.output);
     				currentInput.connect(gainNode);
     				if ($output.input.input || $output.input.inputs) $output.input.update();
     			} else {
     				if (currentInput) currentInput.disconnect(gainNode);
-    				$$invalidate(8, currentInput = null);
+    				$$invalidate(14, currentInput = null);
     			}
     		}
 
-    		if ($$self.$$.dirty & /*divNode, $redness*/ 1088) {
-    			if (divNode) $$invalidate(6, divNode.style.backgroundColor = `rgba(255, ${255 - $redness}, ${255 - $redness}, 0.7)`, divNode);
+    		if ($$self.$$.dirty & /*divNode, $redness*/ 132096) {
+    			if (divNode) $$invalidate(10, divNode.style.backgroundColor = `rgba(255, ${255 - $redness}, ${255 - $redness}, 0.7)`, divNode);
     		}
 
-    		if ($$self.$$.dirty & /*loaded, $output*/ 513) {
+    		if ($$self.$$.dirty & /*loaded, $output*/ 32770) {
     			if (loaded && $output.state.inputId == null) {
     				redness.set(255);
-    				$$invalidate(2, connectedString = "disconnected");
+    				$$invalidate(3, connectedString = "disconnected");
     			} else {
     				redness.set(0);
-    				$$invalidate(2, connectedString = "connected");
+    				$$invalidate(3, connectedString = "connected");
+    			}
+    		}
+
+    		if ($$self.$$.dirty & /*inputBtn, $output, $colours, $modules*/ 69638) {
+    			if (inputBtn) {
+    				if ($output.state.inputId != null) {
+    					$$invalidate(12, inputBtn.style.backgroundColor = $colours[$modules[$output.state.inputId].state.type], inputBtn);
+    				} else {
+    					$$invalidate(12, inputBtn.style.backgroundColor = "#f0f0f0", inputBtn);
+    				}
+    			}
+    		}
+
+    		if ($$self.$$.dirty & /*controlsNode, $selectingModule*/ 2049) {
+    			if (controlsNode) {
+    				if ($selectingModule != null) {
+    					$$invalidate(11, controlsNode.style.pointerEvents = "none", controlsNode);
+    				} else {
+    					$$invalidate(11, controlsNode.style.pointerEvents = "all", controlsNode);
+    				}
     			}
     		}
     	};
 
     	return [
+    		$selectingModule,
     		$output,
     		$modules,
     		connectedString,
     		setDiv,
+    		setControls,
+    		setInputBtn,
     		redness,
+    		chooseInput,
     		state,
     		divNode,
+    		controlsNode,
+    		inputBtn,
     		gainNode,
     		currentInput,
     		loaded,
+    		$colours,
     		$redness,
-    		select_change_handler,
     		mouseenter_handler,
+    		mouseleave_handler,
     		input_change_input_handler
     	];
     }
@@ -3134,7 +3271,7 @@ var app = (function () {
     class Output extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$6, create_fragment$6, safe_not_equal, { state: 5 });
+    		init(this, options, instance$6, create_fragment$6, safe_not_equal, { state: 9 });
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
@@ -3154,217 +3291,10 @@ var app = (function () {
     }
 
     /* src\VCA.svelte generated by Svelte v3.59.2 */
-
-    const { Object: Object_1$4 } = globals;
     const file$5 = "src\\VCA.svelte";
 
-    function get_each_context$3(ctx, list, i) {
-    	const child_ctx = ctx.slice();
-    	child_ctx[29] = list[i][0];
-    	child_ctx[30] = list[i][1];
-    	return child_ctx;
-    }
-
-    function get_each_context_1$2(ctx, list, i) {
-    	const child_ctx = ctx.slice();
-    	child_ctx[29] = list[i][0];
-    	child_ctx[30] = list[i][1];
-    	return child_ctx;
-    }
-
-    // (156:12) {#if m.output && id != module.state.id}
-    function create_if_block_1$1(ctx) {
-    	let option;
-    	let t0_value = /*id*/ ctx[29] + "";
-    	let t0;
-    	let t1;
-    	let t2_value = /*m*/ ctx[30].state.title + "";
-    	let t2;
-    	let option_value_value;
-
-    	const block = {
-    		c: function create() {
-    			option = element("option");
-    			t0 = text(t0_value);
-    			t1 = space();
-    			t2 = text(t2_value);
-    			option.__value = option_value_value = /*id*/ ctx[29];
-    			option.value = option.__value;
-    			add_location(option, file$5, 156, 12, 4683);
-    		},
-    		m: function mount(target, anchor) {
-    			insert_dev(target, option, anchor);
-    			append_dev(option, t0);
-    			append_dev(option, t1);
-    			append_dev(option, t2);
-    		},
-    		p: function update(ctx, dirty) {
-    			if (dirty[0] & /*$modules*/ 8 && t0_value !== (t0_value = /*id*/ ctx[29] + "")) set_data_dev(t0, t0_value);
-    			if (dirty[0] & /*$modules*/ 8 && t2_value !== (t2_value = /*m*/ ctx[30].state.title + "")) set_data_dev(t2, t2_value);
-
-    			if (dirty[0] & /*$modules*/ 8 && option_value_value !== (option_value_value = /*id*/ ctx[29])) {
-    				prop_dev(option, "__value", option_value_value);
-    				option.value = option.__value;
-    			}
-    		},
-    		d: function destroy(detaching) {
-    			if (detaching) detach_dev(option);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_if_block_1$1.name,
-    		type: "if",
-    		source: "(156:12) {#if m.output && id != module.state.id}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    // (155:8) {#each Object.entries($modules) as [id, m]}
-    function create_each_block_1$2(ctx) {
-    	let if_block_anchor;
-    	let if_block = /*m*/ ctx[30].output && /*id*/ ctx[29] != /*module*/ ctx[1].state.id && create_if_block_1$1(ctx);
-
-    	const block = {
-    		c: function create() {
-    			if (if_block) if_block.c();
-    			if_block_anchor = empty();
-    		},
-    		m: function mount(target, anchor) {
-    			if (if_block) if_block.m(target, anchor);
-    			insert_dev(target, if_block_anchor, anchor);
-    		},
-    		p: function update(ctx, dirty) {
-    			if (/*m*/ ctx[30].output && /*id*/ ctx[29] != /*module*/ ctx[1].state.id) {
-    				if (if_block) {
-    					if_block.p(ctx, dirty);
-    				} else {
-    					if_block = create_if_block_1$1(ctx);
-    					if_block.c();
-    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
-    				}
-    			} else if (if_block) {
-    				if_block.d(1);
-    				if_block = null;
-    			}
-    		},
-    		d: function destroy(detaching) {
-    			if (if_block) if_block.d(detaching);
-    			if (detaching) detach_dev(if_block_anchor);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_each_block_1$2.name,
-    		type: "each",
-    		source: "(155:8) {#each Object.entries($modules) as [id, m]}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    // (165:12) {#if m.state.type == 'adsr' || m.state.type == 'lfo'}
-    function create_if_block$2(ctx) {
-    	let option;
-    	let t0_value = /*id*/ ctx[29] + "";
-    	let t0;
-    	let t1;
-    	let t2_value = /*m*/ ctx[30].state.title + "";
-    	let t2;
-    	let option_value_value;
-
-    	const block = {
-    		c: function create() {
-    			option = element("option");
-    			t0 = text(t0_value);
-    			t1 = space();
-    			t2 = text(t2_value);
-    			option.__value = option_value_value = /*id*/ ctx[29];
-    			option.value = option.__value;
-    			add_location(option, file$5, 165, 12, 5138);
-    		},
-    		m: function mount(target, anchor) {
-    			insert_dev(target, option, anchor);
-    			append_dev(option, t0);
-    			append_dev(option, t1);
-    			append_dev(option, t2);
-    		},
-    		p: function update(ctx, dirty) {
-    			if (dirty[0] & /*$modules*/ 8 && t0_value !== (t0_value = /*id*/ ctx[29] + "")) set_data_dev(t0, t0_value);
-    			if (dirty[0] & /*$modules*/ 8 && t2_value !== (t2_value = /*m*/ ctx[30].state.title + "")) set_data_dev(t2, t2_value);
-
-    			if (dirty[0] & /*$modules*/ 8 && option_value_value !== (option_value_value = /*id*/ ctx[29])) {
-    				prop_dev(option, "__value", option_value_value);
-    				option.value = option.__value;
-    			}
-    		},
-    		d: function destroy(detaching) {
-    			if (detaching) detach_dev(option);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_if_block$2.name,
-    		type: "if",
-    		source: "(165:12) {#if m.state.type == 'adsr' || m.state.type == 'lfo'}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    // (164:8) {#each Object.entries($modules) as [id, m]}
-    function create_each_block$3(ctx) {
-    	let if_block_anchor;
-    	let if_block = (/*m*/ ctx[30].state.type == 'adsr' || /*m*/ ctx[30].state.type == 'lfo') && create_if_block$2(ctx);
-
-    	const block = {
-    		c: function create() {
-    			if (if_block) if_block.c();
-    			if_block_anchor = empty();
-    		},
-    		m: function mount(target, anchor) {
-    			if (if_block) if_block.m(target, anchor);
-    			insert_dev(target, if_block_anchor, anchor);
-    		},
-    		p: function update(ctx, dirty) {
-    			if (/*m*/ ctx[30].state.type == 'adsr' || /*m*/ ctx[30].state.type == 'lfo') {
-    				if (if_block) {
-    					if_block.p(ctx, dirty);
-    				} else {
-    					if_block = create_if_block$2(ctx);
-    					if_block.c();
-    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
-    				}
-    			} else if (if_block) {
-    				if_block.d(1);
-    				if_block = null;
-    			}
-    		},
-    		d: function destroy(detaching) {
-    			if (if_block) if_block.d(detaching);
-    			if (detaching) detach_dev(if_block_anchor);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_each_block$3.name,
-    		type: "each",
-    		source: "(164:8) {#each Object.entries($modules) as [id, m]}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    function create_fragment$5(ctx) {
+    // (211:0) {#if !module.destroyed}
+    function create_if_block$5(ctx) {
     	let main;
     	let modulemovement;
     	let updating_moduleNode;
@@ -3388,14 +3318,12 @@ var app = (function () {
     	let t5;
     	let div1;
     	let label0;
-    	let select0;
-    	let option0;
+    	let button0;
     	let t6;
     	let t7;
     	let div2;
     	let label1;
-    	let select1;
-    	let option1;
+    	let button1;
     	let t8;
     	let br0;
     	let t9;
@@ -3405,6 +3333,7 @@ var app = (function () {
     	let t11;
     	let t12;
     	let input;
+    	let div4_style_value;
     	let t13;
     	let br1;
     	let current;
@@ -3412,23 +3341,23 @@ var app = (function () {
     	let dispose;
 
     	function modulemovement_moduleNode_binding(value) {
-    		/*modulemovement_moduleNode_binding*/ ctx[17](value);
+    		/*modulemovement_moduleNode_binding*/ ctx[25](value);
     	}
 
     	function modulemovement_controlsNode_binding(value) {
-    		/*modulemovement_controlsNode_binding*/ ctx[18](value);
+    		/*modulemovement_controlsNode_binding*/ ctx[26](value);
     	}
 
     	function modulemovement_deleteNode_binding(value) {
-    		/*modulemovement_deleteNode_binding*/ ctx[19](value);
+    		/*modulemovement_deleteNode_binding*/ ctx[27](value);
     	}
 
     	function modulemovement_nodePos_binding(value) {
-    		/*modulemovement_nodePos_binding*/ ctx[20](value);
+    		/*modulemovement_nodePos_binding*/ ctx[28](value);
     	}
 
     	function modulemovement_bobSize_binding(value) {
-    		/*modulemovement_bobSize_binding*/ ctx[21](value);
+    		/*modulemovement_bobSize_binding*/ ctx[29](value);
     	}
 
     	let modulemovement_props = { nodeSize: { x: 280, y: 310 } };
@@ -3437,20 +3366,20 @@ var app = (function () {
     		modulemovement_props.moduleNode = /*moduleNode*/ ctx[2];
     	}
 
-    	if (/*controlsNode*/ ctx[4] !== void 0) {
-    		modulemovement_props.controlsNode = /*controlsNode*/ ctx[4];
+    	if (/*controlsNode*/ ctx[3] !== void 0) {
+    		modulemovement_props.controlsNode = /*controlsNode*/ ctx[3];
     	}
 
-    	if (/*deleteNode*/ ctx[5] !== void 0) {
-    		modulemovement_props.deleteNode = /*deleteNode*/ ctx[5];
+    	if (/*deleteNode*/ ctx[7] !== void 0) {
+    		modulemovement_props.deleteNode = /*deleteNode*/ ctx[7];
     	}
 
     	if (/*state*/ ctx[0].position !== void 0) {
     		modulemovement_props.nodePos = /*state*/ ctx[0].position;
     	}
 
-    	if (/*bobSize*/ ctx[6] !== void 0) {
-    		modulemovement_props.bobSize = /*bobSize*/ ctx[6];
+    	if (/*bobSize*/ ctx[8] !== void 0) {
+    		modulemovement_props.bobSize = /*bobSize*/ ctx[8];
     	}
 
     	modulemovement = new ModuleMovement({
@@ -3469,21 +3398,21 @@ var app = (function () {
     			$$inline: true
     		});
 
-    	let each_value_1 = Object.entries(/*$modules*/ ctx[3]);
-    	validate_each_argument(each_value_1);
-    	let each_blocks_1 = [];
-
-    	for (let i = 0; i < each_value_1.length; i += 1) {
-    		each_blocks_1[i] = create_each_block_1$2(get_each_context_1$2(ctx, each_value_1, i));
+    	function select_block_type(ctx, dirty) {
+    		if (/*module*/ ctx[1].state.inputId != null && /*$modules*/ ctx[5][/*module*/ ctx[1].state.inputId]) return create_if_block_2$1;
+    		return create_else_block_1$1;
     	}
 
-    	let each_value = Object.entries(/*$modules*/ ctx[3]);
-    	validate_each_argument(each_value);
-    	let each_blocks = [];
+    	let current_block_type = select_block_type(ctx);
+    	let if_block0 = current_block_type(ctx);
 
-    	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block$3(get_each_context$3(ctx, each_value, i));
+    	function select_block_type_1(ctx, dirty) {
+    		if (/*module*/ ctx[1].state.cvId != null && /*$modules*/ ctx[5][/*module*/ ctx[1].state.cvId]) return create_if_block_1$2;
+    		return create_else_block$3;
     	}
+
+    	let current_block_type_1 = select_block_type_1(ctx);
+    	let if_block1 = current_block_type_1(ctx);
 
     	const block = {
     		c: function create() {
@@ -3503,24 +3432,14 @@ var app = (function () {
     			t5 = space();
     			div1 = element("div");
     			label0 = element("label");
-    			select0 = element("select");
-
-    			for (let i = 0; i < each_blocks_1.length; i += 1) {
-    				each_blocks_1[i].c();
-    			}
-
-    			option0 = element("option");
+    			button0 = element("button");
+    			if_block0.c();
     			t6 = text(" Input");
     			t7 = space();
     			div2 = element("div");
     			label1 = element("label");
-    			select1 = element("select");
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].c();
-    			}
-
-    			option1 = element("option");
+    			button1 = element("button");
+    			if_block1.c();
     			t8 = text(" Control");
     			br0 = element("br");
     			t9 = space();
@@ -3531,49 +3450,40 @@ var app = (function () {
     			input = element("input");
     			t13 = space();
     			br1 = element("br");
-    			attr_dev(div0, "class", "delete svelte-8iphh8");
-    			add_location(div0, file$5, 148, 4, 4134);
-    			add_location(h1, file$5, 149, 4, 4212);
-    			attr_dev(h2, "class", "editableTitle svelte-8iphh8");
+    			attr_dev(div0, "class", "delete svelte-g6i6pa");
+    			add_location(div0, file$5, 214, 4, 7013);
+    			add_location(h1, file$5, 215, 4, 7091);
+    			attr_dev(h2, "class", "editableTitle svelte-g6i6pa");
     			attr_dev(h2, "contenteditable", "true");
-    			if (/*module*/ ctx[1].state.title === void 0) add_render_callback(() => /*h2_input_handler*/ ctx[22].call(h2));
-    			add_location(h2, file$5, 151, 8, 4289);
-    			option0.__value = null;
-    			option0.value = option0.__value;
-    			add_location(option0, file$5, 159, 8, 4777);
-    			attr_dev(select0, "class", "svelte-8iphh8");
-    			if (/*module*/ ctx[1].state.inputId === void 0) add_render_callback(() => /*select0_change_handler*/ ctx[23].call(select0));
-    			add_location(select0, file$5, 153, 15, 4521);
-    			add_location(label0, file$5, 153, 8, 4514);
+    			if (/*$modules*/ ctx[5][/*module*/ ctx[1].state.id].state.title === void 0) add_render_callback(() => /*h2_input_handler*/ ctx[30].call(h2));
+    			add_location(h2, file$5, 217, 8, 7168);
+    			attr_dev(button0, "class", "svelte-g6i6pa");
+    			add_location(button0, file$5, 220, 15, 7468);
+    			add_location(label0, file$5, 220, 8, 7461);
     			attr_dev(div1, "class", "inputDiv");
-    			add_location(div1, file$5, 152, 8, 4411);
-    			option1.__value = null;
-    			option1.value = option1.__value;
-    			add_location(option1, file$5, 168, 8, 5232);
-    			attr_dev(select1, "class", "svelte-8iphh8");
-    			add_location(select1, file$5, 162, 15, 4961);
-    			add_location(label1, file$5, 162, 8, 4954);
+    			add_location(div1, file$5, 219, 8, 7319);
+    			attr_dev(button1, "class", "svelte-g6i6pa");
+    			add_location(button1, file$5, 229, 15, 7943);
+    			add_location(label1, file$5, 229, 8, 7936);
     			attr_dev(div2, "class", "inputDiv");
-    			add_location(div2, file$5, 161, 8, 4856);
-    			add_location(br0, file$5, 169, 39, 5303);
+    			add_location(div2, file$5, 228, 8, 7795);
+    			add_location(br0, file$5, 235, 39, 8242);
     			attr_dev(label2, "for", "gain");
-    			add_location(label2, file$5, 170, 8, 5317);
+    			add_location(label2, file$5, 236, 8, 8256);
     			attr_dev(input, "id", "gain");
     			attr_dev(input, "type", "range");
     			attr_dev(input, "min", "0");
     			attr_dev(input, "max", "1");
     			attr_dev(input, "step", "0.001");
-    			add_location(input, file$5, 170, 73, 5382);
+    			add_location(input, file$5, 236, 73, 8321);
     			attr_dev(div3, "id", "controls");
-    			add_location(div3, file$5, 150, 4, 4244);
+    			add_location(div3, file$5, 216, 4, 7123);
     			attr_dev(div4, "id", "module");
-    			attr_dev(div4, "class", "svelte-8iphh8");
-    			add_location(div4, file$5, 147, 0, 4097);
-    			add_location(br1, file$5, 173, 0, 5494);
-    			add_location(main, file$5, 145, 0, 3917);
-    		},
-    		l: function claim(nodes) {
-    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    			attr_dev(div4, "style", div4_style_value = "background-color: " + /*$colours*/ ctx[6][/*module*/ ctx[1].state.type]);
+    			attr_dev(div4, "class", "svelte-g6i6pa");
+    			add_location(div4, file$5, 213, 0, 6917);
+    			add_location(br1, file$5, 239, 0, 8433);
+    			add_location(main, file$5, 211, 0, 6737);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
@@ -3590,37 +3500,21 @@ var app = (function () {
     			append_dev(div3, h2);
     			append_dev(h2, t4);
 
-    			if (/*module*/ ctx[1].state.title !== void 0) {
-    				h2.textContent = /*module*/ ctx[1].state.title;
+    			if (/*$modules*/ ctx[5][/*module*/ ctx[1].state.id].state.title !== void 0) {
+    				h2.textContent = /*$modules*/ ctx[5][/*module*/ ctx[1].state.id].state.title;
     			}
 
     			append_dev(div3, t5);
     			append_dev(div3, div1);
     			append_dev(div1, label0);
-    			append_dev(label0, select0);
-
-    			for (let i = 0; i < each_blocks_1.length; i += 1) {
-    				if (each_blocks_1[i]) {
-    					each_blocks_1[i].m(select0, null);
-    				}
-    			}
-
-    			append_dev(select0, option0);
-    			select_option(select0, /*module*/ ctx[1].state.inputId, true);
+    			append_dev(label0, button0);
+    			if_block0.m(button0, null);
     			append_dev(label0, t6);
     			append_dev(div3, t7);
     			append_dev(div3, div2);
     			append_dev(div2, label1);
-    			append_dev(label1, select1);
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				if (each_blocks[i]) {
-    					each_blocks[i].m(select1, null);
-    				}
-    			}
-
-    			append_dev(select1, option1);
-    			select_option(select1, null);
+    			append_dev(label1, button1);
+    			if_block1.m(button1, null);
     			append_dev(label1, t8);
     			append_dev(div3, br0);
     			append_dev(div3, t9);
@@ -3632,23 +3526,25 @@ var app = (function () {
     			set_input_value(input, /*module*/ ctx[1].state.gain);
     			append_dev(main, t13);
     			append_dev(main, br1);
-    			/*main_binding*/ ctx[27](main);
+    			/*main_binding*/ ctx[36](main);
     			current = true;
 
     			if (!mounted) {
     				dispose = [
-    					action_destroyer(/*setDelete*/ ctx[10].call(null, div0)),
-    					listen_dev(h2, "input", /*h2_input_handler*/ ctx[22]),
-    					listen_dev(select0, "change", /*select0_change_handler*/ ctx[23]),
-    					listen_dev(div1, "mouseenter", /*mouseenter_handler*/ ctx[24], false, false, false, false),
-    					listen_dev(div1, "mouseleave", unhover, false, false, false, false),
-    					listen_dev(select1, "change", /*connectCV*/ ctx[7], false, false, false, false),
-    					listen_dev(div2, "mouseenter", /*mouseenter_handler_1*/ ctx[25], false, false, false, false),
-    					listen_dev(div2, "mouseleave", unhover, false, false, false, false),
-    					listen_dev(input, "change", /*input_change_input_handler*/ ctx[26]),
-    					listen_dev(input, "input", /*input_change_input_handler*/ ctx[26]),
-    					action_destroyer(/*setControls*/ ctx[9].call(null, div3)),
-    					action_destroyer(/*setModule*/ ctx[8].call(null, div4))
+    					action_destroyer(/*setDelete*/ ctx[11].call(null, div0)),
+    					listen_dev(h2, "input", /*h2_input_handler*/ ctx[30]),
+    					action_destroyer(/*setInputBtn*/ ctx[12].call(null, button0)),
+    					listen_dev(button0, "click", /*chooseInput*/ ctx[15], false, false, false, false),
+    					listen_dev(div1, "mouseenter", /*mouseenter_handler*/ ctx[31], false, false, false, false),
+    					listen_dev(div1, "mouseleave", /*mouseleave_handler*/ ctx[32], false, false, false, false),
+    					action_destroyer(/*setCvBtn*/ ctx[13].call(null, button1)),
+    					listen_dev(button1, "click", /*chooseCv*/ ctx[16], false, false, false, false),
+    					listen_dev(div2, "mouseenter", /*mouseenter_handler_1*/ ctx[33], false, false, false, false),
+    					listen_dev(div2, "mouseleave", /*mouseleave_handler_1*/ ctx[34], false, false, false, false),
+    					listen_dev(input, "change", /*input_change_input_handler*/ ctx[35]),
+    					listen_dev(input, "input", /*input_change_input_handler*/ ctx[35]),
+    					action_destroyer(/*setControls*/ ctx[10].call(null, div3)),
+    					action_destroyer(/*setModule*/ ctx[9].call(null, div4))
     				];
 
     				mounted = true;
@@ -3663,15 +3559,15 @@ var app = (function () {
     				add_flush_callback(() => updating_moduleNode = false);
     			}
 
-    			if (!updating_controlsNode && dirty[0] & /*controlsNode*/ 16) {
+    			if (!updating_controlsNode && dirty[0] & /*controlsNode*/ 8) {
     				updating_controlsNode = true;
-    				modulemovement_changes.controlsNode = /*controlsNode*/ ctx[4];
+    				modulemovement_changes.controlsNode = /*controlsNode*/ ctx[3];
     				add_flush_callback(() => updating_controlsNode = false);
     			}
 
-    			if (!updating_deleteNode && dirty[0] & /*deleteNode*/ 32) {
+    			if (!updating_deleteNode && dirty[0] & /*deleteNode*/ 128) {
     				updating_deleteNode = true;
-    				modulemovement_changes.deleteNode = /*deleteNode*/ ctx[5];
+    				modulemovement_changes.deleteNode = /*deleteNode*/ ctx[7];
     				add_flush_callback(() => updating_deleteNode = false);
     			}
 
@@ -3681,9 +3577,9 @@ var app = (function () {
     				add_flush_callback(() => updating_nodePos = false);
     			}
 
-    			if (!updating_bobSize && dirty[0] & /*bobSize*/ 64) {
+    			if (!updating_bobSize && dirty[0] & /*bobSize*/ 256) {
     				updating_bobSize = true;
-    				modulemovement_changes.bobSize = /*bobSize*/ ctx[6];
+    				modulemovement_changes.bobSize = /*bobSize*/ ctx[8];
     				add_flush_callback(() => updating_bobSize = false);
     			}
 
@@ -3694,66 +3590,42 @@ var app = (function () {
     			if ((!current || dirty[0] & /*module*/ 2) && t2_value !== (t2_value = /*module*/ ctx[1].state.id + "")) set_data_dev(t2, t2_value);
     			if ((!current || dirty[0] & /*module*/ 2) && t4_value !== (t4_value = /*module*/ ctx[1].state.title + "")) set_data_contenteditable_dev(t4, t4_value);
 
-    			if (dirty[0] & /*module, $modules*/ 10 && /*module*/ ctx[1].state.title !== h2.textContent) {
-    				h2.textContent = /*module*/ ctx[1].state.title;
+    			if (dirty[0] & /*$modules, module*/ 34 && /*$modules*/ ctx[5][/*module*/ ctx[1].state.id].state.title !== h2.textContent) {
+    				h2.textContent = /*$modules*/ ctx[5][/*module*/ ctx[1].state.id].state.title;
     			}
 
-    			if (dirty[0] & /*$modules, module*/ 10) {
-    				each_value_1 = Object.entries(/*$modules*/ ctx[3]);
-    				validate_each_argument(each_value_1);
-    				let i;
+    			if (current_block_type === (current_block_type = select_block_type(ctx)) && if_block0) {
+    				if_block0.p(ctx, dirty);
+    			} else {
+    				if_block0.d(1);
+    				if_block0 = current_block_type(ctx);
 
-    				for (i = 0; i < each_value_1.length; i += 1) {
-    					const child_ctx = get_each_context_1$2(ctx, each_value_1, i);
-
-    					if (each_blocks_1[i]) {
-    						each_blocks_1[i].p(child_ctx, dirty);
-    					} else {
-    						each_blocks_1[i] = create_each_block_1$2(child_ctx);
-    						each_blocks_1[i].c();
-    						each_blocks_1[i].m(select0, option0);
-    					}
+    				if (if_block0) {
+    					if_block0.c();
+    					if_block0.m(button0, null);
     				}
-
-    				for (; i < each_blocks_1.length; i += 1) {
-    					each_blocks_1[i].d(1);
-    				}
-
-    				each_blocks_1.length = each_value_1.length;
     			}
 
-    			if (dirty[0] & /*module, $modules*/ 10) {
-    				select_option(select0, /*module*/ ctx[1].state.inputId);
-    			}
+    			if (current_block_type_1 === (current_block_type_1 = select_block_type_1(ctx)) && if_block1) {
+    				if_block1.p(ctx, dirty);
+    			} else {
+    				if_block1.d(1);
+    				if_block1 = current_block_type_1(ctx);
 
-    			if (dirty[0] & /*$modules*/ 8) {
-    				each_value = Object.entries(/*$modules*/ ctx[3]);
-    				validate_each_argument(each_value);
-    				let i;
-
-    				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context$3(ctx, each_value, i);
-
-    					if (each_blocks[i]) {
-    						each_blocks[i].p(child_ctx, dirty);
-    					} else {
-    						each_blocks[i] = create_each_block$3(child_ctx);
-    						each_blocks[i].c();
-    						each_blocks[i].m(select1, option1);
-    					}
+    				if (if_block1) {
+    					if_block1.c();
+    					if_block1.m(button1, null);
     				}
-
-    				for (; i < each_blocks.length; i += 1) {
-    					each_blocks[i].d(1);
-    				}
-
-    				each_blocks.length = each_value.length;
     			}
 
     			if ((!current || dirty[0] & /*module*/ 2) && t11_value !== (t11_value = /*module*/ ctx[1].state.gain.toFixed(2) + "")) set_data_dev(t11, t11_value);
 
-    			if (dirty[0] & /*module, $modules*/ 10) {
+    			if (dirty[0] & /*module*/ 2) {
     				set_input_value(input, /*module*/ ctx[1].state.gain);
+    			}
+
+    			if (!current || dirty[0] & /*$colours, module*/ 66 && div4_style_value !== (div4_style_value = "background-color: " + /*$colours*/ ctx[6][/*module*/ ctx[1].state.type])) {
+    				attr_dev(div4, "style", div4_style_value);
     			}
     		},
     		i: function intro(local) {
@@ -3771,11 +3643,226 @@ var app = (function () {
     			if (detaching) detach_dev(main);
     			destroy_component(modulemovement);
     			destroy_component(deletebutton);
-    			destroy_each(each_blocks_1, detaching);
-    			destroy_each(each_blocks, detaching);
-    			/*main_binding*/ ctx[27](null);
+    			if_block0.d();
+    			if_block1.d();
+    			/*main_binding*/ ctx[36](null);
     			mounted = false;
     			run_all(dispose);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block$5.name,
+    		type: "if",
+    		source: "(211:0) {#if !module.destroyed}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (224:12) {:else}
+    function create_else_block_1$1(ctx) {
+    	let t;
+
+    	const block = {
+    		c: function create() {
+    			t = text("None");
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, t, anchor);
+    		},
+    		p: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(t);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_else_block_1$1.name,
+    		type: "else",
+    		source: "(224:12) {:else}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (222:12) {#if module.state.inputId != null && $modules[module.state.inputId]}
+    function create_if_block_2$1(ctx) {
+    	let t0_value = /*module*/ ctx[1].state.inputId + "";
+    	let t0;
+    	let t1;
+    	let t2_value = /*$modules*/ ctx[5][/*module*/ ctx[1].state.inputId].state.title + "";
+    	let t2;
+
+    	const block = {
+    		c: function create() {
+    			t0 = text(t0_value);
+    			t1 = space();
+    			t2 = text(t2_value);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, t0, anchor);
+    			insert_dev(target, t1, anchor);
+    			insert_dev(target, t2, anchor);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty[0] & /*module*/ 2 && t0_value !== (t0_value = /*module*/ ctx[1].state.inputId + "")) set_data_dev(t0, t0_value);
+    			if (dirty[0] & /*$modules, module*/ 34 && t2_value !== (t2_value = /*$modules*/ ctx[5][/*module*/ ctx[1].state.inputId].state.title + "")) set_data_dev(t2, t2_value);
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(t0);
+    			if (detaching) detach_dev(t1);
+    			if (detaching) detach_dev(t2);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block_2$1.name,
+    		type: "if",
+    		source: "(222:12) {#if module.state.inputId != null && $modules[module.state.inputId]}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (233:12) {:else}
+    function create_else_block$3(ctx) {
+    	let t;
+
+    	const block = {
+    		c: function create() {
+    			t = text("None");
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, t, anchor);
+    		},
+    		p: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(t);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_else_block$3.name,
+    		type: "else",
+    		source: "(233:12) {:else}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (231:12) {#if module.state.cvId != null && $modules[module.state.cvId]}
+    function create_if_block_1$2(ctx) {
+    	let t0_value = /*module*/ ctx[1].state.cvId + "";
+    	let t0;
+    	let t1;
+    	let t2_value = /*$modules*/ ctx[5][/*module*/ ctx[1].state.cvId].state.title + "";
+    	let t2;
+
+    	const block = {
+    		c: function create() {
+    			t0 = text(t0_value);
+    			t1 = space();
+    			t2 = text(t2_value);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, t0, anchor);
+    			insert_dev(target, t1, anchor);
+    			insert_dev(target, t2, anchor);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty[0] & /*module*/ 2 && t0_value !== (t0_value = /*module*/ ctx[1].state.cvId + "")) set_data_dev(t0, t0_value);
+    			if (dirty[0] & /*$modules, module*/ 34 && t2_value !== (t2_value = /*$modules*/ ctx[5][/*module*/ ctx[1].state.cvId].state.title + "")) set_data_dev(t2, t2_value);
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(t0);
+    			if (detaching) detach_dev(t1);
+    			if (detaching) detach_dev(t2);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block_1$2.name,
+    		type: "if",
+    		source: "(231:12) {#if module.state.cvId != null && $modules[module.state.cvId]}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function create_fragment$5(ctx) {
+    	let if_block_anchor;
+    	let current;
+    	let mounted;
+    	let dispose;
+    	let if_block = !/*module*/ ctx[1].destroyed && create_if_block$5(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if (if_block) if_block.c();
+    			if_block_anchor = empty();
+    		},
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+    		m: function mount(target, anchor) {
+    			if (if_block) if_block.m(target, anchor);
+    			insert_dev(target, if_block_anchor, anchor);
+    			current = true;
+
+    			if (!mounted) {
+    				dispose = listen_dev(window, "click", /*click_handler*/ ctx[24], false, false, false, false);
+    				mounted = true;
+    			}
+    		},
+    		p: function update(ctx, dirty) {
+    			if (!/*module*/ ctx[1].destroyed) {
+    				if (if_block) {
+    					if_block.p(ctx, dirty);
+
+    					if (dirty[0] & /*module*/ 2) {
+    						transition_in(if_block, 1);
+    					}
+    				} else {
+    					if_block = create_if_block$5(ctx);
+    					if_block.c();
+    					transition_in(if_block, 1);
+    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    				}
+    			} else if (if_block) {
+    				group_outros();
+
+    				transition_out(if_block, 1, 1, () => {
+    					if_block = null;
+    				});
+
+    				check_outros();
+    			}
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(if_block);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(if_block);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			if (if_block) if_block.d(detaching);
+    			if (detaching) detach_dev(if_block_anchor);
+    			mounted = false;
+    			dispose();
     		}
     	};
 
@@ -3791,13 +3878,22 @@ var app = (function () {
     }
 
     function instance$5($$self, $$props, $$invalidate) {
-    	let $opacity;
-    	let $context;
+    	let $selectingModule;
     	let $modules;
-    	validate_store(context, 'context');
-    	component_subscribe($$self, context, $$value => $$invalidate(16, $context = $$value));
+    	let $colours;
+    	let $opacity;
+    	let $output;
+    	let $context;
+    	validate_store(selectingModule, 'selectingModule');
+    	component_subscribe($$self, selectingModule, $$value => $$invalidate(4, $selectingModule = $$value));
     	validate_store(modules, 'modules');
-    	component_subscribe($$self, modules, $$value => $$invalidate(3, $modules = $$value));
+    	component_subscribe($$self, modules, $$value => $$invalidate(5, $modules = $$value));
+    	validate_store(colours, 'colours');
+    	component_subscribe($$self, colours, $$value => $$invalidate(6, $colours = $$value));
+    	validate_store(output, 'output');
+    	component_subscribe($$self, output, $$value => $$invalidate(37, $output = $$value));
+    	validate_store(context, 'context');
+    	component_subscribe($$self, context, $$value => $$invalidate(23, $context = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('VCA', slots, []);
 
@@ -3817,6 +3913,10 @@ var app = (function () {
     	let moduleNode;
     	let controlsNode;
     	let deleteNode;
+    	let inputBtn;
+    	let cvBtn;
+    	module.selectingInput = false;
+    	module.selectingCv = false;
     	let cvModule;
     	var gainNode = $context.createGain();
     	module.output = gainNode;
@@ -3824,35 +3924,49 @@ var app = (function () {
     	var currentInput;
     	var currentCvModule;
 
-    	function connectCV(e) {
-    		$$invalidate(1, module.state.cvId = e.target.selectedOptions[0].value, module);
-    	}
-
     	module.clearCurrents = () => {
-    		$$invalidate(13, currentInput = null);
-    		$$invalidate(12, cvModule = null);
-    		$$invalidate(14, currentCvModule = null);
+    		$$invalidate(20, currentInput = null);
+    		$$invalidate(19, cvModule = null);
+    		$$invalidate(21, currentCvModule = null);
     	};
 
     	module.update = () => {
-    		($$invalidate(1, module), $$invalidate(3, $modules));
+    		$$invalidate(1, module);
     	};
 
     	function setModule(node) {
     		$$invalidate(2, moduleNode = node);
+
+    		moduleNode.addEventListener("mouseup", () => {
+    			if ($selectingModule == "output") {
+    				$output.select(module.state.id);
+    			} else if ($selectingModule != null && $modules[$selectingModule].selectingInput && $selectingModule != module.state.id && ($modules[$selectingModule].state.type != "mixer" || (!$modules[$selectingModule].state.inputIds.includes(module.state.id) || $modules[$selectingModule].state.inputIds[$modules[$selectingModule].inputSelecting] == module.state.id))) {
+    				$modules[$selectingModule].select(module.state.id);
+    			} else if ($selectingModule == module.state.id) {
+    				module.select(null);
+    			}
+    		});
     	}
 
     	function setControls(node) {
-    		$$invalidate(4, controlsNode = node);
+    		$$invalidate(3, controlsNode = node);
     	}
 
     	function setDelete(node) {
-    		$$invalidate(5, deleteNode = node);
+    		$$invalidate(7, deleteNode = node);
+    	}
+
+    	function setInputBtn(node) {
+    		$$invalidate(17, inputBtn = node);
+    	}
+
+    	function setCvBtn(node) {
+    		$$invalidate(18, cvBtn = node);
     	}
 
     	let opacity = spring(1, { stiffness: 0.1, damping: 0.5 });
     	validate_store(opacity, 'opacity');
-    	component_subscribe($$self, opacity, value => $$invalidate(15, $opacity = value));
+    	component_subscribe($$self, opacity, value => $$invalidate(22, $opacity = value));
     	let bobSize = spring(0, { stiffness: 0.3, damping: 0.2 });
 
     	module.fade = () => {
@@ -3878,26 +3992,71 @@ var app = (function () {
     		);
     	};
 
+    	function chooseInput() {
+    		inputsAllHover(module);
+    		if (!inputBtn) return;
+
+    		if (!module.selectingInput) {
+    			$$invalidate(1, module.selectingInput = true, module);
+    			$$invalidate(17, inputBtn.style.opacity = 0.5, inputBtn);
+    			set_store_value(selectingModule, $selectingModule = module.state.id, $selectingModule);
+    		} else {
+    			$$invalidate(1, module.selectingInput = false, module);
+    		}
+    	}
+
+    	function chooseCv() {
+    		cvsAllHover(module);
+    		if (!cvBtn) return;
+
+    		if (!module.selectingCv) {
+    			$$invalidate(1, module.selectingCv = true, module);
+    			$$invalidate(18, cvBtn.style.opacity = 0.5, cvBtn);
+    			set_store_value(selectingModule, $selectingModule = module.state.id, $selectingModule);
+    		} else {
+    			$$invalidate(1, module.selectingCv = false, module);
+    		}
+    	}
+
+    	module.select = id => {
+    		if (module.selectingInput) {
+    			$$invalidate(1, module.state.inputId = id, module);
+    			$$invalidate(17, inputBtn.style.opacity = 1, inputBtn);
+    			$$invalidate(1, module.selectingInput = false, module);
+    		} else if (module.selectingCv) {
+    			$$invalidate(1, module.state.cvId = id, module);
+    			$$invalidate(18, cvBtn.style.opacity = 1, cvBtn);
+    			$$invalidate(1, module.selectingCv = false, module);
+    		}
+
+    		set_store_value(selectingModule, $selectingModule = null, $selectingModule);
+    		unhover();
+    	};
+
     	module.bob();
     	const writable_props = ['state'];
 
-    	Object_1$4.keys($$props).forEach(key => {
+    	Object.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<VCA> was created with unknown prop '${key}'`);
     	});
 
+    	const click_handler = () => {
+    		if (module.selectingInput) ;
+    	};
+
     	function modulemovement_moduleNode_binding(value) {
     		moduleNode = value;
-    		($$invalidate(2, moduleNode), $$invalidate(15, $opacity));
+    		($$invalidate(2, moduleNode), $$invalidate(22, $opacity));
     	}
 
     	function modulemovement_controlsNode_binding(value) {
     		controlsNode = value;
-    		$$invalidate(4, controlsNode);
+    		($$invalidate(3, controlsNode), $$invalidate(4, $selectingModule));
     	}
 
     	function modulemovement_deleteNode_binding(value) {
     		deleteNode = value;
-    		$$invalidate(5, deleteNode);
+    		$$invalidate(7, deleteNode);
     	}
 
     	function modulemovement_nodePos_binding(value) {
@@ -3909,34 +4068,37 @@ var app = (function () {
 
     	function modulemovement_bobSize_binding(value) {
     		bobSize = value;
-    		$$invalidate(6, bobSize);
+    		$$invalidate(8, bobSize);
     	}
 
     	function h2_input_handler() {
-    		module.state.title = this.textContent;
-    		($$invalidate(1, module), $$invalidate(3, $modules));
+    		$modules[module.state.id].state.title = this.textContent;
+    		modules.set($modules);
     	}
 
-    	function select0_change_handler() {
-    		module.state.inputId = select_value(this);
-    		($$invalidate(1, module), $$invalidate(3, $modules));
-    	}
+    	const mouseenter_handler = () => inputsAllHover(module);
 
-    	const mouseenter_handler = () => {
-    		inputsAllHover(module);
+    	const mouseleave_handler = () => {
+    		if ($selectingModule == null) unhover();
     	};
 
-    	const mouseenter_handler_1 = () => cvsAllHover(module);
+    	const mouseenter_handler_1 = () => {
+    		cvsAllHover(module);
+    	};
+
+    	const mouseleave_handler_1 = () => {
+    		if ($selectingModule == null) unhover();
+    	};
 
     	function input_change_input_handler() {
     		module.state.gain = to_number(this.value);
-    		($$invalidate(1, module), $$invalidate(3, $modules));
+    		$$invalidate(1, module);
     	}
 
     	function main_binding($$value) {
     		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
     			module.component = $$value;
-    			($$invalidate(1, module), $$invalidate(3, $modules));
+    			$$invalidate(1, module);
     		});
     	}
 
@@ -3947,6 +4109,9 @@ var app = (function () {
     	$$self.$capture_state = () => ({
     		modules,
     		context,
+    		colours,
+    		selectingModule,
+    		output,
     		ModuleMovement,
     		DeleteButton,
     		createNewId,
@@ -3960,32 +4125,42 @@ var app = (function () {
     		moduleNode,
     		controlsNode,
     		deleteNode,
+    		inputBtn,
+    		cvBtn,
     		cvModule,
     		gainNode,
     		currentInput,
     		currentCvModule,
-    		connectCV,
     		setModule,
     		setControls,
     		setDelete,
+    		setInputBtn,
+    		setCvBtn,
     		opacity,
     		bobSize,
+    		chooseInput,
+    		chooseCv,
+    		$selectingModule,
+    		$modules,
+    		$colours,
     		$opacity,
-    		$context,
-    		$modules
+    		$output,
+    		$context
     	});
 
     	$$self.$inject_state = $$props => {
     		if ('state' in $$props) $$invalidate(0, state = $$props.state);
     		if ('moduleNode' in $$props) $$invalidate(2, moduleNode = $$props.moduleNode);
-    		if ('controlsNode' in $$props) $$invalidate(4, controlsNode = $$props.controlsNode);
-    		if ('deleteNode' in $$props) $$invalidate(5, deleteNode = $$props.deleteNode);
-    		if ('cvModule' in $$props) $$invalidate(12, cvModule = $$props.cvModule);
-    		if ('gainNode' in $$props) $$invalidate(28, gainNode = $$props.gainNode);
-    		if ('currentInput' in $$props) $$invalidate(13, currentInput = $$props.currentInput);
-    		if ('currentCvModule' in $$props) $$invalidate(14, currentCvModule = $$props.currentCvModule);
-    		if ('opacity' in $$props) $$invalidate(11, opacity = $$props.opacity);
-    		if ('bobSize' in $$props) $$invalidate(6, bobSize = $$props.bobSize);
+    		if ('controlsNode' in $$props) $$invalidate(3, controlsNode = $$props.controlsNode);
+    		if ('deleteNode' in $$props) $$invalidate(7, deleteNode = $$props.deleteNode);
+    		if ('inputBtn' in $$props) $$invalidate(17, inputBtn = $$props.inputBtn);
+    		if ('cvBtn' in $$props) $$invalidate(18, cvBtn = $$props.cvBtn);
+    		if ('cvModule' in $$props) $$invalidate(19, cvModule = $$props.cvModule);
+    		if ('gainNode' in $$props) $$invalidate(38, gainNode = $$props.gainNode);
+    		if ('currentInput' in $$props) $$invalidate(20, currentInput = $$props.currentInput);
+    		if ('currentCvModule' in $$props) $$invalidate(21, currentCvModule = $$props.currentCvModule);
+    		if ('opacity' in $$props) $$invalidate(14, opacity = $$props.opacity);
+    		if ('bobSize' in $$props) $$invalidate(8, bobSize = $$props.bobSize);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -3993,41 +4168,33 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty[0] & /*module, $modules*/ 10) {
-    			if (module.state.inputId != null) {
-    				$$invalidate(1, module.input = $modules[module.state.inputId], module);
-    			} else {
-    				$$invalidate(1, module.input = null, module);
-    			}
-    		}
-
-    		if ($$self.$$.dirty[0] & /*module, $modules*/ 10) {
+    		if ($$self.$$.dirty[0] & /*module, $modules*/ 34) {
     			if (module.state.cvId != null) {
-    				$$invalidate(12, cvModule = $modules[module.state.cvId]);
+    				$$invalidate(19, cvModule = $modules[module.state.cvId]);
     			} else {
-    				$$invalidate(12, cvModule = null);
+    				$$invalidate(19, cvModule = null);
     			}
     		}
 
-    		if ($$self.$$.dirty[0] & /*module, $context*/ 65538) {
+    		if ($$self.$$.dirty[0] & /*module, $context*/ 8388610) {
     			gainNode.gain.setValueAtTime(module.state.gain, $context.currentTime);
     		}
 
-    		if ($$self.$$.dirty[0] & /*module, currentInput*/ 8194) {
+    		if ($$self.$$.dirty[0] & /*module, $modules, currentInput*/ 1048610) {
     			if (!module.destroyed) {
-    				if (module.input) {
+    				if (module.state.inputId != null && $modules[module.state.inputId].output) {
     					if (currentInput) currentInput.disconnect(gainNode);
-    					$$invalidate(13, currentInput = module.input.output);
+    					$$invalidate(20, currentInput = $modules[module.state.inputId].output);
     					currentInput.connect(gainNode);
-    					if (module.input.input || module.input.inputs) module.input.update();
+    					if ($modules[module.state.inputId].input || $modules[module.state.inputId].inputs) $modules[module.state.inputId].update();
     				} else {
     					if (currentInput) currentInput.disconnect(gainNode);
-    					$$invalidate(13, currentInput = null);
+    					$$invalidate(20, currentInput = null);
     				}
     			}
     		}
 
-    		if ($$self.$$.dirty[0] & /*module, cvModule, $context, currentCvModule*/ 86018) {
+    		if ($$self.$$.dirty[0] & /*module, cvModule, $context, currentCvModule*/ 11010050) {
     			if (!module.destroyed) {
     				if (cvModule) {
     					gainNode.gain.cancelScheduledValues($context.currentTime);
@@ -4038,7 +4205,7 @@ var app = (function () {
     						currentCvModule.removeOutput(module.state.id, module.cv);
     					}
 
-    					$$invalidate(14, currentCvModule = cvModule);
+    					$$invalidate(21, currentCvModule = cvModule);
     					if (!currentCvModule.outputs[module.state.id]) currentCvModule.addOutput(module.state.id, module.cv);
     				} else {
     					gainNode.gain.cancelScheduledValues($context.currentTime);
@@ -4048,19 +4215,49 @@ var app = (function () {
     						if (currentCvModule.outputs[module.state.id]) currentCvModule.removeOutput(module.state.id, module.cv);
     					}
 
-    					$$invalidate(14, currentCvModule = null);
+    					$$invalidate(21, currentCvModule = null);
     				}
     			}
     		}
 
-    		if ($$self.$$.dirty[0] & /*currentCvModule, module*/ 16386) {
+    		if ($$self.$$.dirty[0] & /*currentCvModule, module*/ 2097154) {
     			if (currentCvModule) {
     				currentCvModule.setGain(module.state.id, module.state.gain);
     			}
     		}
 
-    		if ($$self.$$.dirty[0] & /*moduleNode, $opacity*/ 32772) {
+    		if ($$self.$$.dirty[0] & /*moduleNode, $opacity*/ 4194308) {
     			if (moduleNode) $$invalidate(2, moduleNode.style.opacity = `${$opacity}`, moduleNode);
+    		}
+
+    		if ($$self.$$.dirty[0] & /*module, inputBtn, $colours, $modules, cvBtn*/ 393314) {
+    			if (!module.destroyed) {
+    				if (inputBtn) {
+    					if (module.state.inputId != null) {
+    						$$invalidate(17, inputBtn.style.backgroundColor = $colours[$modules[module.state.inputId].state.type], inputBtn);
+    					} else {
+    						$$invalidate(17, inputBtn.style.backgroundColor = "#f0f0f0", inputBtn);
+    					}
+    				}
+
+    				if (cvBtn) {
+    					if (module.state.cvId != null) {
+    						$$invalidate(18, cvBtn.style.backgroundColor = $colours[$modules[module.state.cvId].state.type], cvBtn);
+    					} else {
+    						$$invalidate(18, cvBtn.style.backgroundColor = "#f0f0f0", cvBtn);
+    					}
+    				}
+    			}
+    		}
+
+    		if ($$self.$$.dirty[0] & /*controlsNode, $selectingModule*/ 24) {
+    			if (controlsNode) {
+    				if ($selectingModule != null) {
+    					$$invalidate(3, controlsNode.style.pointerEvents = "none", controlsNode);
+    				} else {
+    					$$invalidate(3, controlsNode.style.pointerEvents = "all", controlsNode);
+    				}
+    			}
     		}
     	};
 
@@ -4068,29 +4265,38 @@ var app = (function () {
     		state,
     		module,
     		moduleNode,
-    		$modules,
     		controlsNode,
+    		$selectingModule,
+    		$modules,
+    		$colours,
     		deleteNode,
     		bobSize,
-    		connectCV,
     		setModule,
     		setControls,
     		setDelete,
+    		setInputBtn,
+    		setCvBtn,
     		opacity,
+    		chooseInput,
+    		chooseCv,
+    		inputBtn,
+    		cvBtn,
     		cvModule,
     		currentInput,
     		currentCvModule,
     		$opacity,
     		$context,
+    		click_handler,
     		modulemovement_moduleNode_binding,
     		modulemovement_controlsNode_binding,
     		modulemovement_deleteNode_binding,
     		modulemovement_nodePos_binding,
     		modulemovement_bobSize_binding,
     		h2_input_handler,
-    		select0_change_handler,
     		mouseenter_handler,
+    		mouseleave_handler,
     		mouseenter_handler_1,
+    		mouseleave_handler_1,
     		input_change_input_handler,
     		main_binding
     	];
@@ -4120,10 +4326,11 @@ var app = (function () {
 
     /* src\ADSR.svelte generated by Svelte v3.59.2 */
 
-    const { Object: Object_1$3 } = globals;
+    const { Object: Object_1$1 } = globals;
     const file$4 = "src\\ADSR.svelte";
 
-    function create_fragment$4(ctx) {
+    // (125:0) {#if !module.destroyed}
+    function create_if_block$4(ctx) {
     	let main;
     	let modulemovement;
     	let updating_moduleNode;
@@ -4173,6 +4380,7 @@ var app = (function () {
     	let t19;
     	let t20;
     	let input3;
+    	let div3_style_value;
     	let t21;
     	let br;
     	let current;
@@ -4180,23 +4388,23 @@ var app = (function () {
     	let dispose;
 
     	function modulemovement_moduleNode_binding(value) {
-    		/*modulemovement_moduleNode_binding*/ ctx[16](value);
+    		/*modulemovement_moduleNode_binding*/ ctx[19](value);
     	}
 
     	function modulemovement_controlsNode_binding(value) {
-    		/*modulemovement_controlsNode_binding*/ ctx[17](value);
+    		/*modulemovement_controlsNode_binding*/ ctx[20](value);
     	}
 
     	function modulemovement_deleteNode_binding(value) {
-    		/*modulemovement_deleteNode_binding*/ ctx[18](value);
+    		/*modulemovement_deleteNode_binding*/ ctx[21](value);
     	}
 
     	function modulemovement_nodePos_binding(value) {
-    		/*modulemovement_nodePos_binding*/ ctx[19](value);
+    		/*modulemovement_nodePos_binding*/ ctx[22](value);
     	}
 
     	function modulemovement_bobSize_binding(value) {
-    		/*modulemovement_bobSize_binding*/ ctx[20](value);
+    		/*modulemovement_bobSize_binding*/ ctx[23](value);
     	}
 
     	let modulemovement_props = {
@@ -4282,57 +4490,55 @@ var app = (function () {
     			input3 = element("input");
     			t21 = space();
     			br = element("br");
-    			add_location(h1, file$4, 124, 8, 3400);
-    			attr_dev(div0, "class", "delete svelte-9107jr");
-    			add_location(div0, file$4, 125, 8, 3436);
-    			attr_dev(h2, "class", "editableTitle svelte-9107jr");
+    			add_location(h1, file$4, 128, 8, 3845);
+    			attr_dev(div0, "class", "delete svelte-1ixggrf");
+    			add_location(div0, file$4, 129, 8, 3881);
+    			attr_dev(h2, "class", "editableTitle svelte-1ixggrf");
     			attr_dev(h2, "contenteditable", "true");
-    			if (/*module*/ ctx[1].state.title === void 0) add_render_callback(() => /*h2_input_handler*/ ctx[21].call(h2));
-    			add_location(h2, file$4, 127, 12, 3567);
+    			if (/*$modules*/ ctx[9][/*module*/ ctx[1].state.id].state.title === void 0) add_render_callback(() => /*h2_input_handler*/ ctx[24].call(h2));
+    			add_location(h2, file$4, 131, 12, 4012);
     			attr_dev(label0, "for", "attack");
-    			add_location(label0, file$4, 129, 16, 3731);
+    			add_location(label0, file$4, 133, 16, 4195);
     			attr_dev(input0, "id", "attack");
     			attr_dev(input0, "type", "range");
     			attr_dev(input0, "min", "0");
     			attr_dev(input0, "max", "1");
     			attr_dev(input0, "step", "0.001");
-    			add_location(input0, file$4, 129, 73, 3788);
+    			add_location(input0, file$4, 133, 73, 4252);
     			attr_dev(label1, "for", "decay");
-    			add_location(label1, file$4, 130, 16, 3900);
+    			add_location(label1, file$4, 134, 16, 4364);
     			attr_dev(input1, "id", "decay");
     			attr_dev(input1, "type", "range");
     			attr_dev(input1, "min", "0");
     			attr_dev(input1, "max", "1");
     			attr_dev(input1, "step", "0.001");
-    			add_location(input1, file$4, 130, 70, 3954);
+    			add_location(input1, file$4, 134, 70, 4418);
     			attr_dev(label2, "for", "sustain");
-    			add_location(label2, file$4, 131, 16, 4064);
+    			add_location(label2, file$4, 135, 16, 4528);
     			attr_dev(input2, "id", "sustain");
     			attr_dev(input2, "type", "range");
     			attr_dev(input2, "min", "0");
     			attr_dev(input2, "max", "1");
     			attr_dev(input2, "step", "0.001");
-    			add_location(input2, file$4, 131, 88, 4136);
+    			add_location(input2, file$4, 135, 88, 4600);
     			attr_dev(label3, "for", "release");
-    			add_location(label3, file$4, 132, 16, 4250);
+    			add_location(label3, file$4, 136, 16, 4714);
     			attr_dev(input3, "id", "release");
     			attr_dev(input3, "type", "range");
     			attr_dev(input3, "min", "0");
     			attr_dev(input3, "max", "1");
     			attr_dev(input3, "step", "0.001");
-    			add_location(input3, file$4, 132, 76, 4310);
+    			add_location(input3, file$4, 136, 76, 4774);
     			attr_dev(div1, "class", "params");
-    			add_location(div1, file$4, 128, 12, 3693);
+    			add_location(div1, file$4, 132, 12, 4157);
     			attr_dev(div2, "id", "controls");
-    			add_location(div2, file$4, 126, 8, 3518);
+    			add_location(div2, file$4, 130, 8, 3963);
     			attr_dev(div3, "id", "module");
-    			attr_dev(div3, "class", "svelte-9107jr");
-    			add_location(div3, file$4, 123, 4, 3359);
-    			add_location(br, file$4, 136, 4, 4460);
-    			add_location(main, file$4, 121, 0, 3153);
-    		},
-    		l: function claim(nodes) {
-    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    			attr_dev(div3, "style", div3_style_value = "background-color: " + /*$colours*/ ctx[10][/*module*/ ctx[1].state.type]);
+    			attr_dev(div3, "class", "svelte-1ixggrf");
+    			add_location(div3, file$4, 127, 4, 3745);
+    			add_location(br, file$4, 140, 4, 4924);
+    			add_location(main, file$4, 125, 0, 3539);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
@@ -4349,8 +4555,8 @@ var app = (function () {
     			append_dev(div2, h2);
     			append_dev(h2, t4);
 
-    			if (/*module*/ ctx[1].state.title !== void 0) {
-    				h2.textContent = /*module*/ ctx[1].state.title;
+    			if (/*$modules*/ ctx[9][/*module*/ ctx[1].state.id].state.title !== void 0) {
+    				h2.textContent = /*$modules*/ ctx[9][/*module*/ ctx[1].state.id].state.title;
     			}
 
     			append_dev(div2, t5);
@@ -4384,23 +4590,23 @@ var app = (function () {
     			set_input_value(input3, /*module*/ ctx[1].state.release);
     			append_dev(main, t21);
     			append_dev(main, br);
-    			/*main_binding*/ ctx[26](main);
+    			/*main_binding*/ ctx[29](main);
     			current = true;
 
     			if (!mounted) {
     				dispose = [
-    					action_destroyer(/*setDelete*/ ctx[11].call(null, div0)),
-    					listen_dev(h2, "input", /*h2_input_handler*/ ctx[21]),
-    					listen_dev(input0, "change", /*input0_change_input_handler*/ ctx[22]),
-    					listen_dev(input0, "input", /*input0_change_input_handler*/ ctx[22]),
-    					listen_dev(input1, "change", /*input1_change_input_handler*/ ctx[23]),
-    					listen_dev(input1, "input", /*input1_change_input_handler*/ ctx[23]),
-    					listen_dev(input2, "change", /*input2_change_input_handler*/ ctx[24]),
-    					listen_dev(input2, "input", /*input2_change_input_handler*/ ctx[24]),
-    					listen_dev(input3, "change", /*input3_change_input_handler*/ ctx[25]),
-    					listen_dev(input3, "input", /*input3_change_input_handler*/ ctx[25]),
-    					action_destroyer(/*setControls*/ ctx[10].call(null, div2)),
-    					action_destroyer(/*setModule*/ ctx[9].call(null, div3))
+    					action_destroyer(/*setDelete*/ ctx[13].call(null, div0)),
+    					listen_dev(h2, "input", /*h2_input_handler*/ ctx[24]),
+    					listen_dev(input0, "change", /*input0_change_input_handler*/ ctx[25]),
+    					listen_dev(input0, "input", /*input0_change_input_handler*/ ctx[25]),
+    					listen_dev(input1, "change", /*input1_change_input_handler*/ ctx[26]),
+    					listen_dev(input1, "input", /*input1_change_input_handler*/ ctx[26]),
+    					listen_dev(input2, "change", /*input2_change_input_handler*/ ctx[27]),
+    					listen_dev(input2, "input", /*input2_change_input_handler*/ ctx[27]),
+    					listen_dev(input3, "change", /*input3_change_input_handler*/ ctx[28]),
+    					listen_dev(input3, "input", /*input3_change_input_handler*/ ctx[28]),
+    					action_destroyer(/*setControls*/ ctx[12].call(null, div2)),
+    					action_destroyer(/*setModule*/ ctx[11].call(null, div3))
     				];
 
     				mounted = true;
@@ -4446,8 +4652,8 @@ var app = (function () {
     			deletebutton.$set(deletebutton_changes);
     			if ((!current || dirty[0] & /*module*/ 2) && t4_value !== (t4_value = /*module*/ ctx[1].state.title + "")) set_data_contenteditable_dev(t4, t4_value);
 
-    			if (dirty[0] & /*module*/ 2 && /*module*/ ctx[1].state.title !== h2.textContent) {
-    				h2.textContent = /*module*/ ctx[1].state.title;
+    			if (dirty[0] & /*$modules, module*/ 514 && /*$modules*/ ctx[9][/*module*/ ctx[1].state.id].state.title !== h2.textContent) {
+    				h2.textContent = /*$modules*/ ctx[9][/*module*/ ctx[1].state.id].state.title;
     			}
 
     			if ((!current || dirty[0] & /*attack*/ 32) && t7_value !== (t7_value = /*attack*/ ctx[5].toFixed(2) + "")) set_data_dev(t7, t7_value);
@@ -4473,6 +4679,10 @@ var app = (function () {
     			if (dirty[0] & /*module*/ 2) {
     				set_input_value(input3, /*module*/ ctx[1].state.release);
     			}
+
+    			if (!current || dirty[0] & /*$colours, module*/ 1026 && div3_style_value !== (div3_style_value = "background-color: " + /*$colours*/ ctx[10][/*module*/ ctx[1].state.type])) {
+    				attr_dev(div3, "style", div3_style_value);
+    			}
     		},
     		i: function intro(local) {
     			if (current) return;
@@ -4489,9 +4699,77 @@ var app = (function () {
     			if (detaching) detach_dev(main);
     			destroy_component(modulemovement);
     			destroy_component(deletebutton);
-    			/*main_binding*/ ctx[26](null);
+    			/*main_binding*/ ctx[29](null);
     			mounted = false;
     			run_all(dispose);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block$4.name,
+    		type: "if",
+    		source: "(125:0) {#if !module.destroyed}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function create_fragment$4(ctx) {
+    	let if_block_anchor;
+    	let current;
+    	let if_block = !/*module*/ ctx[1].destroyed && create_if_block$4(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if (if_block) if_block.c();
+    			if_block_anchor = empty();
+    		},
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+    		m: function mount(target, anchor) {
+    			if (if_block) if_block.m(target, anchor);
+    			insert_dev(target, if_block_anchor, anchor);
+    			current = true;
+    		},
+    		p: function update(ctx, dirty) {
+    			if (!/*module*/ ctx[1].destroyed) {
+    				if (if_block) {
+    					if_block.p(ctx, dirty);
+
+    					if (dirty[0] & /*module*/ 2) {
+    						transition_in(if_block, 1);
+    					}
+    				} else {
+    					if_block = create_if_block$4(ctx);
+    					if_block.c();
+    					transition_in(if_block, 1);
+    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    				}
+    			} else if (if_block) {
+    				group_outros();
+
+    				transition_out(if_block, 1, 1, () => {
+    					if_block = null;
+    				});
+
+    				check_outros();
+    			}
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(if_block);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(if_block);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			if (if_block) if_block.d(detaching);
+    			if (detaching) detach_dev(if_block_anchor);
     		}
     	};
 
@@ -4507,16 +4785,22 @@ var app = (function () {
     }
 
     function instance$4($$self, $$props, $$invalidate) {
+    	let $selectingModule;
     	let $opacity;
+    	let $modules;
     	let $midi;
     	let $context;
-    	let $modules;
-    	validate_store(midi, 'midi');
-    	component_subscribe($$self, midi, $$value => $$invalidate(15, $midi = $$value));
-    	validate_store(context, 'context');
-    	component_subscribe($$self, context, $$value => $$invalidate(28, $context = $$value));
+    	let $colours;
+    	validate_store(selectingModule, 'selectingModule');
+    	component_subscribe($$self, selectingModule, $$value => $$invalidate(16, $selectingModule = $$value));
     	validate_store(modules, 'modules');
-    	component_subscribe($$self, modules, $$value => $$invalidate(29, $modules = $$value));
+    	component_subscribe($$self, modules, $$value => $$invalidate(9, $modules = $$value));
+    	validate_store(midi, 'midi');
+    	component_subscribe($$self, midi, $$value => $$invalidate(18, $midi = $$value));
+    	validate_store(context, 'context');
+    	component_subscribe($$self, context, $$value => $$invalidate(31, $context = $$value));
+    	validate_store(colours, 'colours');
+    	component_subscribe($$self, colours, $$value => $$invalidate(10, $colours = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('ADSR', slots, []);
 
@@ -4575,6 +4859,10 @@ var app = (function () {
 
     	function setModule(node) {
     		$$invalidate(2, moduleNode = node);
+
+    		moduleNode.addEventListener("mouseup", () => {
+    			if ($selectingModule != null && $modules[$selectingModule].selectingCv) $modules[$selectingModule].select(module.state.id);
+    		});
     	}
 
     	function setControls(node) {
@@ -4587,7 +4875,7 @@ var app = (function () {
 
     	let opacity = spring(1, { stiffness: 0.1, damping: 0.5 });
     	validate_store(opacity, 'opacity');
-    	component_subscribe($$self, opacity, value => $$invalidate(14, $opacity = value));
+    	component_subscribe($$self, opacity, value => $$invalidate(17, $opacity = value));
     	let bobSize = spring(0, { stiffness: 0.3, damping: 0.2 });
 
     	module.fade = () => {
@@ -4616,18 +4904,18 @@ var app = (function () {
     	module.bob();
     	const writable_props = ['state'];
 
-    	Object_1$3.keys($$props).forEach(key => {
+    	Object_1$1.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<ADSR> was created with unknown prop '${key}'`);
     	});
 
     	function modulemovement_moduleNode_binding(value) {
     		moduleNode = value;
-    		($$invalidate(2, moduleNode), $$invalidate(14, $opacity));
+    		($$invalidate(2, moduleNode), $$invalidate(17, $opacity));
     	}
 
     	function modulemovement_controlsNode_binding(value) {
     		controlsNode = value;
-    		$$invalidate(3, controlsNode);
+    		($$invalidate(3, controlsNode), $$invalidate(16, $selectingModule));
     	}
 
     	function modulemovement_deleteNode_binding(value) {
@@ -4648,8 +4936,8 @@ var app = (function () {
     	}
 
     	function h2_input_handler() {
-    		module.state.title = this.textContent;
-    		$$invalidate(1, module);
+    		$modules[module.state.id].state.title = this.textContent;
+    		modules.set($modules);
     	}
 
     	function input0_change_input_handler() {
@@ -4687,11 +4975,11 @@ var app = (function () {
     		modules,
     		context,
     		midi,
+    		colours,
+    		selectingModule,
     		ModuleMovement,
     		DeleteButton,
     		createNewId,
-    		inputsAllHover,
-    		unhover,
     		setPosition,
     		spring,
     		state,
@@ -4711,10 +4999,12 @@ var app = (function () {
     		setDelete,
     		opacity,
     		bobSize,
+    		$selectingModule,
     		$opacity,
+    		$modules,
     		$midi,
     		$context,
-    		$modules
+    		$colours
     	});
 
     	$$self.$inject_state = $$props => {
@@ -4723,11 +5013,11 @@ var app = (function () {
     		if ('moduleNode' in $$props) $$invalidate(2, moduleNode = $$props.moduleNode);
     		if ('controlsNode' in $$props) $$invalidate(3, controlsNode = $$props.controlsNode);
     		if ('deleteNode' in $$props) $$invalidate(4, deleteNode = $$props.deleteNode);
-    		if ('notePlaying' in $$props) $$invalidate(13, notePlaying = $$props.notePlaying);
+    		if ('notePlaying' in $$props) $$invalidate(15, notePlaying = $$props.notePlaying);
     		if ('attack' in $$props) $$invalidate(5, attack = $$props.attack);
     		if ('decay' in $$props) $$invalidate(6, decay = $$props.decay);
     		if ('release' in $$props) $$invalidate(7, release = $$props.release);
-    		if ('opacity' in $$props) $$invalidate(12, opacity = $$props.opacity);
+    		if ('opacity' in $$props) $$invalidate(14, opacity = $$props.opacity);
     		if ('bobSize' in $$props) $$invalidate(8, bobSize = $$props.bobSize);
     	};
 
@@ -4748,20 +5038,30 @@ var app = (function () {
     			$$invalidate(7, release = Math.pow(10, module.state.release) - 1);
     		}
 
-    		if ($$self.$$.dirty[0] & /*$midi, notePlaying*/ 40960) {
-    			if ($midi.trigger && !notePlaying) $$invalidate(13, notePlaying = true);
+    		if ($$self.$$.dirty[0] & /*$midi, notePlaying*/ 294912) {
+    			if ($midi.trigger && !notePlaying) $$invalidate(15, notePlaying = true);
     		}
 
-    		if ($$self.$$.dirty[0] & /*$midi, notePlaying*/ 40960) {
-    			if (!$midi.trigger && notePlaying) $$invalidate(13, notePlaying = false);
+    		if ($$self.$$.dirty[0] & /*$midi, notePlaying*/ 294912) {
+    			if (!$midi.trigger && notePlaying) $$invalidate(15, notePlaying = false);
     		}
 
-    		if ($$self.$$.dirty[0] & /*notePlaying*/ 8192) {
+    		if ($$self.$$.dirty[0] & /*notePlaying*/ 32768) {
     			if (notePlaying) fireEnv(); else unFireEnv();
     		}
 
-    		if ($$self.$$.dirty[0] & /*moduleNode, $opacity*/ 16388) {
+    		if ($$self.$$.dirty[0] & /*moduleNode, $opacity*/ 131076) {
     			if (moduleNode) $$invalidate(2, moduleNode.style.opacity = `${$opacity}`, moduleNode);
+    		}
+
+    		if ($$self.$$.dirty[0] & /*controlsNode, $selectingModule*/ 65544) {
+    			if (controlsNode) {
+    				if ($selectingModule != null) {
+    					$$invalidate(3, controlsNode.style.pointerEvents = "none", controlsNode);
+    				} else {
+    					$$invalidate(3, controlsNode.style.pointerEvents = "all", controlsNode);
+    				}
+    			}
     		}
     	};
 
@@ -4775,11 +5075,14 @@ var app = (function () {
     		decay,
     		release,
     		bobSize,
+    		$modules,
+    		$colours,
     		setModule,
     		setControls,
     		setDelete,
     		opacity,
     		notePlaying,
+    		$selectingModule,
     		$opacity,
     		$midi,
     		modulemovement_moduleNode_binding,
@@ -4819,217 +5122,10 @@ var app = (function () {
     }
 
     /* src\VCF.svelte generated by Svelte v3.59.2 */
-
-    const { Object: Object_1$2 } = globals;
     const file$3 = "src\\VCF.svelte";
 
-    function get_each_context$2(ctx, list, i) {
-    	const child_ctx = ctx.slice();
-    	child_ctx[36] = list[i][0];
-    	child_ctx[37] = list[i][1];
-    	return child_ctx;
-    }
-
-    function get_each_context_1$1(ctx, list, i) {
-    	const child_ctx = ctx.slice();
-    	child_ctx[36] = list[i][0];
-    	child_ctx[37] = list[i][1];
-    	return child_ctx;
-    }
-
-    // (161:20) {#if m.output && id != module.state.id}
-    function create_if_block_1(ctx) {
-    	let option;
-    	let t0_value = /*id*/ ctx[36] + "";
-    	let t0;
-    	let t1;
-    	let t2_value = /*m*/ ctx[37].state.title + "";
-    	let t2;
-    	let option_value_value;
-
-    	const block = {
-    		c: function create() {
-    			option = element("option");
-    			t0 = text(t0_value);
-    			t1 = space();
-    			t2 = text(t2_value);
-    			option.__value = option_value_value = /*id*/ ctx[36];
-    			option.value = option.__value;
-    			add_location(option, file$3, 161, 20, 4950);
-    		},
-    		m: function mount(target, anchor) {
-    			insert_dev(target, option, anchor);
-    			append_dev(option, t0);
-    			append_dev(option, t1);
-    			append_dev(option, t2);
-    		},
-    		p: function update(ctx, dirty) {
-    			if (dirty[0] & /*$modules*/ 16 && t0_value !== (t0_value = /*id*/ ctx[36] + "")) set_data_dev(t0, t0_value);
-    			if (dirty[0] & /*$modules*/ 16 && t2_value !== (t2_value = /*m*/ ctx[37].state.title + "")) set_data_dev(t2, t2_value);
-
-    			if (dirty[0] & /*$modules*/ 16 && option_value_value !== (option_value_value = /*id*/ ctx[36])) {
-    				prop_dev(option, "__value", option_value_value);
-    				option.value = option.__value;
-    			}
-    		},
-    		d: function destroy(detaching) {
-    			if (detaching) detach_dev(option);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_if_block_1.name,
-    		type: "if",
-    		source: "(161:20) {#if m.output && id != module.state.id}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    // (160:16) {#each Object.entries($modules) as [id, m]}
-    function create_each_block_1$1(ctx) {
-    	let if_block_anchor;
-    	let if_block = /*m*/ ctx[37].output && /*id*/ ctx[36] != /*module*/ ctx[1].state.id && create_if_block_1(ctx);
-
-    	const block = {
-    		c: function create() {
-    			if (if_block) if_block.c();
-    			if_block_anchor = empty();
-    		},
-    		m: function mount(target, anchor) {
-    			if (if_block) if_block.m(target, anchor);
-    			insert_dev(target, if_block_anchor, anchor);
-    		},
-    		p: function update(ctx, dirty) {
-    			if (/*m*/ ctx[37].output && /*id*/ ctx[36] != /*module*/ ctx[1].state.id) {
-    				if (if_block) {
-    					if_block.p(ctx, dirty);
-    				} else {
-    					if_block = create_if_block_1(ctx);
-    					if_block.c();
-    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
-    				}
-    			} else if (if_block) {
-    				if_block.d(1);
-    				if_block = null;
-    			}
-    		},
-    		d: function destroy(detaching) {
-    			if (if_block) if_block.d(detaching);
-    			if (detaching) detach_dev(if_block_anchor);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_each_block_1$1.name,
-    		type: "each",
-    		source: "(160:16) {#each Object.entries($modules) as [id, m]}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    // (170:20) {#if m.state.type == 'adsr' || m.state.type == 'lfo'}
-    function create_if_block$1(ctx) {
-    	let option;
-    	let t0_value = /*id*/ ctx[36] + "";
-    	let t0;
-    	let t1;
-    	let t2_value = /*m*/ ctx[37].state.title + "";
-    	let t2;
-    	let option_value_value;
-
-    	const block = {
-    		c: function create() {
-    			option = element("option");
-    			t0 = text(t0_value);
-    			t1 = space();
-    			t2 = text(t2_value);
-    			option.__value = option_value_value = /*id*/ ctx[36];
-    			option.value = option.__value;
-    			add_location(option, file$3, 170, 20, 5485);
-    		},
-    		m: function mount(target, anchor) {
-    			insert_dev(target, option, anchor);
-    			append_dev(option, t0);
-    			append_dev(option, t1);
-    			append_dev(option, t2);
-    		},
-    		p: function update(ctx, dirty) {
-    			if (dirty[0] & /*$modules*/ 16 && t0_value !== (t0_value = /*id*/ ctx[36] + "")) set_data_dev(t0, t0_value);
-    			if (dirty[0] & /*$modules*/ 16 && t2_value !== (t2_value = /*m*/ ctx[37].state.title + "")) set_data_dev(t2, t2_value);
-
-    			if (dirty[0] & /*$modules*/ 16 && option_value_value !== (option_value_value = /*id*/ ctx[36])) {
-    				prop_dev(option, "__value", option_value_value);
-    				option.value = option.__value;
-    			}
-    		},
-    		d: function destroy(detaching) {
-    			if (detaching) detach_dev(option);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_if_block$1.name,
-    		type: "if",
-    		source: "(170:20) {#if m.state.type == 'adsr' || m.state.type == 'lfo'}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    // (169:16) {#each Object.entries($modules) as [id, m]}
-    function create_each_block$2(ctx) {
-    	let if_block_anchor;
-    	let if_block = (/*m*/ ctx[37].state.type == 'adsr' || /*m*/ ctx[37].state.type == 'lfo') && create_if_block$1(ctx);
-
-    	const block = {
-    		c: function create() {
-    			if (if_block) if_block.c();
-    			if_block_anchor = empty();
-    		},
-    		m: function mount(target, anchor) {
-    			if (if_block) if_block.m(target, anchor);
-    			insert_dev(target, if_block_anchor, anchor);
-    		},
-    		p: function update(ctx, dirty) {
-    			if (/*m*/ ctx[37].state.type == 'adsr' || /*m*/ ctx[37].state.type == 'lfo') {
-    				if (if_block) {
-    					if_block.p(ctx, dirty);
-    				} else {
-    					if_block = create_if_block$1(ctx);
-    					if_block.c();
-    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
-    				}
-    			} else if (if_block) {
-    				if_block.d(1);
-    				if_block = null;
-    			}
-    		},
-    		d: function destroy(detaching) {
-    			if (if_block) if_block.d(detaching);
-    			if (detaching) detach_dev(if_block_anchor);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_each_block$2.name,
-    		type: "each",
-    		source: "(169:16) {#each Object.entries($modules) as [id, m]}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    function create_fragment$3(ctx) {
+    // (223:0) {#if !module.destroyed}
+    function create_if_block$3(ctx) {
     	let main;
     	let modulemovement;
     	let updating_moduleNode;
@@ -5053,45 +5149,43 @@ var app = (function () {
     	let t5;
     	let div1;
     	let label0;
-    	let select0;
-    	let option0;
+    	let button0;
     	let t6;
     	let t7;
     	let div2;
     	let label1;
-    	let select1;
-    	let option1;
+    	let button1;
     	let t8;
-    	let t9;
     	let br0;
-    	let t10;
+    	let t9;
     	let label2;
+    	let t10;
+    	let t11_value = /*frequency*/ ctx[4].toFixed(1) + "";
     	let t11;
-    	let t12_value = /*frequency*/ ctx[3].toFixed(1) + "";
     	let t12;
-    	let t13;
     	let input0;
-    	let t14;
+    	let t13;
     	let br1;
     	let section;
     	let input1;
     	let input1_id_value;
     	let label3;
-    	let t15;
+    	let t14;
     	let label3_for_value;
-    	let t16;
+    	let t15;
     	let input2;
     	let input2_id_value;
     	let label4;
-    	let t17;
+    	let t16;
     	let label4_for_value;
-    	let t18;
+    	let t17;
     	let input3;
     	let input3_id_value;
     	let label5;
-    	let t19;
+    	let t18;
     	let label5_for_value;
-    	let t20;
+    	let div4_style_value;
+    	let t19;
     	let br2;
     	let current;
     	let binding_group;
@@ -5099,23 +5193,23 @@ var app = (function () {
     	let dispose;
 
     	function modulemovement_moduleNode_binding(value) {
-    		/*modulemovement_moduleNode_binding*/ ctx[19](value);
+    		/*modulemovement_moduleNode_binding*/ ctx[26](value);
     	}
 
     	function modulemovement_controlsNode_binding(value) {
-    		/*modulemovement_controlsNode_binding*/ ctx[20](value);
+    		/*modulemovement_controlsNode_binding*/ ctx[27](value);
     	}
 
     	function modulemovement_deleteNode_binding(value) {
-    		/*modulemovement_deleteNode_binding*/ ctx[21](value);
+    		/*modulemovement_deleteNode_binding*/ ctx[28](value);
     	}
 
     	function modulemovement_nodePos_binding(value) {
-    		/*modulemovement_nodePos_binding*/ ctx[22](value);
+    		/*modulemovement_nodePos_binding*/ ctx[29](value);
     	}
 
     	function modulemovement_bobSize_binding(value) {
-    		/*modulemovement_bobSize_binding*/ ctx[23](value);
+    		/*modulemovement_bobSize_binding*/ ctx[30](value);
     	}
 
     	let modulemovement_props = { nodeSize: { x: 280, y: 350 } };
@@ -5124,20 +5218,20 @@ var app = (function () {
     		modulemovement_props.moduleNode = /*moduleNode*/ ctx[2];
     	}
 
-    	if (/*controlsNode*/ ctx[5] !== void 0) {
-    		modulemovement_props.controlsNode = /*controlsNode*/ ctx[5];
+    	if (/*controlsNode*/ ctx[3] !== void 0) {
+    		modulemovement_props.controlsNode = /*controlsNode*/ ctx[3];
     	}
 
-    	if (/*deleteNode*/ ctx[6] !== void 0) {
-    		modulemovement_props.deleteNode = /*deleteNode*/ ctx[6];
+    	if (/*deleteNode*/ ctx[8] !== void 0) {
+    		modulemovement_props.deleteNode = /*deleteNode*/ ctx[8];
     	}
 
     	if (/*state*/ ctx[0].position !== void 0) {
     		modulemovement_props.nodePos = /*state*/ ctx[0].position;
     	}
 
-    	if (/*bobSize*/ ctx[7] !== void 0) {
-    		modulemovement_props.bobSize = /*bobSize*/ ctx[7];
+    	if (/*bobSize*/ ctx[9] !== void 0) {
+    		modulemovement_props.bobSize = /*bobSize*/ ctx[9];
     	}
 
     	modulemovement = new ModuleMovement({
@@ -5156,23 +5250,22 @@ var app = (function () {
     			$$inline: true
     		});
 
-    	let each_value_1 = Object.entries(/*$modules*/ ctx[4]);
-    	validate_each_argument(each_value_1);
-    	let each_blocks_1 = [];
-
-    	for (let i = 0; i < each_value_1.length; i += 1) {
-    		each_blocks_1[i] = create_each_block_1$1(get_each_context_1$1(ctx, each_value_1, i));
+    	function select_block_type(ctx, dirty) {
+    		if (/*module*/ ctx[1].state.inputId != null && /*$modules*/ ctx[6][/*module*/ ctx[1].state.inputId]) return create_if_block_2;
+    		return create_else_block_1;
     	}
 
-    	let each_value = Object.entries(/*$modules*/ ctx[4]);
-    	validate_each_argument(each_value);
-    	let each_blocks = [];
+    	let current_block_type = select_block_type(ctx);
+    	let if_block0 = current_block_type(ctx);
 
-    	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block$2(get_each_context$2(ctx, each_value, i));
+    	function select_block_type_1(ctx, dirty) {
+    		if (/*module*/ ctx[1].state.cvId != null && /*$modules*/ ctx[6][/*module*/ ctx[1].state.cvId]) return create_if_block_1$1;
+    		return create_else_block$2;
     	}
 
-    	binding_group = init_binding_group(/*$$binding_groups*/ ctx[32][0]);
+    	let current_block_type_1 = select_block_type_1(ctx);
+    	let if_block1 = current_block_type_1(ctx);
+    	binding_group = init_binding_group(/*$$binding_groups*/ ctx[38][0]);
 
     	const block = {
     		c: function create() {
@@ -5192,123 +5285,103 @@ var app = (function () {
     			t5 = space();
     			div1 = element("div");
     			label0 = element("label");
-    			select0 = element("select");
-
-    			for (let i = 0; i < each_blocks_1.length; i += 1) {
-    				each_blocks_1[i].c();
-    			}
-
-    			option0 = element("option");
+    			button0 = element("button");
+    			if_block0.c();
     			t6 = text(" Input");
     			t7 = space();
     			div2 = element("div");
     			label1 = element("label");
-    			select1 = element("select");
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].c();
-    			}
-
-    			option1 = element("option");
+    			button1 = element("button");
+    			if_block1.c();
     			t8 = text(" Control");
-    			t9 = space();
     			br0 = element("br");
-    			t10 = space();
+    			t9 = space();
     			label2 = element("label");
-    			t11 = text("Cutoff Frequency (");
-    			t12 = text(t12_value);
-    			t13 = text("Hz)");
+    			t10 = text("Cutoff Frequency (");
+    			t11 = text(t11_value);
+    			t12 = text("Hz)");
     			input0 = element("input");
-    			t14 = space();
+    			t13 = space();
     			br1 = element("br");
     			section = element("section");
     			input1 = element("input");
     			label3 = element("label");
-    			t15 = text("Lowpass");
-    			t16 = space();
+    			t14 = text("Lowpass");
+    			t15 = space();
     			input2 = element("input");
     			label4 = element("label");
-    			t17 = text("Highpass");
-    			t18 = space();
+    			t16 = text("Highpass");
+    			t17 = space();
     			input3 = element("input");
     			label5 = element("label");
-    			t19 = text("Bandpass");
-    			t20 = space();
+    			t18 = text("Bandpass");
+    			t19 = space();
     			br2 = element("br");
-    			add_location(h1, file$3, 153, 8, 4351);
-    			attr_dev(div0, "class", "delete svelte-1hn4va1");
-    			add_location(div0, file$3, 154, 8, 4387);
-    			attr_dev(h2, "class", "editableTitle svelte-1hn4va1");
+    			add_location(h1, file$3, 226, 8, 7241);
+    			attr_dev(div0, "class", "delete svelte-cguomt");
+    			add_location(div0, file$3, 227, 8, 7277);
+    			attr_dev(h2, "class", "editableTitle svelte-cguomt");
     			attr_dev(h2, "contenteditable", "true");
-    			if (/*module*/ ctx[1].state.title === void 0) add_render_callback(() => /*h2_input_handler*/ ctx[24].call(h2));
-    			add_location(h2, file$3, 156, 12, 4518);
-    			option0.__value = null;
-    			option0.value = option0.__value;
-    			add_location(option0, file$3, 164, 16, 5068);
-    			attr_dev(select0, "class", "svelte-1hn4va1");
-    			if (/*module*/ ctx[1].state.inputId === void 0) add_render_callback(() => /*select0_change_handler*/ ctx[25].call(select0));
-    			add_location(select0, file$3, 158, 19, 4764);
-    			add_location(label0, file$3, 158, 12, 4757);
+    			if (/*$modules*/ ctx[6][/*module*/ ctx[1].state.id].state.title === void 0) add_render_callback(() => /*h2_input_handler*/ ctx[31].call(h2));
+    			add_location(h2, file$3, 229, 12, 7408);
+    			attr_dev(button0, "class", "svelte-cguomt");
+    			add_location(button0, file$3, 232, 23, 7724);
+    			add_location(label0, file$3, 232, 16, 7717);
     			attr_dev(div1, "class", "inputDiv");
-    			add_location(div1, file$3, 157, 12, 4644);
-    			option1.__value = null;
-    			option1.value = option1.__value;
-    			add_location(option1, file$3, 173, 16, 5603);
-    			attr_dev(select1, "class", "svelte-1hn4va1");
-    			add_location(select1, file$3, 167, 23, 5284);
-    			add_location(label1, file$3, 167, 16, 5277);
+    			add_location(div1, file$3, 231, 12, 7567);
+    			attr_dev(button1, "class", "svelte-cguomt");
+    			add_location(button1, file$3, 241, 23, 8271);
+    			add_location(label1, file$3, 241, 16, 8264);
     			attr_dev(div2, "class", "inputDiv");
-    			add_location(div2, file$3, 166, 16, 5163);
-    			add_location(br0, file$3, 175, 22, 5700);
+    			add_location(div2, file$3, 240, 16, 8115);
+    			add_location(br0, file$3, 247, 47, 8618);
     			attr_dev(label2, "for", "freq");
-    			add_location(label2, file$3, 176, 12, 5718);
+    			add_location(label2, file$3, 249, 12, 8638);
     			attr_dev(input0, "id", "freq");
     			attr_dev(input0, "type", "range");
     			attr_dev(input0, "min", Math.log2(20));
     			attr_dev(input0, "max", Math.log2(18000));
     			attr_dev(input0, "step", "0.0001");
-    			add_location(input0, file$3, 176, 81, 5787);
-    			add_location(br1, file$3, 177, 12, 5923);
+    			add_location(input0, file$3, 249, 81, 8707);
+    			add_location(br1, file$3, 250, 12, 8843);
     			attr_dev(input1, "id", input1_id_value = 'lowpass' + /*module*/ ctx[1].state.id);
     			attr_dev(input1, "type", "radio");
     			input1.__value = "lowpass";
     			input1.value = input1.__value;
-    			attr_dev(input1, "class", "svelte-1hn4va1");
-    			add_location(input1, file$3, 178, 16, 5967);
+    			attr_dev(input1, "class", "svelte-cguomt");
+    			add_location(input1, file$3, 251, 16, 8887);
     			attr_dev(label3, "for", label3_for_value = 'lowpass' + /*module*/ ctx[1].state.id);
-    			attr_dev(label3, "class", "svelte-1hn4va1");
-    			add_location(label3, file$3, 178, 122, 6073);
+    			attr_dev(label3, "class", "svelte-cguomt");
+    			add_location(label3, file$3, 251, 122, 8993);
     			attr_dev(input2, "id", input2_id_value = 'highpass' + /*module*/ ctx[1].state.id);
     			attr_dev(input2, "type", "radio");
     			input2.__value = "highpass";
     			input2.value = input2.__value;
-    			attr_dev(input2, "class", "svelte-1hn4va1");
-    			add_location(input2, file$3, 179, 16, 6145);
+    			attr_dev(input2, "class", "svelte-cguomt");
+    			add_location(input2, file$3, 252, 16, 9065);
     			attr_dev(label4, "for", label4_for_value = 'highpass' + /*module*/ ctx[1].state.id);
-    			attr_dev(label4, "class", "svelte-1hn4va1");
-    			add_location(label4, file$3, 179, 124, 6253);
+    			attr_dev(label4, "class", "svelte-cguomt");
+    			add_location(label4, file$3, 252, 124, 9173);
     			attr_dev(input3, "id", input3_id_value = 'bandpass' + /*module*/ ctx[1].state.id);
     			attr_dev(input3, "type", "radio");
     			input3.__value = "bandpass";
     			input3.value = input3.__value;
-    			attr_dev(input3, "class", "svelte-1hn4va1");
-    			add_location(input3, file$3, 180, 16, 6327);
+    			attr_dev(input3, "class", "svelte-cguomt");
+    			add_location(input3, file$3, 253, 16, 9247);
     			attr_dev(label5, "for", label5_for_value = 'bandpass' + /*module*/ ctx[1].state.id);
-    			attr_dev(label5, "class", "svelte-1hn4va1");
-    			add_location(label5, file$3, 180, 124, 6435);
-    			attr_dev(section, "class", "type svelte-1hn4va1");
-    			add_location(section, file$3, 177, 16, 5927);
+    			attr_dev(label5, "class", "svelte-cguomt");
+    			add_location(label5, file$3, 253, 124, 9355);
+    			attr_dev(section, "class", "type svelte-cguomt");
+    			add_location(section, file$3, 250, 16, 8847);
     			attr_dev(div3, "id", "controls");
-    			add_location(div3, file$3, 155, 8, 4469);
+    			add_location(div3, file$3, 228, 8, 7359);
     			attr_dev(div4, "id", "module");
-    			attr_dev(div4, "class", "svelte-1hn4va1");
-    			add_location(div4, file$3, 152, 4, 4310);
-    			add_location(br2, file$3, 184, 4, 6549);
-    			add_location(main, file$3, 150, 0, 4126);
+    			attr_dev(div4, "style", div4_style_value = "background-color: " + /*$colours*/ ctx[7][/*module*/ ctx[1].state.type]);
+    			attr_dev(div4, "class", "svelte-cguomt");
+    			add_location(div4, file$3, 225, 4, 7141);
+    			add_location(br2, file$3, 257, 4, 9469);
+    			add_location(main, file$3, 223, 0, 6957);
     			binding_group.p(input1, input2, input3);
-    		},
-    		l: function claim(nodes) {
-    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
@@ -5325,86 +5398,71 @@ var app = (function () {
     			append_dev(div3, h2);
     			append_dev(h2, t4);
 
-    			if (/*module*/ ctx[1].state.title !== void 0) {
-    				h2.textContent = /*module*/ ctx[1].state.title;
+    			if (/*$modules*/ ctx[6][/*module*/ ctx[1].state.id].state.title !== void 0) {
+    				h2.textContent = /*$modules*/ ctx[6][/*module*/ ctx[1].state.id].state.title;
     			}
 
     			append_dev(div3, t5);
     			append_dev(div3, div1);
     			append_dev(div1, label0);
-    			append_dev(label0, select0);
-
-    			for (let i = 0; i < each_blocks_1.length; i += 1) {
-    				if (each_blocks_1[i]) {
-    					each_blocks_1[i].m(select0, null);
-    				}
-    			}
-
-    			append_dev(select0, option0);
-    			select_option(select0, /*module*/ ctx[1].state.inputId, true);
+    			append_dev(label0, button0);
+    			if_block0.m(button0, null);
     			append_dev(label0, t6);
     			append_dev(div3, t7);
     			append_dev(div3, div2);
     			append_dev(div2, label1);
-    			append_dev(label1, select1);
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				if (each_blocks[i]) {
-    					each_blocks[i].m(select1, null);
-    				}
-    			}
-
-    			append_dev(select1, option1);
-    			select_option(select1, null);
+    			append_dev(label1, button1);
+    			if_block1.m(button1, null);
     			append_dev(label1, t8);
-    			append_dev(div2, t9);
     			append_dev(div3, br0);
-    			append_dev(div3, t10);
+    			append_dev(div3, t9);
     			append_dev(div3, label2);
+    			append_dev(label2, t10);
     			append_dev(label2, t11);
     			append_dev(label2, t12);
-    			append_dev(label2, t13);
     			append_dev(div3, input0);
     			set_input_value(input0, /*module*/ ctx[1].state.voct);
-    			append_dev(div3, t14);
+    			append_dev(div3, t13);
     			append_dev(div3, br1);
     			append_dev(div3, section);
     			append_dev(section, input1);
     			input1.checked = input1.__value === /*module*/ ctx[1].state.filterType;
     			append_dev(section, label3);
-    			append_dev(label3, t15);
-    			append_dev(section, t16);
+    			append_dev(label3, t14);
+    			append_dev(section, t15);
     			append_dev(section, input2);
     			input2.checked = input2.__value === /*module*/ ctx[1].state.filterType;
     			append_dev(section, label4);
-    			append_dev(label4, t17);
-    			append_dev(section, t18);
+    			append_dev(label4, t16);
+    			append_dev(section, t17);
     			append_dev(section, input3);
     			input3.checked = input3.__value === /*module*/ ctx[1].state.filterType;
     			append_dev(section, label5);
-    			append_dev(label5, t19);
-    			append_dev(main, t20);
+    			append_dev(label5, t18);
+    			append_dev(main, t19);
     			append_dev(main, br2);
-    			/*main_binding*/ ctx[35](main);
+    			/*main_binding*/ ctx[41](main);
     			current = true;
 
     			if (!mounted) {
     				dispose = [
-    					action_destroyer(/*setDelete*/ ctx[11].call(null, div0)),
-    					listen_dev(h2, "input", /*h2_input_handler*/ ctx[24]),
-    					listen_dev(select0, "change", /*select0_change_handler*/ ctx[25]),
-    					listen_dev(div1, "mouseenter", /*mouseenter_handler*/ ctx[26], false, false, false, false),
-    					listen_dev(div1, "mouseleave", /*mouseleave_handler*/ ctx[27], false, false, false, false),
-    					listen_dev(select1, "change", /*connectCV*/ ctx[8], false, false, false, false),
-    					listen_dev(div2, "mouseenter", /*mouseenter_handler_1*/ ctx[28], false, false, false, false),
-    					listen_dev(div2, "mouseleave", /*mouseleave_handler_1*/ ctx[29], false, false, false, false),
-    					listen_dev(input0, "change", /*input0_change_input_handler*/ ctx[30]),
-    					listen_dev(input0, "input", /*input0_change_input_handler*/ ctx[30]),
-    					listen_dev(input1, "change", /*input1_change_handler*/ ctx[31]),
-    					listen_dev(input2, "change", /*input2_change_handler*/ ctx[33]),
-    					listen_dev(input3, "change", /*input3_change_handler*/ ctx[34]),
-    					action_destroyer(/*setControls*/ ctx[10].call(null, div3)),
-    					action_destroyer(/*setModule*/ ctx[9].call(null, div4))
+    					action_destroyer(/*setDelete*/ ctx[12].call(null, div0)),
+    					listen_dev(h2, "input", /*h2_input_handler*/ ctx[31]),
+    					action_destroyer(/*setInputBtn*/ ctx[13].call(null, button0)),
+    					listen_dev(button0, "click", /*chooseInput*/ ctx[16], false, false, false, false),
+    					listen_dev(div1, "mouseenter", /*mouseenter_handler*/ ctx[32], false, false, false, false),
+    					listen_dev(div1, "mouseleave", /*mouseleave_handler*/ ctx[33], false, false, false, false),
+    					action_destroyer(/*setCvBtn*/ ctx[14].call(null, button1)),
+    					listen_dev(button1, "click", /*chooseCv*/ ctx[17], false, false, false, false),
+    					listen_dev(div2, "mouseenter", /*mouseenter_handler_1*/ ctx[34], false, false, false, false),
+    					listen_dev(div2, "mouseleave", /*mouseleave_handler_1*/ ctx[35], false, false, false, false),
+    					listen_dev(input0, "change", /*input0_change_input_handler*/ ctx[36]),
+    					listen_dev(input0, "input", /*input0_change_input_handler*/ ctx[36]),
+    					listen_dev(input1, "change", /*input1_change_handler*/ ctx[37]),
+    					listen_dev(input2, "change", /*input2_change_handler*/ ctx[39]),
+    					listen_dev(input3, "change", /*input3_change_handler*/ ctx[40]),
+    					action_destroyer(/*setControls*/ ctx[11].call(null, div3)),
+    					action_destroyer(/*setModule*/ ctx[10].call(null, div4))
     				];
 
     				mounted = true;
@@ -5419,15 +5477,15 @@ var app = (function () {
     				add_flush_callback(() => updating_moduleNode = false);
     			}
 
-    			if (!updating_controlsNode && dirty[0] & /*controlsNode*/ 32) {
+    			if (!updating_controlsNode && dirty[0] & /*controlsNode*/ 8) {
     				updating_controlsNode = true;
-    				modulemovement_changes.controlsNode = /*controlsNode*/ ctx[5];
+    				modulemovement_changes.controlsNode = /*controlsNode*/ ctx[3];
     				add_flush_callback(() => updating_controlsNode = false);
     			}
 
-    			if (!updating_deleteNode && dirty[0] & /*deleteNode*/ 64) {
+    			if (!updating_deleteNode && dirty[0] & /*deleteNode*/ 256) {
     				updating_deleteNode = true;
-    				modulemovement_changes.deleteNode = /*deleteNode*/ ctx[6];
+    				modulemovement_changes.deleteNode = /*deleteNode*/ ctx[8];
     				add_flush_callback(() => updating_deleteNode = false);
     			}
 
@@ -5437,9 +5495,9 @@ var app = (function () {
     				add_flush_callback(() => updating_nodePos = false);
     			}
 
-    			if (!updating_bobSize && dirty[0] & /*bobSize*/ 128) {
+    			if (!updating_bobSize && dirty[0] & /*bobSize*/ 512) {
     				updating_bobSize = true;
-    				modulemovement_changes.bobSize = /*bobSize*/ ctx[7];
+    				modulemovement_changes.bobSize = /*bobSize*/ ctx[9];
     				add_flush_callback(() => updating_bobSize = false);
     			}
 
@@ -5450,102 +5508,78 @@ var app = (function () {
     			deletebutton.$set(deletebutton_changes);
     			if ((!current || dirty[0] & /*module*/ 2) && t4_value !== (t4_value = /*module*/ ctx[1].state.title + "")) set_data_contenteditable_dev(t4, t4_value);
 
-    			if (dirty[0] & /*module, $modules*/ 18 && /*module*/ ctx[1].state.title !== h2.textContent) {
-    				h2.textContent = /*module*/ ctx[1].state.title;
+    			if (dirty[0] & /*$modules, module*/ 66 && /*$modules*/ ctx[6][/*module*/ ctx[1].state.id].state.title !== h2.textContent) {
+    				h2.textContent = /*$modules*/ ctx[6][/*module*/ ctx[1].state.id].state.title;
     			}
 
-    			if (dirty[0] & /*$modules, module*/ 18) {
-    				each_value_1 = Object.entries(/*$modules*/ ctx[4]);
-    				validate_each_argument(each_value_1);
-    				let i;
+    			if (current_block_type === (current_block_type = select_block_type(ctx)) && if_block0) {
+    				if_block0.p(ctx, dirty);
+    			} else {
+    				if_block0.d(1);
+    				if_block0 = current_block_type(ctx);
 
-    				for (i = 0; i < each_value_1.length; i += 1) {
-    					const child_ctx = get_each_context_1$1(ctx, each_value_1, i);
-
-    					if (each_blocks_1[i]) {
-    						each_blocks_1[i].p(child_ctx, dirty);
-    					} else {
-    						each_blocks_1[i] = create_each_block_1$1(child_ctx);
-    						each_blocks_1[i].c();
-    						each_blocks_1[i].m(select0, option0);
-    					}
+    				if (if_block0) {
+    					if_block0.c();
+    					if_block0.m(button0, null);
     				}
-
-    				for (; i < each_blocks_1.length; i += 1) {
-    					each_blocks_1[i].d(1);
-    				}
-
-    				each_blocks_1.length = each_value_1.length;
     			}
 
-    			if (dirty[0] & /*module, $modules*/ 18) {
-    				select_option(select0, /*module*/ ctx[1].state.inputId);
+    			if (current_block_type_1 === (current_block_type_1 = select_block_type_1(ctx)) && if_block1) {
+    				if_block1.p(ctx, dirty);
+    			} else {
+    				if_block1.d(1);
+    				if_block1 = current_block_type_1(ctx);
+
+    				if (if_block1) {
+    					if_block1.c();
+    					if_block1.m(button1, null);
+    				}
     			}
 
-    			if (dirty[0] & /*$modules*/ 16) {
-    				each_value = Object.entries(/*$modules*/ ctx[4]);
-    				validate_each_argument(each_value);
-    				let i;
+    			if ((!current || dirty[0] & /*frequency*/ 16) && t11_value !== (t11_value = /*frequency*/ ctx[4].toFixed(1) + "")) set_data_dev(t11, t11_value);
 
-    				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context$2(ctx, each_value, i);
-
-    					if (each_blocks[i]) {
-    						each_blocks[i].p(child_ctx, dirty);
-    					} else {
-    						each_blocks[i] = create_each_block$2(child_ctx);
-    						each_blocks[i].c();
-    						each_blocks[i].m(select1, option1);
-    					}
-    				}
-
-    				for (; i < each_blocks.length; i += 1) {
-    					each_blocks[i].d(1);
-    				}
-
-    				each_blocks.length = each_value.length;
-    			}
-
-    			if ((!current || dirty[0] & /*frequency*/ 8) && t12_value !== (t12_value = /*frequency*/ ctx[3].toFixed(1) + "")) set_data_dev(t12, t12_value);
-
-    			if (dirty[0] & /*module, $modules*/ 18) {
+    			if (dirty[0] & /*module*/ 2) {
     				set_input_value(input0, /*module*/ ctx[1].state.voct);
     			}
 
-    			if (!current || dirty[0] & /*module, $modules*/ 18 && input1_id_value !== (input1_id_value = 'lowpass' + /*module*/ ctx[1].state.id)) {
+    			if (!current || dirty[0] & /*module*/ 2 && input1_id_value !== (input1_id_value = 'lowpass' + /*module*/ ctx[1].state.id)) {
     				attr_dev(input1, "id", input1_id_value);
     			}
 
-    			if (dirty[0] & /*module, $modules*/ 18) {
+    			if (dirty[0] & /*module*/ 2) {
     				input1.checked = input1.__value === /*module*/ ctx[1].state.filterType;
     			}
 
-    			if (!current || dirty[0] & /*module, $modules*/ 18 && label3_for_value !== (label3_for_value = 'lowpass' + /*module*/ ctx[1].state.id)) {
+    			if (!current || dirty[0] & /*module*/ 2 && label3_for_value !== (label3_for_value = 'lowpass' + /*module*/ ctx[1].state.id)) {
     				attr_dev(label3, "for", label3_for_value);
     			}
 
-    			if (!current || dirty[0] & /*module, $modules*/ 18 && input2_id_value !== (input2_id_value = 'highpass' + /*module*/ ctx[1].state.id)) {
+    			if (!current || dirty[0] & /*module*/ 2 && input2_id_value !== (input2_id_value = 'highpass' + /*module*/ ctx[1].state.id)) {
     				attr_dev(input2, "id", input2_id_value);
     			}
 
-    			if (dirty[0] & /*module, $modules*/ 18) {
+    			if (dirty[0] & /*module*/ 2) {
     				input2.checked = input2.__value === /*module*/ ctx[1].state.filterType;
     			}
 
-    			if (!current || dirty[0] & /*module, $modules*/ 18 && label4_for_value !== (label4_for_value = 'highpass' + /*module*/ ctx[1].state.id)) {
+    			if (!current || dirty[0] & /*module*/ 2 && label4_for_value !== (label4_for_value = 'highpass' + /*module*/ ctx[1].state.id)) {
     				attr_dev(label4, "for", label4_for_value);
     			}
 
-    			if (!current || dirty[0] & /*module, $modules*/ 18 && input3_id_value !== (input3_id_value = 'bandpass' + /*module*/ ctx[1].state.id)) {
+    			if (!current || dirty[0] & /*module*/ 2 && input3_id_value !== (input3_id_value = 'bandpass' + /*module*/ ctx[1].state.id)) {
     				attr_dev(input3, "id", input3_id_value);
     			}
 
-    			if (dirty[0] & /*module, $modules*/ 18) {
+    			if (dirty[0] & /*module*/ 2) {
     				input3.checked = input3.__value === /*module*/ ctx[1].state.filterType;
     			}
 
-    			if (!current || dirty[0] & /*module, $modules*/ 18 && label5_for_value !== (label5_for_value = 'bandpass' + /*module*/ ctx[1].state.id)) {
+    			if (!current || dirty[0] & /*module*/ 2 && label5_for_value !== (label5_for_value = 'bandpass' + /*module*/ ctx[1].state.id)) {
     				attr_dev(label5, "for", label5_for_value);
+    			}
+
+    			if (!current || dirty[0] & /*$colours, module*/ 130 && div4_style_value !== (div4_style_value = "background-color: " + /*$colours*/ ctx[7][/*module*/ ctx[1].state.type])) {
+    				attr_dev(div4, "style", div4_style_value);
     			}
     		},
     		i: function intro(local) {
@@ -5563,12 +5597,218 @@ var app = (function () {
     			if (detaching) detach_dev(main);
     			destroy_component(modulemovement);
     			destroy_component(deletebutton);
-    			destroy_each(each_blocks_1, detaching);
-    			destroy_each(each_blocks, detaching);
-    			/*main_binding*/ ctx[35](null);
+    			if_block0.d();
+    			if_block1.d();
+    			/*main_binding*/ ctx[41](null);
     			binding_group.r();
     			mounted = false;
     			run_all(dispose);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block$3.name,
+    		type: "if",
+    		source: "(223:0) {#if !module.destroyed}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (236:20) {:else}
+    function create_else_block_1(ctx) {
+    	let t;
+
+    	const block = {
+    		c: function create() {
+    			t = text("None");
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, t, anchor);
+    		},
+    		p: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(t);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_else_block_1.name,
+    		type: "else",
+    		source: "(236:20) {:else}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (234:20) {#if module.state.inputId != null && $modules[module.state.inputId]}
+    function create_if_block_2(ctx) {
+    	let t0_value = /*module*/ ctx[1].state.inputId + "";
+    	let t0;
+    	let t1;
+    	let t2_value = /*$modules*/ ctx[6][/*module*/ ctx[1].state.inputId].state.title + "";
+    	let t2;
+
+    	const block = {
+    		c: function create() {
+    			t0 = text(t0_value);
+    			t1 = space();
+    			t2 = text(t2_value);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, t0, anchor);
+    			insert_dev(target, t1, anchor);
+    			insert_dev(target, t2, anchor);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty[0] & /*module*/ 2 && t0_value !== (t0_value = /*module*/ ctx[1].state.inputId + "")) set_data_dev(t0, t0_value);
+    			if (dirty[0] & /*$modules, module*/ 66 && t2_value !== (t2_value = /*$modules*/ ctx[6][/*module*/ ctx[1].state.inputId].state.title + "")) set_data_dev(t2, t2_value);
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(t0);
+    			if (detaching) detach_dev(t1);
+    			if (detaching) detach_dev(t2);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block_2.name,
+    		type: "if",
+    		source: "(234:20) {#if module.state.inputId != null && $modules[module.state.inputId]}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (245:20) {:else}
+    function create_else_block$2(ctx) {
+    	let t;
+
+    	const block = {
+    		c: function create() {
+    			t = text("None");
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, t, anchor);
+    		},
+    		p: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(t);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_else_block$2.name,
+    		type: "else",
+    		source: "(245:20) {:else}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (243:20) {#if module.state.cvId != null && $modules[module.state.cvId]}
+    function create_if_block_1$1(ctx) {
+    	let t0_value = /*module*/ ctx[1].state.cvId + "";
+    	let t0;
+    	let t1;
+    	let t2_value = /*$modules*/ ctx[6][/*module*/ ctx[1].state.cvId].state.title + "";
+    	let t2;
+
+    	const block = {
+    		c: function create() {
+    			t0 = text(t0_value);
+    			t1 = space();
+    			t2 = text(t2_value);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, t0, anchor);
+    			insert_dev(target, t1, anchor);
+    			insert_dev(target, t2, anchor);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty[0] & /*module*/ 2 && t0_value !== (t0_value = /*module*/ ctx[1].state.cvId + "")) set_data_dev(t0, t0_value);
+    			if (dirty[0] & /*$modules, module*/ 66 && t2_value !== (t2_value = /*$modules*/ ctx[6][/*module*/ ctx[1].state.cvId].state.title + "")) set_data_dev(t2, t2_value);
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(t0);
+    			if (detaching) detach_dev(t1);
+    			if (detaching) detach_dev(t2);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block_1$1.name,
+    		type: "if",
+    		source: "(243:20) {#if module.state.cvId != null && $modules[module.state.cvId]}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function create_fragment$3(ctx) {
+    	let if_block_anchor;
+    	let current;
+    	let if_block = !/*module*/ ctx[1].destroyed && create_if_block$3(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if (if_block) if_block.c();
+    			if_block_anchor = empty();
+    		},
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+    		m: function mount(target, anchor) {
+    			if (if_block) if_block.m(target, anchor);
+    			insert_dev(target, if_block_anchor, anchor);
+    			current = true;
+    		},
+    		p: function update(ctx, dirty) {
+    			if (!/*module*/ ctx[1].destroyed) {
+    				if (if_block) {
+    					if_block.p(ctx, dirty);
+
+    					if (dirty[0] & /*module*/ 2) {
+    						transition_in(if_block, 1);
+    					}
+    				} else {
+    					if_block = create_if_block$3(ctx);
+    					if_block.c();
+    					transition_in(if_block, 1);
+    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    				}
+    			} else if (if_block) {
+    				group_outros();
+
+    				transition_out(if_block, 1, 1, () => {
+    					if_block = null;
+    				});
+
+    				check_outros();
+    			}
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(if_block);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(if_block);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			if (if_block) if_block.d(detaching);
+    			if (detaching) detach_dev(if_block_anchor);
     		}
     	};
 
@@ -5584,13 +5824,22 @@ var app = (function () {
     }
 
     function instance$3($$self, $$props, $$invalidate) {
-    	let $opacity;
-    	let $context;
+    	let $selectingModule;
     	let $modules;
-    	validate_store(context, 'context');
-    	component_subscribe($$self, context, $$value => $$invalidate(18, $context = $$value));
+    	let $colours;
+    	let $opacity;
+    	let $output;
+    	let $context;
+    	validate_store(selectingModule, 'selectingModule');
+    	component_subscribe($$self, selectingModule, $$value => $$invalidate(5, $selectingModule = $$value));
     	validate_store(modules, 'modules');
-    	component_subscribe($$self, modules, $$value => $$invalidate(4, $modules = $$value));
+    	component_subscribe($$self, modules, $$value => $$invalidate(6, $modules = $$value));
+    	validate_store(colours, 'colours');
+    	component_subscribe($$self, colours, $$value => $$invalidate(7, $colours = $$value));
+    	validate_store(output, 'output');
+    	component_subscribe($$self, output, $$value => $$invalidate(42, $output = $$value));
+    	validate_store(context, 'context');
+    	component_subscribe($$self, context, $$value => $$invalidate(25, $context = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('VCF', slots, []);
 
@@ -5611,6 +5860,10 @@ var app = (function () {
     	let moduleNode;
     	let controlsNode;
     	let deleteNode;
+    	let inputBtn;
+    	let cvBtn;
+    	module.selectingInput = false;
+    	module.selectingCv = false;
     	let cvModule;
     	var filterNode = $context.createBiquadFilter();
     	module.output = filterNode;
@@ -5619,35 +5872,49 @@ var app = (function () {
     	var currentInput;
     	var currentCvModule;
 
-    	function connectCV(e) {
-    		$$invalidate(1, module.state.cvId = e.target.selectedOptions[0].value, module);
-    	}
-
     	module.clearCurrents = () => {
-    		$$invalidate(15, currentInput = null);
-    		$$invalidate(13, cvModule = null);
-    		$$invalidate(16, currentCvModule = null);
+    		$$invalidate(22, currentInput = null);
+    		$$invalidate(20, cvModule = null);
+    		$$invalidate(23, currentCvModule = null);
     	};
 
     	module.update = () => {
-    		($$invalidate(1, module), $$invalidate(4, $modules));
+    		($$invalidate(1, module), $$invalidate(6, $modules));
     	};
 
     	function setModule(node) {
     		$$invalidate(2, moduleNode = node);
+
+    		moduleNode.addEventListener("mouseup", () => {
+    			if ($selectingModule == "output") {
+    				$output.select(module.state.id);
+    			} else if ($selectingModule != null && $modules[$selectingModule].selectingInput && $selectingModule != module.state.id && ($modules[$selectingModule].state.type != "mixer" || (!$modules[$selectingModule].state.inputIds.includes(module.state.id) || $modules[$selectingModule].state.inputIds[$modules[$selectingModule].inputSelecting] == module.state.id))) {
+    				$modules[$selectingModule].select(module.state.id);
+    			} else if ($selectingModule == module.state.id) {
+    				module.select(null);
+    			}
+    		});
     	}
 
     	function setControls(node) {
-    		$$invalidate(5, controlsNode = node);
+    		$$invalidate(3, controlsNode = node);
     	}
 
     	function setDelete(node) {
-    		$$invalidate(6, deleteNode = node);
+    		$$invalidate(8, deleteNode = node);
+    	}
+
+    	function setInputBtn(node) {
+    		$$invalidate(18, inputBtn = node);
+    	}
+
+    	function setCvBtn(node) {
+    		$$invalidate(19, cvBtn = node);
     	}
 
     	let opacity = spring(1, { stiffness: 0.1, damping: 0.5 });
     	validate_store(opacity, 'opacity');
-    	component_subscribe($$self, opacity, value => $$invalidate(17, $opacity = value));
+    	component_subscribe($$self, opacity, value => $$invalidate(24, $opacity = value));
     	let bobSize = spring(0, { stiffness: 0.3, damping: 0.2 });
 
     	module.fade = () => {
@@ -5673,10 +5940,51 @@ var app = (function () {
     		);
     	};
 
+    	function chooseInput() {
+    		inputsAllHover(module);
+    		if (!inputBtn) return;
+
+    		if (!module.selectingInput) {
+    			$$invalidate(1, module.selectingInput = true, module);
+    			$$invalidate(18, inputBtn.style.opacity = 0.5, inputBtn);
+    			set_store_value(selectingModule, $selectingModule = module.state.id, $selectingModule);
+    		} else {
+    			$$invalidate(1, module.selectingInput = false, module);
+    		}
+    	}
+
+    	function chooseCv() {
+    		cvsAllHover(module);
+    		if (!cvBtn) return;
+
+    		if (!module.selectingCv) {
+    			$$invalidate(1, module.selectingCv = true, module);
+    			$$invalidate(19, cvBtn.style.opacity = 0.5, cvBtn);
+    			set_store_value(selectingModule, $selectingModule = module.state.id, $selectingModule);
+    		} else {
+    			$$invalidate(1, module.selectingCv = false, module);
+    		}
+    	}
+
+    	module.select = id => {
+    		if (module.selectingInput) {
+    			$$invalidate(1, module.state.inputId = id, module);
+    			$$invalidate(18, inputBtn.style.opacity = 1, inputBtn);
+    			$$invalidate(1, module.selectingInput = false, module);
+    		} else if (module.selectingCv) {
+    			$$invalidate(1, module.state.cvId = id, module);
+    			$$invalidate(19, cvBtn.style.opacity = 1, cvBtn);
+    			$$invalidate(1, module.selectingCv = false, module);
+    		}
+
+    		set_store_value(selectingModule, $selectingModule = null, $selectingModule);
+    		unhover();
+    	};
+
     	module.bob();
     	const writable_props = ['state'];
 
-    	Object_1$2.keys($$props).forEach(key => {
+    	Object.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<VCF> was created with unknown prop '${key}'`);
     	});
 
@@ -5684,17 +5992,17 @@ var app = (function () {
 
     	function modulemovement_moduleNode_binding(value) {
     		moduleNode = value;
-    		($$invalidate(2, moduleNode), $$invalidate(17, $opacity));
+    		($$invalidate(2, moduleNode), $$invalidate(24, $opacity));
     	}
 
     	function modulemovement_controlsNode_binding(value) {
     		controlsNode = value;
-    		$$invalidate(5, controlsNode);
+    		($$invalidate(3, controlsNode), $$invalidate(5, $selectingModule));
     	}
 
     	function modulemovement_deleteNode_binding(value) {
     		deleteNode = value;
-    		$$invalidate(6, deleteNode);
+    		$$invalidate(8, deleteNode);
     	}
 
     	function modulemovement_nodePos_binding(value) {
@@ -5706,48 +6014,52 @@ var app = (function () {
 
     	function modulemovement_bobSize_binding(value) {
     		bobSize = value;
-    		$$invalidate(7, bobSize);
+    		$$invalidate(9, bobSize);
     	}
 
     	function h2_input_handler() {
-    		module.state.title = this.textContent;
-    		($$invalidate(1, module), $$invalidate(4, $modules));
-    	}
-
-    	function select0_change_handler() {
-    		module.state.inputId = select_value(this);
-    		($$invalidate(1, module), $$invalidate(4, $modules));
+    		$modules[module.state.id].state.title = this.textContent;
+    		modules.set($modules);
     	}
 
     	const mouseenter_handler = () => inputsAllHover(module);
-    	const mouseleave_handler = () => unhover();
-    	const mouseenter_handler_1 = () => cvsAllHover(module);
-    	const mouseleave_handler_1 = () => unhover();
+
+    	const mouseleave_handler = () => {
+    		if ($selectingModule == null) unhover();
+    	};
+
+    	const mouseenter_handler_1 = () => {
+    		cvsAllHover(module);
+    	};
+
+    	const mouseleave_handler_1 = () => {
+    		if ($selectingModule == null) unhover();
+    	};
 
     	function input0_change_input_handler() {
     		module.state.voct = to_number(this.value);
-    		($$invalidate(1, module), $$invalidate(4, $modules));
+    		($$invalidate(1, module), $$invalidate(6, $modules));
     	}
 
     	function input1_change_handler() {
     		module.state.filterType = this.__value;
-    		($$invalidate(1, module), $$invalidate(4, $modules));
+    		($$invalidate(1, module), $$invalidate(6, $modules));
     	}
 
     	function input2_change_handler() {
     		module.state.filterType = this.__value;
-    		($$invalidate(1, module), $$invalidate(4, $modules));
+    		($$invalidate(1, module), $$invalidate(6, $modules));
     	}
 
     	function input3_change_handler() {
     		module.state.filterType = this.__value;
-    		($$invalidate(1, module), $$invalidate(4, $modules));
+    		($$invalidate(1, module), $$invalidate(6, $modules));
     	}
 
     	function main_binding($$value) {
     		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
     			module.component = $$value;
-    			($$invalidate(1, module), $$invalidate(4, $modules));
+    			($$invalidate(1, module), $$invalidate(6, $modules));
     		});
     	}
 
@@ -5758,6 +6070,9 @@ var app = (function () {
     	$$self.$capture_state = () => ({
     		modules,
     		context,
+    		colours,
+    		selectingModule,
+    		output,
     		ModuleMovement,
     		DeleteButton,
     		createNewId,
@@ -5771,34 +6086,44 @@ var app = (function () {
     		moduleNode,
     		controlsNode,
     		deleteNode,
+    		inputBtn,
+    		cvBtn,
     		cvModule,
     		filterNode,
     		frequency,
     		currentInput,
     		currentCvModule,
-    		connectCV,
     		setModule,
     		setControls,
     		setDelete,
+    		setInputBtn,
+    		setCvBtn,
     		opacity,
     		bobSize,
+    		chooseInput,
+    		chooseCv,
+    		$selectingModule,
+    		$modules,
+    		$colours,
     		$opacity,
-    		$context,
-    		$modules
+    		$output,
+    		$context
     	});
 
     	$$self.$inject_state = $$props => {
     		if ('state' in $$props) $$invalidate(0, state = $$props.state);
     		if ('moduleNode' in $$props) $$invalidate(2, moduleNode = $$props.moduleNode);
-    		if ('controlsNode' in $$props) $$invalidate(5, controlsNode = $$props.controlsNode);
-    		if ('deleteNode' in $$props) $$invalidate(6, deleteNode = $$props.deleteNode);
-    		if ('cvModule' in $$props) $$invalidate(13, cvModule = $$props.cvModule);
-    		if ('filterNode' in $$props) $$invalidate(14, filterNode = $$props.filterNode);
-    		if ('frequency' in $$props) $$invalidate(3, frequency = $$props.frequency);
-    		if ('currentInput' in $$props) $$invalidate(15, currentInput = $$props.currentInput);
-    		if ('currentCvModule' in $$props) $$invalidate(16, currentCvModule = $$props.currentCvModule);
-    		if ('opacity' in $$props) $$invalidate(12, opacity = $$props.opacity);
-    		if ('bobSize' in $$props) $$invalidate(7, bobSize = $$props.bobSize);
+    		if ('controlsNode' in $$props) $$invalidate(3, controlsNode = $$props.controlsNode);
+    		if ('deleteNode' in $$props) $$invalidate(8, deleteNode = $$props.deleteNode);
+    		if ('inputBtn' in $$props) $$invalidate(18, inputBtn = $$props.inputBtn);
+    		if ('cvBtn' in $$props) $$invalidate(19, cvBtn = $$props.cvBtn);
+    		if ('cvModule' in $$props) $$invalidate(20, cvModule = $$props.cvModule);
+    		if ('filterNode' in $$props) $$invalidate(21, filterNode = $$props.filterNode);
+    		if ('frequency' in $$props) $$invalidate(4, frequency = $$props.frequency);
+    		if ('currentInput' in $$props) $$invalidate(22, currentInput = $$props.currentInput);
+    		if ('currentCvModule' in $$props) $$invalidate(23, currentCvModule = $$props.currentCvModule);
+    		if ('opacity' in $$props) $$invalidate(15, opacity = $$props.opacity);
+    		if ('bobSize' in $$props) $$invalidate(9, bobSize = $$props.bobSize);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -5806,7 +6131,7 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty[0] & /*module, $modules*/ 18) {
+    		if ($$self.$$.dirty[0] & /*module, $modules*/ 66) {
     			if (module.state.inputId != null) {
     				$$invalidate(1, module.input = $modules[module.state.inputId], module);
     			} else {
@@ -5814,41 +6139,41 @@ var app = (function () {
     			}
     		}
 
-    		if ($$self.$$.dirty[0] & /*module, $modules*/ 18) {
+    		if ($$self.$$.dirty[0] & /*module, $modules*/ 66) {
     			if (module.state.cvId != null) {
-    				$$invalidate(13, cvModule = $modules[module.state.cvId]);
+    				$$invalidate(20, cvModule = $modules[module.state.cvId]);
     			} else {
-    				$$invalidate(13, cvModule = null);
+    				$$invalidate(20, cvModule = null);
     			}
     		}
 
     		if ($$self.$$.dirty[0] & /*module*/ 2) {
-    			$$invalidate(3, frequency = Math.pow(2, module.state.voct));
+    			$$invalidate(4, frequency = Math.pow(2, module.state.voct));
     		}
 
     		if ($$self.$$.dirty[0] & /*module*/ 2) {
-    			$$invalidate(14, filterNode.type = module.state.filterType, filterNode);
+    			$$invalidate(21, filterNode.type = module.state.filterType, filterNode);
     		}
 
-    		if ($$self.$$.dirty[0] & /*filterNode, frequency, $context*/ 278536) {
+    		if ($$self.$$.dirty[0] & /*filterNode, frequency, $context*/ 35651600) {
     			filterNode.frequency.setValueAtTime(frequency, $context.currentTime);
     		}
 
-    		if ($$self.$$.dirty[0] & /*module, currentInput, filterNode*/ 49154) {
+    		if ($$self.$$.dirty[0] & /*module, currentInput, filterNode*/ 6291458) {
     			if (!module.destroyed) {
     				if (module.input) {
     					if (currentInput) currentInput.disconnect(filterNode);
-    					$$invalidate(15, currentInput = module.input.output);
+    					$$invalidate(22, currentInput = module.input.output);
     					currentInput.connect(filterNode);
     					if (module.input.input || module.input.inputs) module.input.update();
     				} else {
     					if (currentInput) currentInput.disconnect(filterNode);
-    					$$invalidate(15, currentInput = null);
+    					$$invalidate(22, currentInput = null);
     				}
     			}
     		}
 
-    		if ($$self.$$.dirty[0] & /*module, cvModule, filterNode, $context, currentCvModule, frequency*/ 352266) {
+    		if ($$self.$$.dirty[0] & /*module, cvModule, filterNode, $context, currentCvModule, frequency*/ 45088786) {
     			if (!module.destroyed) {
     				if (cvModule) {
     					filterNode.frequency.cancelScheduledValues($context.currentTime);
@@ -5859,7 +6184,7 @@ var app = (function () {
     						currentCvModule.removeOutput(module.state.id, module.cv);
     					}
 
-    					$$invalidate(16, currentCvModule = cvModule);
+    					$$invalidate(23, currentCvModule = cvModule);
     					if (!currentCvModule.outputs[module.state.id]) currentCvModule.addOutput(module.state.id, module.cv);
     				} else {
     					filterNode.frequency.cancelScheduledValues($context.currentTime);
@@ -5870,19 +6195,49 @@ var app = (function () {
     						currentCvModule.removeOutput(module.state.id, module.cv);
     					}
 
-    					$$invalidate(16, currentCvModule = null);
+    					$$invalidate(23, currentCvModule = null);
     				}
     			}
     		}
 
-    		if ($$self.$$.dirty[0] & /*currentCvModule, module, frequency*/ 65546) {
+    		if ($$self.$$.dirty[0] & /*currentCvModule, module, frequency*/ 8388626) {
     			if (currentCvModule) {
     				currentCvModule.setGain(module.state.id, frequency);
     			}
     		}
 
-    		if ($$self.$$.dirty[0] & /*moduleNode, $opacity*/ 131076) {
+    		if ($$self.$$.dirty[0] & /*moduleNode, $opacity*/ 16777220) {
     			if (moduleNode) $$invalidate(2, moduleNode.style.opacity = `${$opacity}`, moduleNode);
+    		}
+
+    		if ($$self.$$.dirty[0] & /*module, inputBtn, $colours, $modules, cvBtn*/ 786626) {
+    			if (!module.destroyed) {
+    				if (inputBtn) {
+    					if (module.state.inputId != null) {
+    						$$invalidate(18, inputBtn.style.backgroundColor = $colours[$modules[module.state.inputId].state.type], inputBtn);
+    					} else {
+    						$$invalidate(18, inputBtn.style.backgroundColor = "#f0f0f0", inputBtn);
+    					}
+    				}
+
+    				if (cvBtn) {
+    					if (module.state.cvId != null) {
+    						$$invalidate(19, cvBtn.style.backgroundColor = $colours[$modules[module.state.cvId].state.type], cvBtn);
+    					} else {
+    						$$invalidate(19, cvBtn.style.backgroundColor = "#f0f0f0", cvBtn);
+    					}
+    				}
+    			}
+    		}
+
+    		if ($$self.$$.dirty[0] & /*controlsNode, $selectingModule*/ 40) {
+    			if (controlsNode) {
+    				if ($selectingModule != null) {
+    					$$invalidate(3, controlsNode.style.pointerEvents = "none", controlsNode);
+    				} else {
+    					$$invalidate(3, controlsNode.style.pointerEvents = "all", controlsNode);
+    				}
+    			}
     		}
     	};
 
@@ -5890,16 +6245,23 @@ var app = (function () {
     		state,
     		module,
     		moduleNode,
-    		frequency,
-    		$modules,
     		controlsNode,
+    		frequency,
+    		$selectingModule,
+    		$modules,
+    		$colours,
     		deleteNode,
     		bobSize,
-    		connectCV,
     		setModule,
     		setControls,
     		setDelete,
+    		setInputBtn,
+    		setCvBtn,
     		opacity,
+    		chooseInput,
+    		chooseCv,
+    		inputBtn,
+    		cvBtn,
     		cvModule,
     		filterNode,
     		currentInput,
@@ -5912,7 +6274,6 @@ var app = (function () {
     		modulemovement_nodePos_binding,
     		modulemovement_bobSize_binding,
     		h2_input_handler,
-    		select0_change_handler,
     		mouseenter_handler,
     		mouseleave_handler,
     		mouseenter_handler_1,
@@ -5949,253 +6310,17 @@ var app = (function () {
     }
 
     /* src\Mixer.svelte generated by Svelte v3.59.2 */
-
-    const { Object: Object_1$1 } = globals;
     const file$2 = "src\\Mixer.svelte";
 
     function get_each_context$1(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[25] = list[i];
-    	child_ctx[26] = list;
-    	child_ctx[27] = i;
+    	child_ctx[31] = list[i];
+    	child_ctx[33] = i;
     	return child_ctx;
     }
 
-    function get_each_context_1(ctx, list, i) {
-    	const child_ctx = ctx.slice();
-    	child_ctx[28] = list[i][0];
-    	child_ctx[29] = list[i][1];
-    	return child_ctx;
-    }
-
-    // (117:12) {#if id && m && m.output && id != module.state.id && (!module.state.inputIds.includes(id) || id == inputId)}
-    function create_if_block(ctx) {
-    	let option;
-    	let t0_value = /*id*/ ctx[28] + "";
-    	let t0;
-    	let t1;
-    	let t2_value = /*m*/ ctx[29].state.title + "";
-    	let t2;
-    	let option_value_value;
-
-    	const block = {
-    		c: function create() {
-    			option = element("option");
-    			t0 = text(t0_value);
-    			t1 = space();
-    			t2 = text(t2_value);
-    			option.__value = option_value_value = /*id*/ ctx[28];
-    			option.value = option.__value;
-    			add_location(option, file$2, 117, 12, 3432);
-    		},
-    		m: function mount(target, anchor) {
-    			insert_dev(target, option, anchor);
-    			append_dev(option, t0);
-    			append_dev(option, t1);
-    			append_dev(option, t2);
-    		},
-    		p: function update(ctx, dirty) {
-    			if (dirty[0] & /*$modules*/ 4 && t0_value !== (t0_value = /*id*/ ctx[28] + "")) set_data_dev(t0, t0_value);
-    			if (dirty[0] & /*$modules*/ 4 && t2_value !== (t2_value = /*m*/ ctx[29].state.title + "")) set_data_dev(t2, t2_value);
-
-    			if (dirty[0] & /*$modules*/ 4 && option_value_value !== (option_value_value = /*id*/ ctx[28])) {
-    				prop_dev(option, "__value", option_value_value);
-    				option.value = option.__value;
-    			}
-    		},
-    		d: function destroy(detaching) {
-    			if (detaching) detach_dev(option);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_if_block.name,
-    		type: "if",
-    		source: "(117:12) {#if id && m && m.output && id != module.state.id && (!module.state.inputIds.includes(id) || id == inputId)}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    // (116:8) {#each Object.entries($modules) as [id, m]}
-    function create_each_block_1(ctx) {
-    	let show_if = /*id*/ ctx[28] && /*m*/ ctx[29] && /*m*/ ctx[29].output && /*id*/ ctx[28] != /*module*/ ctx[0].state.id && (!/*module*/ ctx[0].state.inputIds.includes(/*id*/ ctx[28]) || /*id*/ ctx[28] == /*inputId*/ ctx[25]);
-    	let if_block_anchor;
-    	let if_block = show_if && create_if_block(ctx);
-
-    	const block = {
-    		c: function create() {
-    			if (if_block) if_block.c();
-    			if_block_anchor = empty();
-    		},
-    		m: function mount(target, anchor) {
-    			if (if_block) if_block.m(target, anchor);
-    			insert_dev(target, if_block_anchor, anchor);
-    		},
-    		p: function update(ctx, dirty) {
-    			if (dirty[0] & /*$modules, module*/ 5) show_if = /*id*/ ctx[28] && /*m*/ ctx[29] && /*m*/ ctx[29].output && /*id*/ ctx[28] != /*module*/ ctx[0].state.id && (!/*module*/ ctx[0].state.inputIds.includes(/*id*/ ctx[28]) || /*id*/ ctx[28] == /*inputId*/ ctx[25]);
-
-    			if (show_if) {
-    				if (if_block) {
-    					if_block.p(ctx, dirty);
-    				} else {
-    					if_block = create_if_block(ctx);
-    					if_block.c();
-    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
-    				}
-    			} else if (if_block) {
-    				if_block.d(1);
-    				if_block = null;
-    			}
-    		},
-    		d: function destroy(detaching) {
-    			if (if_block) if_block.d(detaching);
-    			if (detaching) detach_dev(if_block_anchor);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_each_block_1.name,
-    		type: "each",
-    		source: "(116:8) {#each Object.entries($modules) as [id, m]}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    // (113:4) {#each module.state.inputIds as inputId, i}
-    function create_each_block$1(ctx) {
-    	let div;
-    	let label;
-    	let select;
-    	let option;
-    	let t0;
-    	let t1;
-    	let t2;
-    	let mounted;
-    	let dispose;
-    	let each_value_1 = Object.entries(/*$modules*/ ctx[2]);
-    	validate_each_argument(each_value_1);
-    	let each_blocks = [];
-
-    	for (let i = 0; i < each_value_1.length; i += 1) {
-    		each_blocks[i] = create_each_block_1(get_each_context_1(ctx, each_value_1, i));
-    	}
-
-    	function select_change_handler() {
-    		/*select_change_handler*/ ctx[19].call(select, /*each_value*/ ctx[26], /*i*/ ctx[27]);
-    	}
-
-    	function mouseenter_handler() {
-    		return /*mouseenter_handler*/ ctx[20](/*inputId*/ ctx[25]);
-    	}
-
-    	const block = {
-    		c: function create() {
-    			div = element("div");
-    			label = element("label");
-    			select = element("select");
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].c();
-    			}
-
-    			option = element("option");
-    			t0 = text(" Input ");
-    			t1 = text(/*i*/ ctx[27]);
-    			t2 = space();
-    			option.__value = null;
-    			option.value = option.__value;
-    			add_location(option, file$2, 120, 12, 3530);
-    			attr_dev(select, "class", "svelte-kxatt6");
-    			if (/*inputId*/ ctx[25] === void 0) add_render_callback(select_change_handler);
-    			add_location(select, file$2, 114, 15, 3214);
-    			add_location(label, file$2, 114, 8, 3207);
-    			attr_dev(div, "class", "inputDiv");
-    			add_location(div, file$2, 113, 8, 3088);
-    		},
-    		m: function mount(target, anchor) {
-    			insert_dev(target, div, anchor);
-    			append_dev(div, label);
-    			append_dev(label, select);
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				if (each_blocks[i]) {
-    					each_blocks[i].m(select, null);
-    				}
-    			}
-
-    			append_dev(select, option);
-    			select_option(select, /*inputId*/ ctx[25], true);
-    			append_dev(label, t0);
-    			append_dev(label, t1);
-    			append_dev(div, t2);
-
-    			if (!mounted) {
-    				dispose = [
-    					listen_dev(select, "change", select_change_handler),
-    					listen_dev(div, "mouseenter", mouseenter_handler, false, false, false, false),
-    					listen_dev(div, "mouseleave", /*mouseleave_handler*/ ctx[21], false, false, false, false)
-    				];
-
-    				mounted = true;
-    			}
-    		},
-    		p: function update(new_ctx, dirty) {
-    			ctx = new_ctx;
-
-    			if (dirty[0] & /*$modules, module*/ 5) {
-    				each_value_1 = Object.entries(/*$modules*/ ctx[2]);
-    				validate_each_argument(each_value_1);
-    				let i;
-
-    				for (i = 0; i < each_value_1.length; i += 1) {
-    					const child_ctx = get_each_context_1(ctx, each_value_1, i);
-
-    					if (each_blocks[i]) {
-    						each_blocks[i].p(child_ctx, dirty);
-    					} else {
-    						each_blocks[i] = create_each_block_1(child_ctx);
-    						each_blocks[i].c();
-    						each_blocks[i].m(select, option);
-    					}
-    				}
-
-    				for (; i < each_blocks.length; i += 1) {
-    					each_blocks[i].d(1);
-    				}
-
-    				each_blocks.length = each_value_1.length;
-    			}
-
-    			if (dirty[0] & /*module, $modules*/ 5) {
-    				select_option(select, /*inputId*/ ctx[25]);
-    			}
-    		},
-    		d: function destroy(detaching) {
-    			if (detaching) detach_dev(div);
-    			destroy_each(each_blocks, detaching);
-    			mounted = false;
-    			run_all(dispose);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_each_block$1.name,
-    		type: "each",
-    		source: "(113:4) {#each module.state.inputIds as inputId, i}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    function create_fragment$2(ctx) {
+    // (161:0) {#if !module.destroyed}
+    function create_if_block$2(ctx) {
     	let main;
     	let modulemovement;
     	let updating_moduleNode;
@@ -6217,6 +6342,7 @@ var app = (function () {
     	let t4_value = /*module*/ ctx[0].state.title + "";
     	let t4;
     	let t5;
+    	let div2_style_value;
     	let t6;
     	let br;
     	let current;
@@ -6224,23 +6350,23 @@ var app = (function () {
     	let dispose;
 
     	function modulemovement_moduleNode_binding(value) {
-    		/*modulemovement_moduleNode_binding*/ ctx[13](value);
+    		/*modulemovement_moduleNode_binding*/ ctx[18](value);
     	}
 
     	function modulemovement_controlsNode_binding(value) {
-    		/*modulemovement_controlsNode_binding*/ ctx[14](value);
+    		/*modulemovement_controlsNode_binding*/ ctx[19](value);
     	}
 
     	function modulemovement_deleteNode_binding(value) {
-    		/*modulemovement_deleteNode_binding*/ ctx[15](value);
+    		/*modulemovement_deleteNode_binding*/ ctx[20](value);
     	}
 
     	function modulemovement_nodePos_binding(value) {
-    		/*modulemovement_nodePos_binding*/ ctx[16](value);
+    		/*modulemovement_nodePos_binding*/ ctx[21](value);
     	}
 
     	function modulemovement_bobSize_binding(value) {
-    		/*modulemovement_bobSize_binding*/ ctx[17](value);
+    		/*modulemovement_bobSize_binding*/ ctx[22](value);
     	}
 
     	let modulemovement_props = { nodeSize: { x: 240, y: 320 } };
@@ -6249,20 +6375,20 @@ var app = (function () {
     		modulemovement_props.moduleNode = /*moduleNode*/ ctx[1];
     	}
 
-    	if (/*controlsNode*/ ctx[3] !== void 0) {
-    		modulemovement_props.controlsNode = /*controlsNode*/ ctx[3];
+    	if (/*controlsNode*/ ctx[2] !== void 0) {
+    		modulemovement_props.controlsNode = /*controlsNode*/ ctx[2];
     	}
 
-    	if (/*deleteNode*/ ctx[4] !== void 0) {
-    		modulemovement_props.deleteNode = /*deleteNode*/ ctx[4];
+    	if (/*deleteNode*/ ctx[6] !== void 0) {
+    		modulemovement_props.deleteNode = /*deleteNode*/ ctx[6];
     	}
 
     	if (/*module*/ ctx[0].state.position !== void 0) {
     		modulemovement_props.nodePos = /*module*/ ctx[0].state.position;
     	}
 
-    	if (/*bobSize*/ ctx[5] !== void 0) {
-    		modulemovement_props.bobSize = /*bobSize*/ ctx[5];
+    	if (/*bobSize*/ ctx[7] !== void 0) {
+    		modulemovement_props.bobSize = /*bobSize*/ ctx[7];
     	}
 
     	modulemovement = new ModuleMovement({
@@ -6312,23 +6438,21 @@ var app = (function () {
 
     			t6 = space();
     			br = element("br");
-    			attr_dev(div0, "class", "delete svelte-kxatt6");
-    			add_location(div0, file$2, 108, 4, 2766);
-    			add_location(h1, file$2, 109, 4, 2844);
-    			attr_dev(h2, "class", "editableTitle svelte-kxatt6");
+    			attr_dev(div0, "class", "delete svelte-t7kctm");
+    			add_location(div0, file$2, 164, 4, 5197);
+    			add_location(h1, file$2, 165, 4, 5275);
+    			attr_dev(h2, "class", "editableTitle svelte-t7kctm");
     			attr_dev(h2, "contenteditable", "true");
-    			if (/*module*/ ctx[0].state.title === void 0) add_render_callback(() => /*h2_input_handler*/ ctx[18].call(h2));
-    			add_location(h2, file$2, 111, 4, 2917);
+    			if (/*$modules*/ ctx[4][/*module*/ ctx[0].state.id].state.title === void 0) add_render_callback(() => /*h2_input_handler*/ ctx[23].call(h2));
+    			add_location(h2, file$2, 167, 4, 5348);
     			attr_dev(div1, "id", "controls");
-    			add_location(div1, file$2, 110, 4, 2876);
+    			add_location(div1, file$2, 166, 4, 5307);
     			attr_dev(div2, "id", "module");
-    			attr_dev(div2, "class", "svelte-kxatt6");
-    			add_location(div2, file$2, 107, 0, 2729);
-    			add_location(br, file$2, 126, 0, 3648);
-    			add_location(main, file$2, 105, 0, 2542);
-    		},
-    		l: function claim(nodes) {
-    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    			attr_dev(div2, "style", div2_style_value = "background-color: " + /*$colours*/ ctx[5][/*module*/ ctx[0].state.type]);
+    			attr_dev(div2, "class", "svelte-t7kctm");
+    			add_location(div2, file$2, 163, 0, 5101);
+    			add_location(br, file$2, 181, 0, 6090);
+    			add_location(main, file$2, 161, 0, 4914);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
@@ -6345,8 +6469,8 @@ var app = (function () {
     			append_dev(div1, h2);
     			append_dev(h2, t4);
 
-    			if (/*module*/ ctx[0].state.title !== void 0) {
-    				h2.textContent = /*module*/ ctx[0].state.title;
+    			if (/*$modules*/ ctx[4][/*module*/ ctx[0].state.id].state.title !== void 0) {
+    				h2.textContent = /*$modules*/ ctx[4][/*module*/ ctx[0].state.id].state.title;
     			}
 
     			append_dev(div1, t5);
@@ -6359,15 +6483,15 @@ var app = (function () {
 
     			append_dev(main, t6);
     			append_dev(main, br);
-    			/*main_binding*/ ctx[22](main);
+    			/*main_binding*/ ctx[27](main);
     			current = true;
 
     			if (!mounted) {
     				dispose = [
-    					action_destroyer(/*setDelete*/ ctx[8].call(null, div0)),
-    					listen_dev(h2, "input", /*h2_input_handler*/ ctx[18]),
-    					action_destroyer(/*setControls*/ ctx[7].call(null, div1)),
-    					action_destroyer(/*setModule*/ ctx[6].call(null, div2))
+    					action_destroyer(/*setDelete*/ ctx[10].call(null, div0)),
+    					listen_dev(h2, "input", /*h2_input_handler*/ ctx[23]),
+    					action_destroyer(/*setControls*/ ctx[9].call(null, div1)),
+    					action_destroyer(/*setModule*/ ctx[8].call(null, div2))
     				];
 
     				mounted = true;
@@ -6382,15 +6506,15 @@ var app = (function () {
     				add_flush_callback(() => updating_moduleNode = false);
     			}
 
-    			if (!updating_controlsNode && dirty[0] & /*controlsNode*/ 8) {
+    			if (!updating_controlsNode && dirty[0] & /*controlsNode*/ 4) {
     				updating_controlsNode = true;
-    				modulemovement_changes.controlsNode = /*controlsNode*/ ctx[3];
+    				modulemovement_changes.controlsNode = /*controlsNode*/ ctx[2];
     				add_flush_callback(() => updating_controlsNode = false);
     			}
 
-    			if (!updating_deleteNode && dirty[0] & /*deleteNode*/ 16) {
+    			if (!updating_deleteNode && dirty[0] & /*deleteNode*/ 64) {
     				updating_deleteNode = true;
-    				modulemovement_changes.deleteNode = /*deleteNode*/ ctx[4];
+    				modulemovement_changes.deleteNode = /*deleteNode*/ ctx[6];
     				add_flush_callback(() => updating_deleteNode = false);
     			}
 
@@ -6400,9 +6524,9 @@ var app = (function () {
     				add_flush_callback(() => updating_nodePos = false);
     			}
 
-    			if (!updating_bobSize && dirty[0] & /*bobSize*/ 32) {
+    			if (!updating_bobSize && dirty[0] & /*bobSize*/ 128) {
     				updating_bobSize = true;
-    				modulemovement_changes.bobSize = /*bobSize*/ ctx[5];
+    				modulemovement_changes.bobSize = /*bobSize*/ ctx[7];
     				add_flush_callback(() => updating_bobSize = false);
     			}
 
@@ -6413,11 +6537,11 @@ var app = (function () {
     			if ((!current || dirty[0] & /*module*/ 1) && t2_value !== (t2_value = /*module*/ ctx[0].state.id + "")) set_data_dev(t2, t2_value);
     			if ((!current || dirty[0] & /*module*/ 1) && t4_value !== (t4_value = /*module*/ ctx[0].state.title + "")) set_data_contenteditable_dev(t4, t4_value);
 
-    			if (dirty[0] & /*module, $modules*/ 5 && /*module*/ ctx[0].state.title !== h2.textContent) {
-    				h2.textContent = /*module*/ ctx[0].state.title;
+    			if (dirty[0] & /*$modules, module*/ 17 && /*$modules*/ ctx[4][/*module*/ ctx[0].state.id].state.title !== h2.textContent) {
+    				h2.textContent = /*$modules*/ ctx[4][/*module*/ ctx[0].state.id].state.title;
     			}
 
-    			if (dirty[0] & /*module, $modules*/ 5) {
+    			if (dirty[0] & /*module, $selectingModule, chooseInput, $modules*/ 8217) {
     				each_value = /*module*/ ctx[0].state.inputIds;
     				validate_each_argument(each_value);
     				let i;
@@ -6440,6 +6564,10 @@ var app = (function () {
 
     				each_blocks.length = each_value.length;
     			}
+
+    			if (!current || dirty[0] & /*$colours, module*/ 33 && div2_style_value !== (div2_style_value = "background-color: " + /*$colours*/ ctx[5][/*module*/ ctx[0].state.type])) {
+    				attr_dev(div2, "style", div2_style_value);
+    			}
     		},
     		i: function intro(local) {
     			if (current) return;
@@ -6457,9 +6585,242 @@ var app = (function () {
     			destroy_component(modulemovement);
     			destroy_component(deletebutton);
     			destroy_each(each_blocks, detaching);
-    			/*main_binding*/ ctx[22](null);
+    			/*main_binding*/ ctx[27](null);
     			mounted = false;
     			run_all(dispose);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block$2.name,
+    		type: "if",
+    		source: "(161:0) {#if !module.destroyed}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (174:12) {:else}
+    function create_else_block$1(ctx) {
+    	let t;
+
+    	const block = {
+    		c: function create() {
+    			t = text("None");
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, t, anchor);
+    		},
+    		p: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(t);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_else_block$1.name,
+    		type: "else",
+    		source: "(174:12) {:else}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (172:12) {#if module.state.inputIds[i] != null && $modules[module.state.inputIds[i]]}
+    function create_if_block_1(ctx) {
+    	let t0_value = /*module*/ ctx[0].state.inputIds[/*i*/ ctx[33]] + "";
+    	let t0;
+    	let t1;
+    	let t2_value = /*$modules*/ ctx[4][/*module*/ ctx[0].state.inputIds[/*i*/ ctx[33]]].state.title + "";
+    	let t2;
+
+    	const block = {
+    		c: function create() {
+    			t0 = text(t0_value);
+    			t1 = space();
+    			t2 = text(t2_value);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, t0, anchor);
+    			insert_dev(target, t1, anchor);
+    			insert_dev(target, t2, anchor);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty[0] & /*module*/ 1 && t0_value !== (t0_value = /*module*/ ctx[0].state.inputIds[/*i*/ ctx[33]] + "")) set_data_dev(t0, t0_value);
+    			if (dirty[0] & /*$modules, module*/ 17 && t2_value !== (t2_value = /*$modules*/ ctx[4][/*module*/ ctx[0].state.inputIds[/*i*/ ctx[33]]].state.title + "")) set_data_dev(t2, t2_value);
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(t0);
+    			if (detaching) detach_dev(t1);
+    			if (detaching) detach_dev(t2);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block_1.name,
+    		type: "if",
+    		source: "(172:12) {#if module.state.inputIds[i] != null && $modules[module.state.inputIds[i]]}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (169:4) {#each module.state.inputIds as inputId, i}
+    function create_each_block$1(ctx) {
+    	let div;
+    	let label;
+    	let button;
+    	let t0;
+    	let t1;
+    	let t2;
+    	let mounted;
+    	let dispose;
+
+    	function select_block_type(ctx, dirty) {
+    		if (/*module*/ ctx[0].state.inputIds[/*i*/ ctx[33]] != null && /*$modules*/ ctx[4][/*module*/ ctx[0].state.inputIds[/*i*/ ctx[33]]]) return create_if_block_1;
+    		return create_else_block$1;
+    	}
+
+    	let current_block_type = select_block_type(ctx);
+    	let if_block = current_block_type(ctx);
+
+    	function click_handler() {
+    		return /*click_handler*/ ctx[24](/*i*/ ctx[33]);
+    	}
+
+    	function mouseenter_handler() {
+    		return /*mouseenter_handler*/ ctx[25](/*inputId*/ ctx[31]);
+    	}
+
+    	const block = {
+    		c: function create() {
+    			div = element("div");
+    			label = element("label");
+    			button = element("button");
+    			if_block.c();
+    			t0 = text(" Input ");
+    			t1 = text(/*i*/ ctx[33]);
+    			t2 = space();
+    			attr_dev(button, "class", "svelte-t7kctm");
+    			add_location(button, file$2, 170, 15, 5697);
+    			add_location(label, file$2, 170, 8, 5690);
+    			attr_dev(div, "class", "inputDiv");
+    			add_location(div, file$2, 169, 8, 5538);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div, anchor);
+    			append_dev(div, label);
+    			append_dev(label, button);
+    			if_block.m(button, null);
+    			append_dev(label, t0);
+    			append_dev(label, t1);
+    			append_dev(div, t2);
+
+    			if (!mounted) {
+    				dispose = [
+    					action_destroyer(/*setInputBtn*/ ctx[11].call(null, button, [/*i*/ ctx[33]])),
+    					listen_dev(button, "click", click_handler, false, false, false, false),
+    					listen_dev(div, "mouseenter", mouseenter_handler, false, false, false, false),
+    					listen_dev(div, "mouseleave", /*mouseleave_handler*/ ctx[26], false, false, false, false)
+    				];
+
+    				mounted = true;
+    			}
+    		},
+    		p: function update(new_ctx, dirty) {
+    			ctx = new_ctx;
+
+    			if (current_block_type === (current_block_type = select_block_type(ctx)) && if_block) {
+    				if_block.p(ctx, dirty);
+    			} else {
+    				if_block.d(1);
+    				if_block = current_block_type(ctx);
+
+    				if (if_block) {
+    					if_block.c();
+    					if_block.m(button, null);
+    				}
+    			}
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(div);
+    			if_block.d();
+    			mounted = false;
+    			run_all(dispose);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_each_block$1.name,
+    		type: "each",
+    		source: "(169:4) {#each module.state.inputIds as inputId, i}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function create_fragment$2(ctx) {
+    	let if_block_anchor;
+    	let current;
+    	let if_block = !/*module*/ ctx[0].destroyed && create_if_block$2(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if (if_block) if_block.c();
+    			if_block_anchor = empty();
+    		},
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+    		m: function mount(target, anchor) {
+    			if (if_block) if_block.m(target, anchor);
+    			insert_dev(target, if_block_anchor, anchor);
+    			current = true;
+    		},
+    		p: function update(ctx, dirty) {
+    			if (!/*module*/ ctx[0].destroyed) {
+    				if (if_block) {
+    					if_block.p(ctx, dirty);
+
+    					if (dirty[0] & /*module*/ 1) {
+    						transition_in(if_block, 1);
+    					}
+    				} else {
+    					if_block = create_if_block$2(ctx);
+    					if_block.c();
+    					transition_in(if_block, 1);
+    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    				}
+    			} else if (if_block) {
+    				group_outros();
+
+    				transition_out(if_block, 1, 1, () => {
+    					if_block = null;
+    				});
+
+    				check_outros();
+    			}
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(if_block);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(if_block);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			if (if_block) if_block.d(detaching);
+    			if (detaching) detach_dev(if_block_anchor);
     		}
     	};
 
@@ -6475,13 +6836,22 @@ var app = (function () {
     }
 
     function instance$2($$self, $$props, $$invalidate) {
-    	let $opacity;
+    	let $selectingModule;
     	let $modules;
+    	let $colours;
+    	let $opacity;
+    	let $output;
     	let $context;
+    	validate_store(selectingModule, 'selectingModule');
+    	component_subscribe($$self, selectingModule, $$value => $$invalidate(3, $selectingModule = $$value));
     	validate_store(modules, 'modules');
-    	component_subscribe($$self, modules, $$value => $$invalidate(2, $modules = $$value));
+    	component_subscribe($$self, modules, $$value => $$invalidate(4, $modules = $$value));
+    	validate_store(colours, 'colours');
+    	component_subscribe($$self, colours, $$value => $$invalidate(5, $colours = $$value));
+    	validate_store(output, 'output');
+    	component_subscribe($$self, output, $$value => $$invalidate(28, $output = $$value));
     	validate_store(context, 'context');
-    	component_subscribe($$self, context, $$value => $$invalidate(23, $context = $$value));
+    	component_subscribe($$self, context, $$value => $$invalidate(29, $context = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('Mixer', slots, []);
 
@@ -6499,34 +6869,50 @@ var app = (function () {
     	let moduleNode;
     	let controlsNode;
     	let deleteNode;
+    	let inputBtns = [null, null, null, null];
+    	module.selectingInput = false;
     	var gainNode = $context.createGain();
     	module.output = gainNode;
     	module.inputs = [null, null, null, null];
     	let currentInputs = [null, null, null, null];
 
     	module.clearCurrents = () => {
-    		$$invalidate(11, currentInputs = [null, null, null, null]);
+    		$$invalidate(16, currentInputs = [null, null, null, null]);
     	};
 
     	module.update = () => {
-    		($$invalidate(0, module), $$invalidate(2, $modules));
+    		($$invalidate(0, module), $$invalidate(4, $modules));
     	};
 
     	function setModule(node) {
     		$$invalidate(1, moduleNode = node);
+
+    		moduleNode.addEventListener("mouseup", () => {
+    			if ($selectingModule == "output") {
+    				$output.select(module.state.id);
+    			} else if ($selectingModule != null && $modules[$selectingModule].selectingInput && $selectingModule != module.state.id && ($modules[$selectingModule].state.type != "mixer" || (!$modules[$selectingModule].state.inputIds.includes(module.state.id) || $modules[$selectingModule].state.inputIds[$modules[$selectingModule].inputSelecting] == module.state.id))) {
+    				$modules[$selectingModule].select(module.state.id);
+    			} else if ($selectingModule == module.state.id) {
+    				module.select(null);
+    			}
+    		});
     	}
 
     	function setControls(node) {
-    		$$invalidate(3, controlsNode = node);
+    		$$invalidate(2, controlsNode = node);
     	}
 
     	function setDelete(node) {
-    		$$invalidate(4, deleteNode = node);
+    		$$invalidate(6, deleteNode = node);
+    	}
+
+    	function setInputBtn(node, i) {
+    		$$invalidate(15, inputBtns[i] = node, inputBtns);
     	}
 
     	let opacity = spring(1, { stiffness: 0.1, damping: 0.5 });
     	validate_store(opacity, 'opacity');
-    	component_subscribe($$self, opacity, value => $$invalidate(12, $opacity = value));
+    	component_subscribe($$self, opacity, value => $$invalidate(17, $opacity = value));
     	let bobSize = spring(0, { stiffness: 0.3, damping: 0.2 });
 
     	module.fade = () => {
@@ -6552,67 +6938,96 @@ var app = (function () {
     		);
     	};
 
+    	module.inputSelecting = null;
+
+    	function chooseInput(i) {
+    		$$invalidate(0, module.inputSelecting = i, module);
+    		if (!inputBtns[i]) return;
+    		mixerInputHover(module, module.state.inputIds[i]);
+
+    		if (!module.selectingInput) {
+    			$$invalidate(0, module.selectingInput = true, module);
+    			$$invalidate(15, inputBtns[module.inputSelecting].style.opacity = 0.5, inputBtns);
+    			set_store_value(selectingModule, $selectingModule = module.state.id, $selectingModule);
+    		} else {
+    			$$invalidate(0, module.selectingInput = false, module);
+    		}
+    	}
+
+    	module.select = id => {
+    		if (module.selectingInput) {
+    			$$invalidate(0, module.state.inputIds[module.inputSelecting] = id, module);
+    			$$invalidate(15, inputBtns[module.inputSelecting].style.opacity = 1, inputBtns);
+    			$$invalidate(0, module.selectingInput = false, module);
+    		}
+
+    		set_store_value(selectingModule, $selectingModule = null, $selectingModule);
+    		unhover();
+    	};
+
     	module.bob();
     	const writable_props = ['state'];
 
-    	Object_1$1.keys($$props).forEach(key => {
+    	Object.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<Mixer> was created with unknown prop '${key}'`);
     	});
 
     	function modulemovement_moduleNode_binding(value) {
     		moduleNode = value;
-    		($$invalidate(1, moduleNode), $$invalidate(12, $opacity));
+    		($$invalidate(1, moduleNode), $$invalidate(17, $opacity));
     	}
 
     	function modulemovement_controlsNode_binding(value) {
     		controlsNode = value;
-    		$$invalidate(3, controlsNode);
+    		($$invalidate(2, controlsNode), $$invalidate(3, $selectingModule));
     	}
 
     	function modulemovement_deleteNode_binding(value) {
     		deleteNode = value;
-    		$$invalidate(4, deleteNode);
+    		$$invalidate(6, deleteNode);
     	}
 
     	function modulemovement_nodePos_binding(value) {
     		if ($$self.$$.not_equal(module.state.position, value)) {
     			module.state.position = value;
-    			($$invalidate(0, module), $$invalidate(2, $modules));
+    			($$invalidate(0, module), $$invalidate(4, $modules));
     		}
     	}
 
     	function modulemovement_bobSize_binding(value) {
     		bobSize = value;
-    		$$invalidate(5, bobSize);
+    		$$invalidate(7, bobSize);
     	}
 
     	function h2_input_handler() {
-    		module.state.title = this.textContent;
-    		($$invalidate(0, module), $$invalidate(2, $modules));
+    		$modules[module.state.id].state.title = this.textContent;
+    		modules.set($modules);
     	}
 
-    	function select_change_handler(each_value, i) {
-    		each_value[i] = select_value(this);
-    		($$invalidate(0, module), $$invalidate(2, $modules));
-    	}
-
+    	const click_handler = i => chooseInput(i);
     	const mouseenter_handler = inputId => mixerInputHover(module, inputId);
-    	const mouseleave_handler = () => unhover();
+
+    	const mouseleave_handler = () => {
+    		if ($selectingModule == null) unhover();
+    	};
 
     	function main_binding($$value) {
     		binding_callbacks[$$value ? 'unshift' : 'push'](() => {
     			module.component = $$value;
-    			($$invalidate(0, module), $$invalidate(2, $modules));
+    			($$invalidate(0, module), $$invalidate(4, $modules));
     		});
     	}
 
     	$$self.$$set = $$props => {
-    		if ('state' in $$props) $$invalidate(10, state = $$props.state);
+    		if ('state' in $$props) $$invalidate(14, state = $$props.state);
     	};
 
     	$$self.$capture_state = () => ({
     		modules,
     		context,
+    		colours,
+    		selectingModule,
+    		output,
     		ModuleMovement,
     		DeleteButton,
     		createNewId,
@@ -6625,27 +7040,34 @@ var app = (function () {
     		moduleNode,
     		controlsNode,
     		deleteNode,
+    		inputBtns,
     		gainNode,
     		currentInputs,
     		setModule,
     		setControls,
     		setDelete,
+    		setInputBtn,
     		opacity,
     		bobSize,
-    		$opacity,
+    		chooseInput,
+    		$selectingModule,
     		$modules,
+    		$colours,
+    		$opacity,
+    		$output,
     		$context
     	});
 
     	$$self.$inject_state = $$props => {
-    		if ('state' in $$props) $$invalidate(10, state = $$props.state);
+    		if ('state' in $$props) $$invalidate(14, state = $$props.state);
     		if ('moduleNode' in $$props) $$invalidate(1, moduleNode = $$props.moduleNode);
-    		if ('controlsNode' in $$props) $$invalidate(3, controlsNode = $$props.controlsNode);
-    		if ('deleteNode' in $$props) $$invalidate(4, deleteNode = $$props.deleteNode);
-    		if ('gainNode' in $$props) $$invalidate(24, gainNode = $$props.gainNode);
-    		if ('currentInputs' in $$props) $$invalidate(11, currentInputs = $$props.currentInputs);
-    		if ('opacity' in $$props) $$invalidate(9, opacity = $$props.opacity);
-    		if ('bobSize' in $$props) $$invalidate(5, bobSize = $$props.bobSize);
+    		if ('controlsNode' in $$props) $$invalidate(2, controlsNode = $$props.controlsNode);
+    		if ('deleteNode' in $$props) $$invalidate(6, deleteNode = $$props.deleteNode);
+    		if ('inputBtns' in $$props) $$invalidate(15, inputBtns = $$props.inputBtns);
+    		if ('gainNode' in $$props) $$invalidate(30, gainNode = $$props.gainNode);
+    		if ('currentInputs' in $$props) $$invalidate(16, currentInputs = $$props.currentInputs);
+    		if ('opacity' in $$props) $$invalidate(12, opacity = $$props.opacity);
+    		if ('bobSize' in $$props) $$invalidate(7, bobSize = $$props.bobSize);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -6653,7 +7075,7 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty[0] & /*module, $modules*/ 5) {
+    		if ($$self.$$.dirty[0] & /*module, $modules*/ 17) {
     			module.state.inputIds.forEach((id, i) => {
     				if (id != null && $modules[id] != null) {
     					$$invalidate(0, module.inputs[i] = $modules[id], module);
@@ -6661,40 +7083,69 @@ var app = (function () {
     					$$invalidate(0, module.inputs[i] = null, module);
     				}
 
-    				($$invalidate(0, module), $$invalidate(2, $modules));
+    				($$invalidate(0, module), $$invalidate(4, $modules));
     			});
     		}
 
-    		if ($$self.$$.dirty[0] & /*module, currentInputs*/ 2049) {
+    		if ($$self.$$.dirty[0] & /*module, currentInputs*/ 65537) {
     			module.inputs.forEach((input, i) => {
     				if (input) {
     					if (currentInputs[i]) currentInputs[i].disconnect(gainNode);
-    					$$invalidate(11, currentInputs[i] = input.output, currentInputs);
+    					$$invalidate(16, currentInputs[i] = input.output, currentInputs);
     					currentInputs[i].connect(gainNode);
     				} else {
     					if (currentInputs[i]) currentInputs[i].disconnect(gainNode);
-    					$$invalidate(11, currentInputs[i] = null, currentInputs);
+    					$$invalidate(16, currentInputs[i] = null, currentInputs);
     				}
     			});
     		}
 
-    		if ($$self.$$.dirty[0] & /*moduleNode, $opacity*/ 4098) {
+    		if ($$self.$$.dirty[0] & /*moduleNode, $opacity*/ 131074) {
     			if (moduleNode) $$invalidate(1, moduleNode.style.opacity = `${$opacity}`, moduleNode);
+    		}
+
+    		if ($$self.$$.dirty[0] & /*module, inputBtns, $colours, $modules*/ 32817) {
+    			if (!module.destroyed) {
+    				inputBtns.forEach((btn, i) => {
+    					if (btn != null) {
+    						if (module.state.inputIds[i] != null) {
+    							btn.style.backgroundColor = $colours[$modules[module.state.inputIds[i]].state.type];
+    						} else {
+    							btn.style.backgroundColor = "#f0f0f0";
+    						}
+    					}
+    				});
+    			}
+    		}
+
+    		if ($$self.$$.dirty[0] & /*controlsNode, $selectingModule*/ 12) {
+    			if (controlsNode) {
+    				if ($selectingModule != null) {
+    					$$invalidate(2, controlsNode.style.pointerEvents = "none", controlsNode);
+    				} else {
+    					$$invalidate(2, controlsNode.style.pointerEvents = "all", controlsNode);
+    				}
+    			}
     		}
     	};
 
     	return [
     		module,
     		moduleNode,
-    		$modules,
     		controlsNode,
+    		$selectingModule,
+    		$modules,
+    		$colours,
     		deleteNode,
     		bobSize,
     		setModule,
     		setControls,
     		setDelete,
+    		setInputBtn,
     		opacity,
+    		chooseInput,
     		state,
+    		inputBtns,
     		currentInputs,
     		$opacity,
     		modulemovement_moduleNode_binding,
@@ -6703,7 +7154,7 @@ var app = (function () {
     		modulemovement_nodePos_binding,
     		modulemovement_bobSize_binding,
     		h2_input_handler,
-    		select_change_handler,
+    		click_handler,
     		mouseenter_handler,
     		mouseleave_handler,
     		main_binding
@@ -6713,7 +7164,7 @@ var app = (function () {
     class Mixer extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$2, create_fragment$2, safe_not_equal, { state: 10 }, null, [-1, -1]);
+    		init(this, options, instance$2, create_fragment$2, safe_not_equal, { state: 14 }, null, [-1, -1]);
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
@@ -6735,7 +7186,8 @@ var app = (function () {
     /* src\LFO.svelte generated by Svelte v3.59.2 */
     const file$1 = "src\\LFO.svelte";
 
-    function create_fragment$1(ctx) {
+    // (103:0) {#if !module.destroyed}
+    function create_if_block$1(ctx) {
     	let main;
     	let modulemovement;
     	let updating_moduleNode;
@@ -6789,6 +7241,7 @@ var app = (function () {
     	let label4;
     	let t16;
     	let label4_for_value;
+    	let div2_style_value;
     	let t17;
     	let br1;
     	let current;
@@ -6797,23 +7250,23 @@ var app = (function () {
     	let dispose;
 
     	function modulemovement_moduleNode_binding(value) {
-    		/*modulemovement_moduleNode_binding*/ ctx[12](value);
+    		/*modulemovement_moduleNode_binding*/ ctx[15](value);
     	}
 
     	function modulemovement_controlsNode_binding(value) {
-    		/*modulemovement_controlsNode_binding*/ ctx[13](value);
+    		/*modulemovement_controlsNode_binding*/ ctx[16](value);
     	}
 
     	function modulemovement_deleteNode_binding(value) {
-    		/*modulemovement_deleteNode_binding*/ ctx[14](value);
+    		/*modulemovement_deleteNode_binding*/ ctx[17](value);
     	}
 
     	function modulemovement_nodePos_binding(value) {
-    		/*modulemovement_nodePos_binding*/ ctx[15](value);
+    		/*modulemovement_nodePos_binding*/ ctx[18](value);
     	}
 
     	function modulemovement_bobSize_binding(value) {
-    		/*modulemovement_bobSize_binding*/ ctx[16](value);
+    		/*modulemovement_bobSize_binding*/ ctx[19](value);
     	}
 
     	let modulemovement_props = { nodeSize: { x: 320, y: 250 } };
@@ -6854,7 +7307,7 @@ var app = (function () {
     			$$inline: true
     		});
 
-    	binding_group = init_binding_group(/*$$binding_groups*/ ctx[20][0]);
+    	binding_group = init_binding_group(/*$$binding_groups*/ ctx[23][0]);
 
     	const block = {
     		c: function create() {
@@ -6897,71 +7350,69 @@ var app = (function () {
     			t16 = text("Square");
     			t17 = space();
     			br1 = element("br");
-    			attr_dev(div0, "class", "delete svelte-1289ksm");
-    			add_location(div0, file$1, 102, 8, 2483);
-    			add_location(h1, file$1, 103, 8, 2565);
-    			attr_dev(h2, "class", "editableTitle svelte-1289ksm");
+    			attr_dev(div0, "class", "delete svelte-1qfr2di");
+    			add_location(div0, file$1, 106, 8, 2953);
+    			add_location(h1, file$1, 107, 8, 3035);
+    			attr_dev(h2, "class", "editableTitle svelte-1qfr2di");
     			attr_dev(h2, "contenteditable", "true");
-    			if (/*module*/ ctx[1].state.title === void 0) add_render_callback(() => /*h2_input_handler*/ ctx[17].call(h2));
-    			add_location(h2, file$1, 105, 12, 2650);
+    			if (/*$modules*/ ctx[7][/*module*/ ctx[1].state.id].state.title === void 0) add_render_callback(() => /*h2_input_handler*/ ctx[20].call(h2));
+    			add_location(h2, file$1, 109, 12, 3120);
     			attr_dev(label0, "for", "freq");
-    			add_location(label0, file$1, 106, 12, 2776);
+    			add_location(label0, file$1, 110, 12, 3265);
     			attr_dev(input0, "id", "freq");
     			attr_dev(input0, "type", "range");
     			attr_dev(input0, "min", "0.1");
     			attr_dev(input0, "max", "20");
     			attr_dev(input0, "step", "0.01");
-    			add_location(input0, file$1, 106, 88, 2852);
-    			add_location(br0, file$1, 107, 12, 2963);
+    			add_location(input0, file$1, 110, 88, 3341);
+    			add_location(br0, file$1, 111, 12, 3452);
     			attr_dev(input1, "id", input1_id_value = 'sine' + /*module*/ ctx[1].state.id);
     			attr_dev(input1, "type", "radio");
     			input1.__value = "sine";
     			input1.value = input1.__value;
-    			attr_dev(input1, "class", "svelte-1289ksm");
-    			add_location(input1, file$1, 108, 16, 3008);
+    			attr_dev(input1, "class", "svelte-1qfr2di");
+    			add_location(input1, file$1, 112, 16, 3497);
     			attr_dev(label1, "for", label1_for_value = 'sine' + /*module*/ ctx[1].state.id);
-    			attr_dev(label1, "class", "svelte-1289ksm");
-    			add_location(label1, file$1, 108, 111, 3103);
+    			attr_dev(label1, "class", "svelte-1qfr2di");
+    			add_location(label1, file$1, 112, 111, 3592);
     			attr_dev(input2, "id", input2_id_value = 'triangle' + /*module*/ ctx[1].state.id);
     			attr_dev(input2, "type", "radio");
     			input2.__value = "triangle";
     			input2.value = input2.__value;
-    			attr_dev(input2, "class", "svelte-1289ksm");
-    			add_location(input2, file$1, 109, 16, 3169);
+    			attr_dev(input2, "class", "svelte-1qfr2di");
+    			add_location(input2, file$1, 113, 16, 3658);
     			attr_dev(label2, "for", label2_for_value = 'triangle' + /*module*/ ctx[1].state.id);
-    			attr_dev(label2, "class", "svelte-1289ksm");
-    			add_location(label2, file$1, 109, 120, 3273);
+    			attr_dev(label2, "class", "svelte-1qfr2di");
+    			add_location(label2, file$1, 113, 120, 3762);
     			attr_dev(input3, "id", input3_id_value = 'sawtooth' + /*module*/ ctx[1].state.id);
     			attr_dev(input3, "type", "radio");
     			input3.__value = "sawtooth";
     			input3.value = input3.__value;
-    			attr_dev(input3, "class", "svelte-1289ksm");
-    			add_location(input3, file$1, 110, 16, 3347);
+    			attr_dev(input3, "class", "svelte-1qfr2di");
+    			add_location(input3, file$1, 114, 16, 3836);
     			attr_dev(label3, "for", label3_for_value = 'sawtooth' + /*module*/ ctx[1].state.id);
-    			attr_dev(label3, "class", "svelte-1289ksm");
-    			add_location(label3, file$1, 110, 119, 3450);
+    			attr_dev(label3, "class", "svelte-1qfr2di");
+    			add_location(label3, file$1, 114, 119, 3939);
     			attr_dev(input4, "id", input4_id_value = 'square' + /*module*/ ctx[1].state.id);
     			attr_dev(input4, "type", "radio");
     			input4.__value = "square";
     			input4.value = input4.__value;
-    			attr_dev(input4, "class", "svelte-1289ksm");
-    			add_location(input4, file$1, 111, 16, 3524);
+    			attr_dev(input4, "class", "svelte-1qfr2di");
+    			add_location(input4, file$1, 115, 16, 4013);
     			attr_dev(label4, "for", label4_for_value = 'square' + /*module*/ ctx[1].state.id);
-    			attr_dev(label4, "class", "svelte-1289ksm");
-    			add_location(label4, file$1, 111, 115, 3623);
-    			attr_dev(section, "class", "shape svelte-1289ksm");
-    			add_location(section, file$1, 107, 16, 2967);
+    			attr_dev(label4, "class", "svelte-1qfr2di");
+    			add_location(label4, file$1, 115, 115, 4112);
+    			attr_dev(section, "class", "shape svelte-1qfr2di");
+    			add_location(section, file$1, 111, 16, 3456);
     			attr_dev(div1, "id", "controls");
-    			add_location(div1, file$1, 104, 8, 2601);
+    			add_location(div1, file$1, 108, 8, 3071);
     			attr_dev(div2, "id", "module");
-    			attr_dev(div2, "class", "svelte-1289ksm");
-    			add_location(div2, file$1, 101, 4, 2442);
-    			add_location(br1, file$1, 115, 4, 3733);
-    			add_location(main, file$1, 99, 0, 2254);
+    			attr_dev(div2, "style", div2_style_value = "background-color: " + /*$colours*/ ctx[8][/*module*/ ctx[1].state.type]);
+    			attr_dev(div2, "class", "svelte-1qfr2di");
+    			add_location(div2, file$1, 105, 4, 2853);
+    			add_location(br1, file$1, 119, 4, 4222);
+    			add_location(main, file$1, 103, 0, 2665);
     			binding_group.p(input1, input2, input3, input4);
-    		},
-    		l: function claim(nodes) {
-    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
@@ -6978,8 +7429,8 @@ var app = (function () {
     			append_dev(div1, h2);
     			append_dev(h2, t4);
 
-    			if (/*module*/ ctx[1].state.title !== void 0) {
-    				h2.textContent = /*module*/ ctx[1].state.title;
+    			if (/*$modules*/ ctx[7][/*module*/ ctx[1].state.id].state.title !== void 0) {
+    				h2.textContent = /*$modules*/ ctx[7][/*module*/ ctx[1].state.id].state.title;
     			}
 
     			append_dev(div1, t5);
@@ -7013,27 +7464,27 @@ var app = (function () {
     			append_dev(label4, t16);
     			append_dev(main, t17);
     			append_dev(main, br1);
-    			/*main_binding*/ ctx[24](main);
+    			/*main_binding*/ ctx[27](main);
     			current = true;
 
     			if (!mounted) {
     				dispose = [
-    					action_destroyer(/*setDelete*/ ctx[9].call(null, div0)),
-    					listen_dev(h2, "input", /*h2_input_handler*/ ctx[17]),
-    					listen_dev(input0, "change", /*input0_change_input_handler*/ ctx[18]),
-    					listen_dev(input0, "input", /*input0_change_input_handler*/ ctx[18]),
-    					listen_dev(input1, "change", /*input1_change_handler*/ ctx[19]),
-    					listen_dev(input2, "change", /*input2_change_handler*/ ctx[21]),
-    					listen_dev(input3, "change", /*input3_change_handler*/ ctx[22]),
-    					listen_dev(input4, "change", /*input4_change_handler*/ ctx[23]),
-    					action_destroyer(/*setControls*/ ctx[8].call(null, div1)),
-    					action_destroyer(/*setModule*/ ctx[7].call(null, div2))
+    					action_destroyer(/*setDelete*/ ctx[11].call(null, div0)),
+    					listen_dev(h2, "input", /*h2_input_handler*/ ctx[20]),
+    					listen_dev(input0, "change", /*input0_change_input_handler*/ ctx[21]),
+    					listen_dev(input0, "input", /*input0_change_input_handler*/ ctx[21]),
+    					listen_dev(input1, "change", /*input1_change_handler*/ ctx[22]),
+    					listen_dev(input2, "change", /*input2_change_handler*/ ctx[24]),
+    					listen_dev(input3, "change", /*input3_change_handler*/ ctx[25]),
+    					listen_dev(input4, "change", /*input4_change_handler*/ ctx[26]),
+    					action_destroyer(/*setControls*/ ctx[10].call(null, div1)),
+    					action_destroyer(/*setModule*/ ctx[9].call(null, div2))
     				];
 
     				mounted = true;
     			}
     		},
-    		p: function update(ctx, [dirty]) {
+    		p: function update(ctx, dirty) {
     			const modulemovement_changes = {};
 
     			if (!updating_moduleNode && dirty & /*moduleNode*/ 4) {
@@ -7073,8 +7524,8 @@ var app = (function () {
     			if ((!current || dirty & /*module*/ 2) && t2_value !== (t2_value = /*module*/ ctx[1].state.id + "")) set_data_dev(t2, t2_value);
     			if ((!current || dirty & /*module*/ 2) && t4_value !== (t4_value = /*module*/ ctx[1].state.title + "")) set_data_contenteditable_dev(t4, t4_value);
 
-    			if (dirty & /*module*/ 2 && /*module*/ ctx[1].state.title !== h2.textContent) {
-    				h2.textContent = /*module*/ ctx[1].state.title;
+    			if (dirty & /*$modules, module*/ 130 && /*$modules*/ ctx[7][/*module*/ ctx[1].state.id].state.title !== h2.textContent) {
+    				h2.textContent = /*$modules*/ ctx[7][/*module*/ ctx[1].state.id].state.title;
     			}
 
     			if ((!current || dirty & /*oscNode*/ 32) && t7_value !== (t7_value = /*oscNode*/ ctx[5].frequency.value.toFixed(1) + "")) set_data_dev(t7, t7_value);
@@ -7130,6 +7581,10 @@ var app = (function () {
     			if (!current || dirty & /*module*/ 2 && label4_for_value !== (label4_for_value = 'square' + /*module*/ ctx[1].state.id)) {
     				attr_dev(label4, "for", label4_for_value);
     			}
+
+    			if (!current || dirty & /*$colours, module*/ 258 && div2_style_value !== (div2_style_value = "background-color: " + /*$colours*/ ctx[8][/*module*/ ctx[1].state.type])) {
+    				attr_dev(div2, "style", div2_style_value);
+    			}
     		},
     		i: function intro(local) {
     			if (current) return;
@@ -7146,10 +7601,78 @@ var app = (function () {
     			if (detaching) detach_dev(main);
     			destroy_component(modulemovement);
     			destroy_component(deletebutton);
-    			/*main_binding*/ ctx[24](null);
+    			/*main_binding*/ ctx[27](null);
     			binding_group.r();
     			mounted = false;
     			run_all(dispose);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block$1.name,
+    		type: "if",
+    		source: "(103:0) {#if !module.destroyed}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function create_fragment$1(ctx) {
+    	let if_block_anchor;
+    	let current;
+    	let if_block = !/*module*/ ctx[1].destroyed && create_if_block$1(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if (if_block) if_block.c();
+    			if_block_anchor = empty();
+    		},
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+    		m: function mount(target, anchor) {
+    			if (if_block) if_block.m(target, anchor);
+    			insert_dev(target, if_block_anchor, anchor);
+    			current = true;
+    		},
+    		p: function update(ctx, [dirty]) {
+    			if (!/*module*/ ctx[1].destroyed) {
+    				if (if_block) {
+    					if_block.p(ctx, dirty);
+
+    					if (dirty & /*module*/ 2) {
+    						transition_in(if_block, 1);
+    					}
+    				} else {
+    					if_block = create_if_block$1(ctx);
+    					if_block.c();
+    					transition_in(if_block, 1);
+    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    				}
+    			} else if (if_block) {
+    				group_outros();
+
+    				transition_out(if_block, 1, 1, () => {
+    					if_block = null;
+    				});
+
+    				check_outros();
+    			}
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(if_block);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(if_block);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			if (if_block) if_block.d(detaching);
+    			if (detaching) detach_dev(if_block_anchor);
     		}
     	};
 
@@ -7165,13 +7688,19 @@ var app = (function () {
     }
 
     function instance$1($$self, $$props, $$invalidate) {
+    	let $selectingModule;
     	let $opacity;
-    	let $context;
     	let $modules;
-    	validate_store(context, 'context');
-    	component_subscribe($$self, context, $$value => $$invalidate(25, $context = $$value));
+    	let $context;
+    	let $colours;
+    	validate_store(selectingModule, 'selectingModule');
+    	component_subscribe($$self, selectingModule, $$value => $$invalidate(13, $selectingModule = $$value));
     	validate_store(modules, 'modules');
-    	component_subscribe($$self, modules, $$value => $$invalidate(26, $modules = $$value));
+    	component_subscribe($$self, modules, $$value => $$invalidate(7, $modules = $$value));
+    	validate_store(context, 'context');
+    	component_subscribe($$self, context, $$value => $$invalidate(28, $context = $$value));
+    	validate_store(colours, 'colours');
+    	component_subscribe($$self, colours, $$value => $$invalidate(8, $colours = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('LFO', slots, []);
 
@@ -7216,6 +7745,10 @@ var app = (function () {
 
     	function setModule(node) {
     		$$invalidate(2, moduleNode = node);
+
+    		moduleNode.addEventListener("mouseup", () => {
+    			if ($selectingModule != null && $modules[$selectingModule].selectingCv) $modules[$selectingModule].select(module.state.id);
+    		});
     	}
 
     	function setControls(node) {
@@ -7228,7 +7761,7 @@ var app = (function () {
 
     	let opacity = spring(1, { stiffness: 0.1, damping: 0.5 });
     	validate_store(opacity, 'opacity');
-    	component_subscribe($$self, opacity, value => $$invalidate(11, $opacity = value));
+    	component_subscribe($$self, opacity, value => $$invalidate(14, $opacity = value));
     	let bobSize = spring(0, { stiffness: 0.3, damping: 0.2 });
 
     	module.fade = () => {
@@ -7265,12 +7798,12 @@ var app = (function () {
 
     	function modulemovement_moduleNode_binding(value) {
     		moduleNode = value;
-    		($$invalidate(2, moduleNode), $$invalidate(11, $opacity));
+    		($$invalidate(2, moduleNode), $$invalidate(14, $opacity));
     	}
 
     	function modulemovement_controlsNode_binding(value) {
     		controlsNode = value;
-    		$$invalidate(3, controlsNode);
+    		($$invalidate(3, controlsNode), $$invalidate(13, $selectingModule));
     	}
 
     	function modulemovement_deleteNode_binding(value) {
@@ -7291,8 +7824,8 @@ var app = (function () {
     	}
 
     	function h2_input_handler() {
-    		module.state.title = this.textContent;
-    		$$invalidate(1, module);
+    		$modules[module.state.id].state.title = this.textContent;
+    		modules.set($modules);
     	}
 
     	function input0_change_input_handler() {
@@ -7334,6 +7867,8 @@ var app = (function () {
     	$$self.$capture_state = () => ({
     		modules,
     		context,
+    		colours,
+    		selectingModule,
     		ModuleMovement,
     		DeleteButton,
     		createNewId,
@@ -7350,9 +7885,11 @@ var app = (function () {
     		setDelete,
     		opacity,
     		bobSize,
+    		$selectingModule,
     		$opacity,
+    		$modules,
     		$context,
-    		$modules
+    		$colours
     	});
 
     	$$self.$inject_state = $$props => {
@@ -7361,7 +7898,7 @@ var app = (function () {
     		if ('controlsNode' in $$props) $$invalidate(3, controlsNode = $$props.controlsNode);
     		if ('deleteNode' in $$props) $$invalidate(4, deleteNode = $$props.deleteNode);
     		if ('oscNode' in $$props) $$invalidate(5, oscNode = $$props.oscNode);
-    		if ('opacity' in $$props) $$invalidate(10, opacity = $$props.opacity);
+    		if ('opacity' in $$props) $$invalidate(12, opacity = $$props.opacity);
     		if ('bobSize' in $$props) $$invalidate(6, bobSize = $$props.bobSize);
     	};
 
@@ -7378,8 +7915,18 @@ var app = (function () {
     			$$invalidate(5, oscNode.type = module.state.shape, oscNode);
     		}
 
-    		if ($$self.$$.dirty & /*moduleNode, $opacity*/ 2052) {
+    		if ($$self.$$.dirty & /*moduleNode, $opacity*/ 16388) {
     			if (moduleNode) $$invalidate(2, moduleNode.style.opacity = `${$opacity}`, moduleNode);
+    		}
+
+    		if ($$self.$$.dirty & /*controlsNode, $selectingModule*/ 8200) {
+    			if (controlsNode) {
+    				if ($selectingModule != null) {
+    					$$invalidate(3, controlsNode.style.pointerEvents = "none", controlsNode);
+    				} else {
+    					$$invalidate(3, controlsNode.style.pointerEvents = "all", controlsNode);
+    				}
+    			}
     		}
     	};
 
@@ -7391,10 +7938,13 @@ var app = (function () {
     		deleteNode,
     		oscNode,
     		bobSize,
+    		$modules,
+    		$colours,
     		setModule,
     		setControls,
     		setDelete,
     		opacity,
+    		$selectingModule,
     		$opacity,
     		modulemovement_moduleNode_binding,
     		modulemovement_controlsNode_binding,
@@ -7445,7 +7995,275 @@ var app = (function () {
     	return child_ctx;
     }
 
-    // (177:1) {#each mods as m}
+    // (130:1) {:else}
+    function create_else_block(ctx) {
+    	let h2;
+
+    	const block = {
+    		c: function create() {
+    			h2 = element("h2");
+    			h2.textContent = "Mobile not yet supported";
+    			add_location(h2, file, 130, 1, 5672);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, h2, anchor);
+    		},
+    		p: noop,
+    		i: noop,
+    		o: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(h2);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_else_block.name,
+    		type: "else",
+    		source: "(130:1) {:else}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (111:1) {#if !window.mobileCheck()}
+    function create_if_block(ctx) {
+    	let div0;
+    	let button0;
+    	let t1;
+    	let button1;
+    	let t3;
+    	let button2;
+    	let t5;
+    	let button3;
+    	let t7;
+    	let button4;
+    	let t9;
+    	let button5;
+    	let t11;
+    	let button6;
+    	let t13;
+    	let button7;
+    	let t15;
+    	let button8;
+    	let t17;
+    	let midi;
+    	let t18;
+    	let output_1;
+    	let t19;
+    	let div1;
+    	let current;
+    	let mounted;
+    	let dispose;
+    	midi = new MIDI({ $$inline: true });
+    	output_1 = new Output({ $$inline: true });
+    	let each_value = /*mods*/ ctx[0];
+    	validate_each_argument(each_value);
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
+    	}
+
+    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
+    		each_blocks[i] = null;
+    	});
+
+    	const block = {
+    		c: function create() {
+    			div0 = element("div");
+    			button0 = element("button");
+    			button0.textContent = "Save patch";
+    			t1 = space();
+    			button1 = element("button");
+    			button1.textContent = "Load patch";
+    			t3 = space();
+    			button2 = element("button");
+    			button2.textContent = "Add Oscillator";
+    			t5 = space();
+    			button3 = element("button");
+    			button3.textContent = "Add Amplifier";
+    			t7 = space();
+    			button4 = element("button");
+    			button4.textContent = "Add Filter";
+    			t9 = space();
+    			button5 = element("button");
+    			button5.textContent = "Add Envelope";
+    			t11 = space();
+    			button6 = element("button");
+    			button6.textContent = "Add Mixer";
+    			t13 = space();
+    			button7 = element("button");
+    			button7.textContent = "Add LFO";
+    			t15 = space();
+    			button8 = element("button");
+    			button8.textContent = "Clear Patch";
+    			t17 = space();
+    			create_component(midi.$$.fragment);
+    			t18 = space();
+    			create_component(output_1.$$.fragment);
+    			t19 = space();
+    			div1 = element("div");
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			attr_dev(button0, "class", "svelte-12y9370");
+    			add_location(button0, file, 112, 2, 4910);
+    			attr_dev(button1, "class", "svelte-12y9370");
+    			add_location(button1, file, 113, 2, 4957);
+    			attr_dev(button2, "id", "vcoBtn");
+    			attr_dev(button2, "class", "svelte-12y9370");
+    			add_location(button2, file, 114, 2, 5004);
+    			attr_dev(button3, "id", "vcaBtn");
+    			attr_dev(button3, "class", "svelte-12y9370");
+    			add_location(button3, file, 115, 2, 5083);
+    			attr_dev(button4, "id", "vcfBtn");
+    			attr_dev(button4, "class", "svelte-12y9370");
+    			add_location(button4, file, 116, 2, 5161);
+    			attr_dev(button5, "id", "adsrBtn");
+    			attr_dev(button5, "class", "svelte-12y9370");
+    			add_location(button5, file, 117, 2, 5236);
+    			attr_dev(button6, "id", "mixerBtn");
+    			attr_dev(button6, "class", "svelte-12y9370");
+    			add_location(button6, file, 118, 2, 5315);
+    			attr_dev(button7, "id", "lfoBtn");
+    			attr_dev(button7, "class", "svelte-12y9370");
+    			add_location(button7, file, 119, 2, 5393);
+    			attr_dev(button8, "class", "svelte-12y9370");
+    			add_location(button8, file, 120, 2, 5465);
+    			attr_dev(div0, "class", "menu svelte-12y9370");
+    			add_location(div0, file, 111, 1, 4888);
+    			attr_dev(div1, "class", "modules svelte-12y9370");
+    			add_location(div1, file, 124, 1, 5548);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div0, anchor);
+    			append_dev(div0, button0);
+    			append_dev(div0, t1);
+    			append_dev(div0, button1);
+    			append_dev(div0, t3);
+    			append_dev(div0, button2);
+    			append_dev(div0, t5);
+    			append_dev(div0, button3);
+    			append_dev(div0, t7);
+    			append_dev(div0, button4);
+    			append_dev(div0, t9);
+    			append_dev(div0, button5);
+    			append_dev(div0, t11);
+    			append_dev(div0, button6);
+    			append_dev(div0, t13);
+    			append_dev(div0, button7);
+    			append_dev(div0, t15);
+    			append_dev(div0, button8);
+    			append_dev(div0, t17);
+    			mount_component(midi, div0, null);
+    			append_dev(div0, t18);
+    			mount_component(output_1, div0, null);
+    			insert_dev(target, t19, anchor);
+    			insert_dev(target, div1, anchor);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				if (each_blocks[i]) {
+    					each_blocks[i].m(div1, null);
+    				}
+    			}
+
+    			current = true;
+
+    			if (!mounted) {
+    				dispose = [
+    					listen_dev(button0, "click", /*save*/ ctx[2], false, false, false, false),
+    					listen_dev(button1, "click", /*load*/ ctx[3], false, false, false, false),
+    					listen_dev(button2, "click", /*click_handler*/ ctx[5], false, false, false, false),
+    					listen_dev(button3, "click", /*click_handler_1*/ ctx[6], false, false, false, false),
+    					listen_dev(button4, "click", /*click_handler_2*/ ctx[7], false, false, false, false),
+    					listen_dev(button5, "click", /*click_handler_3*/ ctx[8], false, false, false, false),
+    					listen_dev(button6, "click", /*click_handler_4*/ ctx[9], false, false, false, false),
+    					listen_dev(button7, "click", /*click_handler_5*/ ctx[10], false, false, false, false),
+    					listen_dev(button8, "click", /*clear*/ ctx[4], false, false, false, false)
+    				];
+
+    				mounted = true;
+    			}
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty & /*mods*/ 1) {
+    				each_value = /*mods*/ ctx[0];
+    				validate_each_argument(each_value);
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    						transition_in(each_blocks[i], 1);
+    					} else {
+    						each_blocks[i] = create_each_block(child_ctx);
+    						each_blocks[i].c();
+    						transition_in(each_blocks[i], 1);
+    						each_blocks[i].m(div1, null);
+    					}
+    				}
+
+    				group_outros();
+
+    				for (i = each_value.length; i < each_blocks.length; i += 1) {
+    					out(i);
+    				}
+
+    				check_outros();
+    			}
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(midi.$$.fragment, local);
+    			transition_in(output_1.$$.fragment, local);
+
+    			for (let i = 0; i < each_value.length; i += 1) {
+    				transition_in(each_blocks[i]);
+    			}
+
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(midi.$$.fragment, local);
+    			transition_out(output_1.$$.fragment, local);
+    			each_blocks = each_blocks.filter(Boolean);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				transition_out(each_blocks[i]);
+    			}
+
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(div0);
+    			destroy_component(midi);
+    			destroy_component(output_1);
+    			if (detaching) detach_dev(t19);
+    			if (detaching) detach_dev(div1);
+    			destroy_each(each_blocks, detaching);
+    			mounted = false;
+    			run_all(dispose);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block.name,
+    		type: "if",
+    		source: "(111:1) {#if !window.mobileCheck()}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (126:1) {#each mods as m}
     function create_each_block(ctx) {
     	let switch_instance;
     	let switch_instance_anchor;
@@ -7528,7 +8346,7 @@ var app = (function () {
     		block,
     		id: create_each_block.name,
     		type: "each",
-    		source: "(177:1) {#each mods as m}",
+    		source: "(126:1) {#each mods as m}",
     		ctx
     	});
 
@@ -7539,124 +8357,32 @@ var app = (function () {
     	let html;
     	let body;
     	let main;
-    	let div0;
-    	let button0;
-    	let t1;
-    	let button1;
-    	let t3;
-    	let button2;
-    	let t5;
-    	let button3;
-    	let t7;
-    	let button4;
-    	let t9;
-    	let button5;
-    	let t11;
-    	let button6;
-    	let t13;
-    	let button7;
-    	let t15;
-    	let button8;
-    	let t17;
-    	let midi;
-    	let t18;
-    	let output_1;
-    	let t19;
-    	let div1;
+    	let current_block_type_index;
+    	let if_block;
     	let current;
-    	let mounted;
-    	let dispose;
-    	midi = new MIDI({ $$inline: true });
-    	output_1 = new Output({ $$inline: true });
-    	let each_value = /*mods*/ ctx[0];
-    	validate_each_argument(each_value);
-    	let each_blocks = [];
+    	const if_block_creators = [create_if_block, create_else_block];
+    	const if_blocks = [];
 
-    	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
+    	function select_block_type(ctx, dirty) {
+    		if (!window.mobileCheck()) return 0;
+    		return 1;
     	}
 
-    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
-    		each_blocks[i] = null;
-    	});
+    	current_block_type_index = select_block_type();
+    	if_block = if_blocks[current_block_type_index] = if_block_creators[current_block_type_index](ctx);
 
     	const block = {
     		c: function create() {
     			html = element("html");
     			body = element("body");
     			main = element("main");
-    			div0 = element("div");
-    			button0 = element("button");
-    			button0.textContent = "Save patch";
-    			t1 = space();
-    			button1 = element("button");
-    			button1.textContent = "Load patch";
-    			t3 = space();
-    			button2 = element("button");
-    			button2.textContent = "Add Oscillator";
-    			t5 = space();
-    			button3 = element("button");
-    			button3.textContent = "Add Amplifier";
-    			t7 = space();
-    			button4 = element("button");
-    			button4.textContent = "Add Filter";
-    			t9 = space();
-    			button5 = element("button");
-    			button5.textContent = "Add Envelope";
-    			t11 = space();
-    			button6 = element("button");
-    			button6.textContent = "Add Mixer";
-    			t13 = space();
-    			button7 = element("button");
-    			button7.textContent = "Add LFO";
-    			t15 = space();
-    			button8 = element("button");
-    			button8.textContent = "Clear Patch";
-    			t17 = space();
-    			create_component(midi.$$.fragment);
-    			t18 = space();
-    			create_component(output_1.$$.fragment);
-    			t19 = space();
-    			div1 = element("div");
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].c();
-    			}
-
-    			attr_dev(button0, "class", "svelte-eayk6n");
-    			add_location(button0, file, 163, 2, 3248);
-    			attr_dev(button1, "class", "svelte-eayk6n");
-    			add_location(button1, file, 164, 2, 3295);
-    			attr_dev(button2, "id", "vcoBtn");
-    			attr_dev(button2, "class", "svelte-eayk6n");
-    			add_location(button2, file, 165, 2, 3342);
-    			attr_dev(button3, "id", "vcaBtn");
-    			attr_dev(button3, "class", "svelte-eayk6n");
-    			add_location(button3, file, 166, 2, 3421);
-    			attr_dev(button4, "id", "vcfBtn");
-    			attr_dev(button4, "class", "svelte-eayk6n");
-    			add_location(button4, file, 167, 2, 3499);
-    			attr_dev(button5, "id", "adsrBtn");
-    			attr_dev(button5, "class", "svelte-eayk6n");
-    			add_location(button5, file, 168, 2, 3574);
-    			attr_dev(button6, "id", "mixerBtn");
-    			attr_dev(button6, "class", "svelte-eayk6n");
-    			add_location(button6, file, 169, 2, 3653);
-    			attr_dev(button7, "id", "lfoBtn");
-    			attr_dev(button7, "class", "svelte-eayk6n");
-    			add_location(button7, file, 170, 2, 3731);
-    			attr_dev(button8, "class", "svelte-eayk6n");
-    			add_location(button8, file, 171, 2, 3803);
-    			attr_dev(div0, "class", "menu svelte-eayk6n");
-    			add_location(div0, file, 162, 1, 3226);
-    			attr_dev(div1, "class", "modules svelte-eayk6n");
-    			add_location(div1, file, 175, 1, 3886);
-    			attr_dev(main, "class", "svelte-eayk6n");
-    			add_location(main, file, 161, 0, 3217);
-    			attr_dev(body, "class", "svelte-eayk6n");
-    			add_location(body, file, 160, 0, 3209);
+    			if_block.c();
+    			attr_dev(main, "class", "svelte-12y9370");
+    			add_location(main, file, 109, 0, 4849);
+    			attr_dev(body, "class", "svelte-12y9370");
+    			add_location(body, file, 108, 0, 4841);
     			attr_dev(html, "lang", "UTF-8");
-    			add_location(html, file, 159, 0, 3188);
+    			add_location(html, file, 107, 0, 4820);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -7665,113 +8391,24 @@ var app = (function () {
     			insert_dev(target, html, anchor);
     			append_dev(html, body);
     			append_dev(body, main);
-    			append_dev(main, div0);
-    			append_dev(div0, button0);
-    			append_dev(div0, t1);
-    			append_dev(div0, button1);
-    			append_dev(div0, t3);
-    			append_dev(div0, button2);
-    			append_dev(div0, t5);
-    			append_dev(div0, button3);
-    			append_dev(div0, t7);
-    			append_dev(div0, button4);
-    			append_dev(div0, t9);
-    			append_dev(div0, button5);
-    			append_dev(div0, t11);
-    			append_dev(div0, button6);
-    			append_dev(div0, t13);
-    			append_dev(div0, button7);
-    			append_dev(div0, t15);
-    			append_dev(div0, button8);
-    			append_dev(div0, t17);
-    			mount_component(midi, div0, null);
-    			append_dev(div0, t18);
-    			mount_component(output_1, div0, null);
-    			append_dev(main, t19);
-    			append_dev(main, div1);
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				if (each_blocks[i]) {
-    					each_blocks[i].m(div1, null);
-    				}
-    			}
-
+    			if_blocks[current_block_type_index].m(main, null);
     			current = true;
-
-    			if (!mounted) {
-    				dispose = [
-    					listen_dev(button0, "click", /*save*/ ctx[2], false, false, false, false),
-    					listen_dev(button1, "click", /*load*/ ctx[3], false, false, false, false),
-    					listen_dev(button2, "click", /*click_handler*/ ctx[5], false, false, false, false),
-    					listen_dev(button3, "click", /*click_handler_1*/ ctx[6], false, false, false, false),
-    					listen_dev(button4, "click", /*click_handler_2*/ ctx[7], false, false, false, false),
-    					listen_dev(button5, "click", /*click_handler_3*/ ctx[8], false, false, false, false),
-    					listen_dev(button6, "click", /*click_handler_4*/ ctx[9], false, false, false, false),
-    					listen_dev(button7, "click", /*click_handler_5*/ ctx[10], false, false, false, false),
-    					listen_dev(button8, "click", /*clear*/ ctx[4], false, false, false, false)
-    				];
-
-    				mounted = true;
-    			}
     		},
     		p: function update(ctx, [dirty]) {
-    			if (dirty & /*mods*/ 1) {
-    				each_value = /*mods*/ ctx[0];
-    				validate_each_argument(each_value);
-    				let i;
-
-    				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context(ctx, each_value, i);
-
-    					if (each_blocks[i]) {
-    						each_blocks[i].p(child_ctx, dirty);
-    						transition_in(each_blocks[i], 1);
-    					} else {
-    						each_blocks[i] = create_each_block(child_ctx);
-    						each_blocks[i].c();
-    						transition_in(each_blocks[i], 1);
-    						each_blocks[i].m(div1, null);
-    					}
-    				}
-
-    				group_outros();
-
-    				for (i = each_value.length; i < each_blocks.length; i += 1) {
-    					out(i);
-    				}
-
-    				check_outros();
-    			}
+    			if_block.p(ctx, dirty);
     		},
     		i: function intro(local) {
     			if (current) return;
-    			transition_in(midi.$$.fragment, local);
-    			transition_in(output_1.$$.fragment, local);
-
-    			for (let i = 0; i < each_value.length; i += 1) {
-    				transition_in(each_blocks[i]);
-    			}
-
+    			transition_in(if_block);
     			current = true;
     		},
     		o: function outro(local) {
-    			transition_out(midi.$$.fragment, local);
-    			transition_out(output_1.$$.fragment, local);
-    			each_blocks = each_blocks.filter(Boolean);
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				transition_out(each_blocks[i]);
-    			}
-
+    			transition_out(if_block);
     			current = false;
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(html);
-    			destroy_component(midi);
-    			destroy_component(output_1);
-    			destroy_each(each_blocks, detaching);
-    			mounted = false;
-    			run_all(dispose);
+    			if_blocks[current_block_type_index].d();
     		}
     	};
 
@@ -7800,6 +8437,17 @@ var app = (function () {
     	component_subscribe($$self, context, $$value => $$invalidate(13, $context = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('App', slots, []);
+
+    	window.mobileCheck = function () {
+    		let check = false;
+
+    		(function (a) {
+    			if ((/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i).test(a) || (/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i).test(a.substr(0, 4))) check = true;
+    		})(navigator.userAgent || navigator.vendor || window.opera);
+
+    		return check;
+    	};
+
     	window.AudioContext = window.AudioContext || window.webkitAudioContext;
     	var ctx = new AudioContext();
     	set_store_value(context, $context = ctx, $context);
@@ -7890,47 +8538,28 @@ var app = (function () {
     		modules: []
     	});
 
-    	const debugPatch = [
-    		{
-    			"type": "vco",
-    			"frequency": 0,
-    			"shape": "sine",
-    			"id": 0,
-    			"position": { "x": 308, "y": 102 }
-    		},
-    		{
-    			"type": "vca",
-    			"gain": 1,
-    			"id": 1,
-    			"inputId": null,
-    			"cvId": null,
-    			"position": { "x": 659, "y": 81 }
-    		},
-    		{
-    			"type": "vcf",
-    			"voct": 14.1357092861044,
-    			"filterType": "lowpass",
-    			"id": 2,
-    			"inputId": null,
-    			"cvId": null,
-    			"position": { "x": 993, "y": 58 }
-    		},
-    		{
-    			"type": "adsr",
-    			"attack": 0.1,
-    			"decay": 0.1,
-    			"sustain": 0.5,
-    			"release": 0.1,
-    			"id": 3,
-    			"position": { "x": 327, "y": 537 }
-    		},
-    		{
-    			"type": "mixer",
-    			"id": 4,
-    			"inputIds": [null, null, null, null],
-    			"position": { "x": 837, "y": 553 }
-    		}
-    	];
+    	const debugPatch = {
+    		"output": { "volume": 0.2, "inputId": "1" },
+    		"modules": [
+    			{
+    				"type": "vco",
+    				"frequency": 0,
+    				"shape": "sine",
+    				"id": 0,
+    				"title": "Oscillator",
+    				"position": { "x": 350, "y": 100 }
+    			},
+    			{
+    				"type": "vca",
+    				"gain": 1,
+    				"id": 1,
+    				"inputId": 0,
+    				"cvId": null,
+    				"title": "out",
+    				"position": { "x": 656, "y": 241 }
+    			}
+    		]
+    	};
     	const writable_props = [];
 
     	Object_1.keys($$props).forEach(key => {
