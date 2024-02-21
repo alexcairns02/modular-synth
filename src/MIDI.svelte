@@ -164,8 +164,8 @@
 <main>
 <div>
     <h2>Note Input</h2>
-    <p>Play notes by pressing keys on keyboard<br>
-    White notes: 'Z'-'/'<br>
+    <p>Play notes by pressing keys on keyboard (requires oscillator)<br>
+    White notes: 'Z'-'/'<br>    
     Black notes: 'S'-';'<br>
     Change octave: '-' and '='<br>
     Noteless trigger: 'SPACE'<br></p>
@@ -188,7 +188,7 @@
     }
 
     p {
-        line-height: 25px;
+        line-height: 23px;
     }
 </style>
 

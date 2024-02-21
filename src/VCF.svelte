@@ -1,5 +1,5 @@
 <script>
-    import { modules, context } from './stores.js';
+    import { modules, context, colours, selectingModule, output } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
     import DeleteButton from './DeleteButton.svelte';
     import { createNewId, cvsAllHover, inputsAllHover, unhover, setPosition } from './utils.js';
@@ -23,7 +23,12 @@
 
     let moduleNode;
     let controlsNode;
-    let deleteNode
+    let deleteNode;
+    let inputBtn;
+    let cvBtn;
+
+    module.selectingInput = false;
+    module.selectingCv = false;
 
     $: if (module.state.inputId != null) {
         module.input = $modules[module.state.inputId];
@@ -89,10 +94,6 @@
         }
     }
 
-    function connectCV(e) {
-        module.state.cvId = e.target.selectedOptions[0].value;
-    }
-
     module.clearCurrents = () => {
         currentInput = null;
         cvModule = null;
@@ -105,15 +106,25 @@
 
     function setModule(node) {
         moduleNode = node;
+        moduleNode.addEventListener("mouseup", () => {
+            if ($selectingModule == "output") {
+                $output.select(module.state.id);
+            } else if ($selectingModule != null && $modules[$selectingModule].selectingInput
+                && $selectingModule != module.state.id
+                && ($modules[$selectingModule].state.type != "mixer" 
+                || (!$modules[$selectingModule].state.inputIds.includes(module.state.id)
+                || $modules[$selectingModule].state.inputIds[$modules[$selectingModule].inputSelecting] == module.state.id))) 
+            {
+                $modules[$selectingModule].select(module.state.id);
+            } else if ($selectingModule == module.state.id) {
+                module.select(null);
+            }
+        });
     }
-
-    function setControls(node) {
-        controlsNode = node;
-    }
-
-    function setDelete(node) {
-        deleteNode = node;
-    }
+    function setControls(node) { controlsNode = node; }
+    function setDelete(node) { deleteNode = node; }
+    function setInputBtn(node) { inputBtn = node; }
+    function setCvBtn(node) { cvBtn = node; }
     
     let opacity = spring(1, {
         stiffness: 0.1,
@@ -145,35 +156,97 @@
         }, 50);
     }
 
+    function chooseInput() {
+        inputsAllHover(module);
+        if (!inputBtn) return;
+        if (!module.selectingInput) {
+            module.selectingInput = true;
+            inputBtn.style.opacity = 0.5;
+            $selectingModule = module.state.id;
+        } else {
+            module.selectingInput = false;
+        }
+    }
+
+    function chooseCv() {
+        cvsAllHover(module);
+        if (!cvBtn) return;
+        if (!module.selectingCv) {
+            module.selectingCv = true;
+            cvBtn.style.opacity = 0.5;
+            $selectingModule = module.state.id;
+        } else {
+            module.selectingCv = false;
+        }
+    }
+
+    module.select = (id) => {
+        if (module.selectingInput) {
+            module.state.inputId = id;
+            inputBtn.style.opacity = 1;
+            module.selectingInput = false;
+        } else if (module.selectingCv) {
+            module.state.cvId = id;
+            cvBtn.style.opacity = 1;
+            module.selectingCv = false;
+        }
+        $selectingModule = null;
+        unhover();
+    }
+
+    $: if (!module.destroyed) {
+        if (inputBtn) {
+            if (module.state.inputId != null) {
+                inputBtn.style.backgroundColor = $colours[$modules[module.state.inputId].state.type];
+            } else {
+                inputBtn.style.backgroundColor = "#f0f0f0";
+            }
+        }
+        if (cvBtn) {
+            if (module.state.cvId != null) {
+                cvBtn.style.backgroundColor = $colours[$modules[module.state.cvId].state.type];
+            } else {
+                cvBtn.style.backgroundColor = "#f0f0f0";
+            }
+        }
+    }
+
+    $: if (controlsNode) {if ($selectingModule != null) {
+        controlsNode.style.pointerEvents = "none";
+    } else {
+        controlsNode.style.pointerEvents = "all";
+    }}
+
     module.bob();
 </script>
 
+{#if !module.destroyed}
 <main bind:this={module.component}>
 <ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 280, y: 350 }} bind:nodePos={state.position} bind:bobSize />
-    <div id="module" use:setModule>
+    <div id="module" use:setModule style={"background-color: " + $colours[module.state.type]}>
         <h1>{module.state.id}</h1>
         <div class="delete" use:setDelete><DeleteButton module={module} /></div>
         <div id="controls" use:setControls>
-            <h2 class='editableTitle' bind:textContent={module.state.title} contenteditable='true'>{module.state.title}</h2>
-            <div class='inputDiv' on:mouseenter={() => inputsAllHover(module)} on:mouseleave={() => unhover()}>
-            <label><select bind:value={module.state.inputId}>
-                {#each Object.entries($modules) as [id, m]}
-                    {#if m.output && id != module.state.id}
-                    <option value={id}>{id} {m.state.title}</option>
+            <h2 class='editableTitle' bind:textContent={$modules[module.state.id].state.title} contenteditable='true'>{module.state.title}</h2>
+            
+            <div class='inputDiv' on:mouseenter={() => inputsAllHover(module)} on:mouseleave={() => {if ($selectingModule == null) unhover();}}>
+                <label><button use:setInputBtn on:click={chooseInput}>
+                    {#if module.state.inputId != null && $modules[module.state.inputId]}
+                        {module.state.inputId} {$modules[module.state.inputId].state.title}
+                    {:else}
+                        None
                     {/if}
-                {/each}
-                <option value={null}></option>
-                </select> Input</label></div>
-                <div class='inputDiv' on:mouseenter={() => cvsAllHover(module)} on:mouseleave={() => unhover()}>
-                <label><select value={null} on:change={connectCV}>
-                {#each Object.entries($modules) as [id, m]}
-                    {#if m.state.type == 'adsr' || m.state.type == 'lfo'}
-                    <option value={id}>{id} {m.state.title}</option>
+                </button> Input</label></div>
+        
+                <div class='inputDiv' on:mouseenter={() => {cvsAllHover(module)}} on:mouseleave={() => {if ($selectingModule == null) unhover();}}>
+                <label><button use:setCvBtn on:click={chooseCv}>
+                    {#if module.state.cvId != null && $modules[module.state.cvId]}
+                        {module.state.cvId} {$modules[module.state.cvId].state.title}
+                    {:else}
+                        None
                     {/if}
-                {/each}
-                <option value={null}></option>
-                </select> Control</label>
-                </div><br>
+                </button> Control</label></div><br>
+
             <label for='freq'>Cutoff Frequency ({frequency.toFixed(1)}Hz)</label><input id='freq' bind:value={module.state.voct} type='range' min='{Math.log2(20)}' max='{Math.log2(18000)}' step='0.0001'>
             <br><section class="type">
                 <input id={'lowpass'+module.state.id} type='radio' value='lowpass' bind:group={module.state.filterType} /><label for={'lowpass'+module.state.id}>Lowpass</label>
@@ -184,10 +257,10 @@
     </div>
     <br>
 </main>
+{/if}
 
 <style>
     #module {
-        background-color: #ff9955;
         border-style: solid;
         position: absolute;
         user-select: none;
@@ -195,10 +268,17 @@
         border-color: #222222;
     }
 
-    select {
-        width: 120px;
+    button {
+        background-color: #f0f0f0;
+        border-radius: 10px;
+        border-width: 2px;
+        border-style: solid;
+        border-color: #222222;
+        width: 110px;
+        height: 35px;
         text-overflow: ellipsis;
         overflow: hidden;
+        white-space: nowrap;
     }
 
     .type {

@@ -1,8 +1,8 @@
 <script>
-    import { modules, context, midi } from './stores.js';
+    import { modules, context, midi, colours, selectingModule, output } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
     import DeleteButton from './DeleteButton.svelte';
-    import { createNewId, setPosition } from './utils.js';
+    import { createNewId, setPosition, moduleInUse } from './utils.js';
     import { spring } from 'svelte/motion';
 
     export let state = {
@@ -16,7 +16,6 @@
     let moduleNode;
     let controlsNode;
     let deleteNode;
-    let titleNode;
 
     $modules[state.id] = {};
     const module = $modules[state.id];
@@ -39,15 +38,23 @@
 
     function setModule(node) {
         moduleNode = node;
+        moduleNode.addEventListener("mouseup", () => {
+            if ($selectingModule == "output") {
+                $output.select(module.state.id);
+            } else if ($selectingModule != null && $modules[$selectingModule].selectingInput
+                && $selectingModule != module.state.id
+                && ($modules[$selectingModule].state.type != "mixer" 
+                || (!$modules[$selectingModule].state.inputIds.includes(module.state.id)
+                || $modules[$selectingModule].state.inputIds[$modules[$selectingModule].inputSelecting] == module.state.id))) 
+            {
+                $modules[$selectingModule].select(module.state.id);
+            } else if ($selectingModule == module.state.id) {
+                module.select(null);
+            }
+        });
     }
-
-    function setControls(node) {
-        controlsNode = node;
-    }
-
-    function setDelete(node) {
-        deleteNode = node;
-    }
+    function setControls(node) { controlsNode = node; }
+    function setDelete(node) { deleteNode = node; }
     
     let opacity = spring(1, {
         stiffness: 0.1,
@@ -79,16 +86,23 @@
         opacity.set(1);
     }
 
+    $: if (controlsNode) {if ($selectingModule != null) {
+        controlsNode.style.pointerEvents = "none";
+    } else {
+        controlsNode.style.pointerEvents = "all";
+    }}
+
     module.bob();
 </script>
 
+{#if !module.destroyed}
 <main bind:this={module.component}>
-<ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode bind:nodePos={state.position} nodeSize={{ x: 320, y: 250 }} bind:bobSize />
-<div id="module" use:setModule>
+    <ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode bind:nodePos={state.position} nodeSize={{ x: 320, y: 250 }} bind:bobSize />
+    <div id="module" use:setModule style={"background-color: " + $colours[module.state.type]}>
     <div class="delete" use:setDelete><DeleteButton module={module} /></div>
     <h1>{module.state.id}</h1>
     <div class="controls" use:setControls>
-        <h2 class='editableTitle' bind:textContent={module.state.title} contenteditable='true'>{module.state.title}</h2>
+        <h2 class='editableTitle' bind:textContent={$modules[module.state.id].state.title} contenteditable='true'>{module.state.title}</h2>
         <label for="freq">Frequency ({oscNode.frequency.value.toFixed(1)}Hz)</label><input id="freq" bind:value={module.state.frequency} type='range' min='-2' max='2' step='0.083333333333333'>
         <br><section class="shape">
             <input id={'sine'+module.state.id} type='radio' value='sine' bind:group={module.state.shape} /><label for={'sine'+module.state.id}>Sine</label>
@@ -100,11 +114,11 @@
 </div>
 <br>
 </main>
+{/if}
 
 <style>
     #module {
         border-style: solid;
-        background-color: #ff6666;
         position: absolute;
         user-select: none;
         border-radius: 50px;

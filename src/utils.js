@@ -21,7 +21,6 @@ export function destroyModule(module) {
     module.destroyed = true;
 
     module.component.parentNode.removeChild(module.component);
-    modules.update((ms) => {delete ms[module.state.id]; return ms;});
 
     if (module.state.cvId) {
         modules.update((ms) => {
@@ -47,6 +46,8 @@ export function destroyModule(module) {
             });
         }
     });
+
+    modules.update((ms) => {delete ms[module.state.id]; return ms;});
 };
 
 export function inputsAllHover(module) {
@@ -61,7 +62,7 @@ export function inputsAllHover(module) {
 
 export function mixerInputHover(module, inputId) {
     Object.values(mods).forEach((m) => {
-        if (m.state.id != module.state.id && (!m.output || (module.state.inputIds.includes(String(m.state.id)) && m.state.id != inputId))) {
+        if (m.state.id != module.state.id && (!m.output || (module.state.inputIds.includes(m.state.id) && m.state.id != inputId))) {
             m.fade();
         } else if (inputId != null && m.state.id == inputId) {
             m.bob();

@@ -1,7 +1,7 @@
 
 <script>
     import { spring } from 'svelte/motion';
-    import { midi } from './stores.js';
+    import { midi, selectingModule } from './stores.js';
 
     export let hasTrigger = false;
     export let moduleNode;
@@ -29,7 +29,8 @@
 
     const moduleClick = () => {
         moving = true;
-        if (!controlling) size.set(20);
+        if (!controlling && $selectingModule == null) size.set(20);
+        else if (!controlling) size.set(10);
     };
 
     const controlsClick = () => { controlling = true };
@@ -41,7 +42,7 @@
     };
 
     const windowMouseMove = (e) => {
-        if (moving && !controlling) {
+        if (moving && !controlling && $selectingModule == null) {
             nodePos.x += e.movementX;
             nodePos.y += e.movementY;
             coords.set({ x: nodePos.x, y: nodePos.y });

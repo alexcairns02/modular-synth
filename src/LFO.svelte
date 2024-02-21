@@ -1,5 +1,5 @@
 <script>
-    import { modules, context } from './stores.js';
+    import { modules, context, colours, selectingModule } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
     import DeleteButton from './DeleteButton.svelte';
     import { createNewId, setPosition } from './utils.js';
@@ -54,15 +54,12 @@
 
     function setModule(node) {
         moduleNode = node;
+        moduleNode.addEventListener("mouseup", () => {
+            if ($selectingModule != null && $modules[$selectingModule].selectingCv) $modules[$selectingModule].select(module.state.id);
+        });
     }
-
-    function setControls(node) {
-        controlsNode = node;
-    }
-
-    function setDelete(node) {
-        deleteNode = node;
-    }
+    function setControls(node) { controlsNode = node; }
+    function setDelete(node) { deleteNode = node; }
     
     let opacity = spring(1, {
         stiffness: 0.1,
@@ -94,16 +91,23 @@
         }, 50);
     }
 
+    $: if (controlsNode) {if ($selectingModule != null) {
+        controlsNode.style.pointerEvents = "none";
+    } else {
+        controlsNode.style.pointerEvents = "all";
+    }}
+
     module.bob();
 </script>
 
+{#if !module.destroyed}
 <main bind:this={module.component}>
     <ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode bind:nodePos={state.position} nodeSize={{ x: 320, y: 250 }} bind:bobSize />
-    <div id="module" use:setModule>
+    <div id="module" use:setModule style={"background-color: " + $colours[module.state.type]}>
         <div class="delete" use:setDelete><DeleteButton module={module} /></div>
         <h1>{module.state.id}</h1>
         <div id="controls" use:setControls>
-            <h2 class='editableTitle' bind:textContent={module.state.title} contenteditable='true'>{module.state.title}</h2>
+            <h2 class='editableTitle' bind:textContent={$modules[module.state.id].state.title} contenteditable='true'>{module.state.title}</h2>
             <label for="freq">Frequency ({oscNode.frequency.value.toFixed(1)}Hz)</label><input id="freq" bind:value={module.state.frequency} type='range' min='0.1' max='20' step='0.01'>
             <br><section class="shape">
                 <input id={'sine'+module.state.id} type='radio' value='sine' bind:group={module.state.shape} /><label for={'sine'+module.state.id}>Sine</label>
@@ -115,12 +119,12 @@
     </div>
     <br>
 </main>
+{/if}
 
 
 <style>
     #module {
         border-style: solid;
-        background-color: #dd88ff;
         position: absolute;
         user-select: none;
         border-radius: 50px;

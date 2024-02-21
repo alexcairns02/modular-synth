@@ -1,8 +1,8 @@
 <script>
-    import { modules, context, midi } from './stores.js';
+    import { modules, context, midi, colours, selectingModule } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
     import DeleteButton from './DeleteButton.svelte';
-    import { createNewId, inputsAllHover, unhover, setPosition } from './utils.js';
+    import { createNewId, setPosition } from './utils.js';
     import { spring } from 'svelte/motion';
     
     export let state = {
@@ -76,15 +76,12 @@
 
     function setModule(node) {
         moduleNode = node;
+        moduleNode.addEventListener("mouseup", () => {
+            if ($selectingModule != null && $modules[$selectingModule].selectingCv) $modules[$selectingModule].select(module.state.id);
+        });
     }
-
-    function setControls(node) {
-        controlsNode = node;
-    }
-
-    function setDelete(node) {
-        deleteNode = node;
-    }
+    function setControls(node) { controlsNode = node; }
+    function setDelete(node) { deleteNode = node; }
     
     let opacity = spring(1, {
         stiffness: 0.1,
@@ -115,17 +112,24 @@
             bobSize.set(0);
         }, 50);
     }
+
+    $: if (controlsNode) {if ($selectingModule != null) {
+        controlsNode.style.pointerEvents = "none";
+    } else {
+        controlsNode.style.pointerEvents = "all";
+    }}
     
     module.bob();
 </script>
 
+{#if !module.destroyed}
 <main bind:this={module.component}>
     <ModuleMovement hasTrigger={true} bind:moduleNode bind:controlsNode bind:deleteNode nodeSize={{ x: 280, y: 400 }} bind:nodePos={state.position} bind:bobSize />
-    <div id="module" use:setModule>
+    <div id="module" use:setModule style={"background-color: " + $colours[module.state.type]}>
         <h1>{module.state.id}</h1>
         <div class="delete" use:setDelete><DeleteButton module={module} /></div>
         <div id="controls" use:setControls>
-            <h2 class='editableTitle' bind:textContent={module.state.title} contenteditable='true'>{module.state.title}</h2>
+            <h2 class='editableTitle' bind:textContent={$modules[module.state.id].state.title} contenteditable='true'>{module.state.title}</h2>
             <div class="params">
                 <label for='attack'>Attack ({attack.toFixed(2)}s)</label><input id='attack' bind:value={module.state.attack} type='range' min='0' max='1' step='0.001'>
                 <label for='decay'>Decay ({decay.toFixed(2)}s)</label><input id='decay' bind:value={module.state.decay} type='range' min='0' max='1' step='0.001'>
@@ -136,10 +140,10 @@
     </div>
     <br>
 </main>
+{/if}
 
 <style>
     #module {
-        background-color: #7788ff;
         border-style: solid;
         position: absolute;
         user-select: none;

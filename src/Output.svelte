@@ -1,6 +1,6 @@
 <script>
-    import { modules, context, output } from './stores.js';
-    import { inputsAllHover, moduleInUse, unhover } from './utils.js';
+    import { modules, context, output, selectingModule, colours } from './stores.js';
+    import { inputsAllHover, unhover } from './utils.js';
     import { spring } from 'svelte/motion';
 
     export let state = {
@@ -9,6 +9,10 @@
     };
 
     let divNode;
+    let controlsNode;
+    let inputBtn;
+
+    $output.selectingInput = false;
 
     $output.state = state;
 
@@ -18,7 +22,7 @@
 
     gainNode.connect($context.destination);
 
-    $: if ($output.state.inputId) {
+    $: if ($output.state.inputId != null) {
         $output.input = $modules[$output.state.inputId];
     } else {
         $output.input = null;
@@ -38,7 +42,14 @@
 
     const setDiv = (node) => {
         divNode = node;
+        divNode.addEventListener("mousedown", () => {
+            if ($selectingModule == "output") {
+                $output.select(null);
+            }
+        });
     };
+    const setControls = (node) => { controlsNode = node };
+    const setInputBtn = (node) => { inputBtn = node };
 
     let redness = spring(0, {
         stiffness: 0.05,
@@ -62,6 +73,42 @@
         redness.set(0);
         connectedString = "connected";
     }
+
+    function chooseInput() {
+        inputsAllHover(null);
+        if (!inputBtn) return;
+        if (!$output.selectingInput) {
+            $output.selectingInput = true;
+            inputBtn.style.opacity = 0.5;
+            $selectingModule = "output";
+        } else {
+            $output.selectingInput = false;
+        }
+    }
+
+    $output.select = (id) => {
+        if ($output.selectingInput) {
+            $output.state.inputId = id;
+            inputBtn.style.opacity = 1;
+            $output.selectingInput = false;
+        }
+        $selectingModule = null;
+        unhover();
+    }
+
+    $: if (inputBtn) {
+        if ($output.state.inputId != null) {
+            inputBtn.style.backgroundColor = $colours[$modules[$output.state.inputId].state.type];
+        } else {
+            inputBtn.style.backgroundColor = "#f0f0f0";
+        }
+    }
+
+    $: if (controlsNode) {if ($selectingModule != null) {
+        controlsNode.style.pointerEvents = "none";
+    } else {
+        controlsNode.style.pointerEvents = "all";
+    }}
 </script>
 
 <main>
@@ -70,17 +117,18 @@
         {#if Object.values($modules).length == 0}<p>Add modules using buttons above</p>
         {:else if $output.state.inputId == null}<p>Select input below</p>
         {/if}
-        <div id='inputDiv' on:mouseenter={() => {inputsAllHover(null)}} on:mouseleave={unhover}>
-        <label><select bind:value={$output.state.inputId}>
-        {#each Object.entries($modules) as [id, m]}
-            {#if (m.output && !moduleInUse(m) || id == $output.state.inputId)}
-            <option value={id}>{id} {m.state.title}</option>
+        <div use:setControls>
+        <div id='inputDiv' on:mouseenter={() => {inputsAllHover(null)}} on:mouseleave={() => { if ($selectingModule == null) unhover()}}>
+        <label><button use:setInputBtn on:click={chooseInput}>
+            {#if $output.state.inputId != null && $modules[$output.state.inputId]}
+                {$output.state.inputId} {$modules[$output.state.inputId].state.title}
+            {:else}
+                None
             {/if}
-        {/each}
-        <option value={null}></option>
-        </select> Input</label>
+        </button> Input</label>
         </div><br>
         <label for='gain'>Volume</label><input id='gain' bind:value={$output.state.volume} type='range' min='0' max='1' step='0.001'>
+        </div>
     </div>
     <br>
 </main>
@@ -91,27 +139,26 @@
         position: absolute;
         width: 250px;
         height: 270px;
-        margin-top: 310px;
+        bottom: 20px;
         padding: 1%;
         background-color: rgba(255, 255, 255, 0.7);
+        pointer-events: all;
     }
 
-    select {
-        width: 120px;
+    button {
+        background-color: #f0f0f0;
+        border-radius: 10px;
+        border-width: 2px;
+        border-style: solid;
+        border-color: #222222;
+        width: 110px;
+        height: 35px;
         text-overflow: ellipsis;
         overflow: hidden;
+        white-space: nowrap;
     }
 
-	input {
-		pointer-events: all;
-	}
-    
-	select {
-		pointer-events: all;
-	}
-
     #inputDiv {
-        pointer-events: all;
         width: fit-content;
         height: fit-content;
         padding: 5px;
