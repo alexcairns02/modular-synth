@@ -211,10 +211,12 @@
         }
     }
 
-    $: if (controlsNode) {if ($selectingModule != null) {
+    $: if (controlsNode && deleteNode) {if ($selectingModule != null) {
         controlsNode.style.pointerEvents = "none";
+        deleteNode.style.pointerEvents = "none";
     } else {
         controlsNode.style.pointerEvents = "all";
+        deleteNode.style.pointerEvents = "all";
     }}
 
     module.bob();

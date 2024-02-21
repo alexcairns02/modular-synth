@@ -109,6 +109,12 @@
     } else {
         controlsNode.style.pointerEvents = "all";
     }}
+
+    $: if (divNode) {if ($selectingModule != null) {
+        divNode.style.pointerEvents = "all";
+    } else {
+        divNode.style.pointerEvents = "none";
+    }}
 </script>
 
 <main>
