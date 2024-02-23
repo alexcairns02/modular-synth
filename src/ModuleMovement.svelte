@@ -55,8 +55,10 @@
     }
 
     $: if (controlsNode) {
-        controlsNode.addEventListener('mousedown', controlsClick);
-        controlsNode.addEventListener('touchstart', controlsClick);
+        controlsNode.childNodes.forEach((node) => {
+            node.addEventListener('mousedown', controlsClick);
+            node.addEventListener('touchstart', controlsClick);
+        })
     }
 
     $: if (deleteNode) {

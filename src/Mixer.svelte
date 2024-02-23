@@ -80,7 +80,15 @@
     }
     function setControls(node) { controlsNode = node; }
     function setDelete(node) { deleteNode = node; }
-    function setInputBtn(node, i) { inputBtns[i] = node; }
+    function setInputBtn(node, i) {
+        inputBtns[i] = node;
+        inputBtns[i].addEventListener("mouseenter", () => {
+            if ($selectingModule == null) inputBtns[i].style.opacity = 0.8;
+        });
+        inputBtns[i].addEventListener("mouseleave", () => {
+            if ($selectingModule == null) inputBtns[i].style.opacity = 1;
+        });
+    }
     
     let opacity = spring(1, {
         stiffness: 0.1,

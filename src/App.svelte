@@ -19,6 +19,20 @@
 		return check;
 	};
 
+	let buttons;
+
+	function setButtons(node) {
+		buttons = node;
+		buttons.childNodes.forEach((button) => {
+			button.addEventListener("mouseenter", () => {
+				button.style.opacity = 0.8;
+			});
+			button.addEventListener("mouseleave", () => {
+				button.style.opacity = 1;
+			});
+		})
+	}
+
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
     var ctx = new AudioContext();
 	$context = ctx;
@@ -110,8 +124,9 @@
 <main>
 	{#if !window.mobileCheck()}
 	<div class="menu">
-		<button on:click={save}>Save patch</button>
-		<button on:click={load}>Load patch</button>
+		<div use:setButtons>
+		<button on:click={save}>Save Patch</button>
+		<button on:click={load}>Load Patch</button>
 		<button id='vcoBtn' on:click={() => addModule(VCO)}>Add Oscillator</button>
 		<button id='vcaBtn' on:click={() => addModule(VCA)}>Add Amplifier</button>
 		<button id='vcfBtn' on:click={() => addModule(VCF)}>Add Filter</button>
@@ -119,6 +134,7 @@
 		<button id='mixerBtn' on:click={() => addModule(Mixer)}>Add Mixer</button>
 		<button id='lfoBtn' on:click={() => addModule(LFO)}>Add LFO</button>
 		<button on:click={clear}>Clear Patch</button>
+		</div>
 		<MIDI />
 		<Output />
 	</div>
@@ -172,7 +188,8 @@
 	button {
 		pointer-events: all;
 		padding: 10px;
-		background-color: #f4f4f4;
+		background-color: #f0f0f0;
+		border: solid #222222 1px;
 	}
 
 	#vcoBtn {

@@ -123,8 +123,24 @@
     }
     function setControls(node) { controlsNode = node; }
     function setDelete(node) { deleteNode = node; }
-    function setInputBtn(node) { inputBtn = node; }
-    function setCvBtn(node) { cvBtn = node; }
+    function setInputBtn(node) {
+        inputBtn = node;
+        inputBtn.addEventListener("mouseenter", () => {
+            if ($selectingModule == null) inputBtn.style.opacity = 0.8;
+        });
+        inputBtn.addEventListener("mouseleave", () => {
+            if ($selectingModule == null) inputBtn.style.opacity = 1;
+        });
+    }
+    function setCvBtn(node) {
+        cvBtn = node;
+        cvBtn.addEventListener("mouseenter", () => {
+            if ($selectingModule == null) cvBtn.style.opacity = 0.8;
+        });
+        cvBtn.addEventListener("mouseleave", () => {
+            if ($selectingModule == null) cvBtn.style.opacity = 1;
+        });
+    }
     
     let opacity = spring(1, {
         stiffness: 0.1,

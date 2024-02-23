@@ -16,7 +16,7 @@ export function createNewId() {
 }
 
 export function destroyModule(module) {
-    if (module.state.type == 'mixer' || module.state.type == 'vca' || module.state.type == 'vcf') module.clearCurrents();
+    if (['vco', 'vcf', 'vca', 'mixer'].includes(module.state.type)) module.clearCurrents();
 
     module.destroyed = true;
 

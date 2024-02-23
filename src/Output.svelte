@@ -49,7 +49,15 @@
         });
     };
     const setControls = (node) => { controlsNode = node };
-    const setInputBtn = (node) => { inputBtn = node };
+    const setInputBtn = (node) => {
+        inputBtn = node;
+        inputBtn.addEventListener("mouseenter", () => {
+            if ($selectingModule == null) inputBtn.style.opacity = 0.8;
+        });
+        inputBtn.addEventListener("mouseleave", () => {
+            if ($selectingModule == null) inputBtn.style.opacity = 1;
+        });
+    };
 
     let redness = spring(0, {
         stiffness: 0.05,

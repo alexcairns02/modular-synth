@@ -17,6 +17,6 @@ export const colours = readable({
     adsr: "#7788ff",
 });
 
-export const interactionLock = writable(false);
-
 export const selectingModule = writable(null);
+
+export const isTyping = writable(false);
