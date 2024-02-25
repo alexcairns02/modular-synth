@@ -1,5 +1,5 @@
 <script>
-    import { modules, context, midi, colours, selectingModule } from './stores.js';
+    import { modules, context, midi, colours, selectingModule, isTyping } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
     import DeleteButton from './DeleteButton.svelte';
     import { createNewId, setPosition } from './utils.js';
@@ -18,6 +18,8 @@
     $modules[state.id] = {};
     const module = $modules[state.id];
     module.state = state;
+    module.isAudio = false;
+    module.isControl = true;
 
     if (!module.state.position) module.state.position = setPosition();
 
@@ -28,6 +30,7 @@
     let moduleNode;
     let controlsNode;
     let deleteNode;
+    let titleNode;
 
     let notePlaying = false;
 
@@ -74,14 +77,44 @@
 
     $: if (notePlaying) fireEnv(); else unFireEnv();
 
+    let moduleIsClicked = false;
+    let moduleTyping = false;
+    window.addEventListener("mouseup", () => {
+        if (moduleIsClicked) moduleIsClicked = false;
+    });
+    window.addEventListener("mousedown", () => {
+        $isTyping = false;
+        moduleTyping = false;
+        titleNode.style.outline = "none";
+    });
+
     function setModule(node) {
         moduleNode = node;
+        moduleNode.addEventListener("mousedown", () => { moduleIsClicked = true; })
         moduleNode.addEventListener("mouseup", () => {
-            if ($selectingModule != null && $modules[$selectingModule].selectingCv) $modules[$selectingModule].select(module.state.id);
+            if (moduleIsClicked) {
+                if ($selectingModule != null && $modules[$selectingModule].selectingCv) $modules[$selectingModule].select(module.state.id);
+            }
         });
     }
     function setControls(node) { controlsNode = node; }
     function setDelete(node) { deleteNode = node; }
+    function setTitleNode(node) {
+        titleNode = node;
+        titleNode.addEventListener("mouseenter", () => {
+            titleNode.style.outline = "2px solid #222222";
+        });
+        titleNode.addEventListener("mouseleave", () => {
+            if (!moduleTyping) titleNode.style.outline = "none";
+        });
+        titleNode.addEventListener("mousedown", () => {
+            setTimeout(() => {
+                $isTyping = true;
+                moduleTyping = true;
+                titleNode.style.outline = "2px solid #222222";
+            }, 10);
+        });
+    }
     
     let opacity = spring(1, {
         stiffness: 0.1,
@@ -131,7 +164,7 @@
         <h1>{module.state.id}</h1>
         <div class="delete" use:setDelete><DeleteButton module={module} /></div>
         <div id="controls" use:setControls>
-            <h2 class='editableTitle' bind:textContent={$modules[module.state.id].state.title} contenteditable='true'>{module.state.title}</h2>
+            <h2 use:setTitleNode class='editableTitle' bind:textContent={$modules[module.state.id].state.title} contenteditable='true'>{module.state.title}</h2>
             <div class="params">
                 <label for='attack'>Attack ({attack.toFixed(2)}s)</label><input id='attack' bind:value={module.state.attack} type='range' min='0' max='1' step='0.001'>
                 <label for='decay'>Decay ({decay.toFixed(2)}s)</label><input id='decay' bind:value={module.state.decay} type='range' min='0' max='1' step='0.001'>
@@ -170,7 +203,8 @@
         margin-bottom: 10px;
         text-overflow: ellipsis;
         overflow: hidden;
-        padding: 10px
+        padding: 10px;
+        border-radius: 10px;
     }
 </style>
 

@@ -16,26 +16,35 @@ export function createNewId() {
 }
 
 export function destroyModule(module) {
-    if (['vco', 'vcf', 'vca', 'mixer'].includes(module.state.type)) module.clearCurrents();
+    if (module.isAudio) module.clearCurrents();
 
     module.destroyed = true;
 
     module.component.parentNode.removeChild(module.component);
 
-    if (module.state.cvId) {
+    if (module.state.cvId || module.state.cvId == 0) {
         modules.update((ms) => {
-            ms[module.state.cvId].removeOutput(module.state.id, module.cv);
+            ms[module.state.cvId].removeOutput(module.state.id+".1", module.cv);
+            return ms;
+        })
+    }
+    if (module.state.cvId2 || module.state.cvId2 == 0) {
+        modules.update((ms) => {
+            ms[module.state.cvId2].removeOutput(module.state.id+".2", module.cv2);
             return ms;
         })
     }
     
     if (out.state.inputId == module.state.id) output.update((o) => {o.state.inputId = null; return o});
     Object.values(mods).forEach((m) => {
-        if (m.state.inputId && m.state.inputId == module.state.id) {
+        if (m.state.inputId != null && m.state.inputId == module.state.id) {
             modules.update((ms) => {ms[m.state.id].state.inputId = null; return ms})
         }
-        if (m.state.cvId && m.state.cvId == module.state.id) {
+        if (m.state.cvId != null && m.state.cvId == module.state.id) {
             modules.update((ms) => {ms[m.state.id].state.cvId = null; return ms})
+        }
+        if (m.state.cvId2 != null && m.state.cvId2 == module.state.id) {
+            modules.update((ms) => {ms[m.state.id].state.cvId2 = null; return ms})
         }
         if (m.state.type == 'mixer') {
             modules.update((ms) => {
@@ -52,7 +61,7 @@ export function destroyModule(module) {
 
 export function inputsAllHover(module) {
     Object.values(mods).forEach((m) => {
-        if (!m.output && (module == null || m.state.id != module.state.id)) {
+        if (!m.isAudio && (module == null || m.state.id != module.state.id)) {
             m.fade();
         } else if ((module != null && m.state.id == module.state.inputId) || (module == null && m.state.id == out.state.inputId)) {
             m.bob();
@@ -62,7 +71,7 @@ export function inputsAllHover(module) {
 
 export function mixerInputHover(module, inputId) {
     Object.values(mods).forEach((m) => {
-        if (m.state.id != module.state.id && (!m.output || (module.state.inputIds.includes(m.state.id) && m.state.id != inputId))) {
+        if (m.state.id != module.state.id && (!m.isAudio || (module.state.inputIds.includes(m.state.id) && m.state.id != inputId))) {
             m.fade();
         } else if (inputId != null && m.state.id == inputId) {
             m.bob();
@@ -70,11 +79,11 @@ export function mixerInputHover(module, inputId) {
     });
 }
 
-export function cvsAllHover(module) {
+export function cvsAllHover(module, inputId=0) {
     Object.values(mods).forEach((m) => {
-        if (!(m.state.type == 'lfo' || m.state.type == 'adsr') && m.state.id != module.state.id) {
+        if (!m.isControl && m.state.id != module.state.id) {
             m.fade();
-        } else if (module != null && m.state.id == module.state.cvId) {
+        } else if (module != null && ((m.state.id == module.state.cvId && inputId == 0) || (m.state.id == module.state.cvId2 && inputId == 1))) {
             m.bob();
         }
     });
@@ -107,7 +116,7 @@ export function setPosition() {
 export function moduleInUse(module) {
     if (out.state.inputId == module.state.id) return true;
     Object.values(mods).forEach((m) => {
-        if (m.state.inputId && m.state.inputId == module.state.id) {
+        if (m.state.inputId != null && m.state.inputId == module.state.id) {
             return true;
         }
         if (m.state.type == 'mixer') {

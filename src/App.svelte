@@ -165,6 +165,7 @@
 
 	main {
         font-family: "Monaco", monospace;
+		font-size: 16px;
 		color: "#222222";
 		width: 100%;
 		height: 100%;

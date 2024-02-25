@@ -1,5 +1,5 @@
 <script>
-    import { modules, context, colours, selectingModule, output } from './stores.js';
+    import { modules, context, colours, selectingModule, output, isTyping } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
     import DeleteButton from './DeleteButton.svelte';
     import { createNewId, cvsAllHover, inputsAllHover, unhover, setPosition } from './utils.js';
@@ -17,6 +17,8 @@
     $modules[state.id] = {};
     const module = $modules[state.id];
     module.state = state;
+    module.isAudio = true;
+    module.isControl = false;
 
     if (!module.state.position) module.state.position = setPosition();
     
@@ -25,6 +27,7 @@
     let deleteNode;
     let inputBtn;
     let cvBtn;
+    let titleNode;
 
     module.selectingInput = false;
     module.selectingCv = false;
@@ -47,7 +50,7 @@
     var currentInput;
 
     $: if (!module.destroyed) {
-        if (module.state.inputId != null && $modules[module.state.inputId].output) {
+        if (module.state.inputId != null && $modules[module.state.inputId] && $modules[module.state.inputId].output) {
             if (currentInput) currentInput.disconnect(gainNode);
             currentInput = $modules[module.state.inputId].output;
             currentInput.connect(gainNode);
@@ -60,52 +63,63 @@
 
     var currentCvModule;
 
-    $: if (currentCvModule) {
-        currentCvModule.setGain(module.state.id, module.state.gain);
-    }
-
     $: if (!module.destroyed) {
         if (cvModule) {
             gainNode.gain.cancelScheduledValues($context.currentTime);
             gainNode.gain.setValueAtTime(0, $context.currentTime);
             if (currentCvModule) {
-                if (currentCvModule.outputs[module.state.id]); currentCvModule.removeOutput(module.state.id, module.cv);
+                if (currentCvModule.outputs[module.state.id+".1"]); currentCvModule.removeOutput(module.state.id+".1", module.cv);
             }
             currentCvModule = cvModule;
-            if (!currentCvModule.outputs[module.state.id]) currentCvModule.addOutput(module.state.id, module.cv);
+            if (!currentCvModule.outputs[module.state.id+".1"]) currentCvModule.addOutput(module.state.id+".1", module.cv);
         } else {
             gainNode.gain.cancelScheduledValues($context.currentTime);
             gainNode.gain.setValueAtTime(module.state.gain, $context.currentTime);
             if (currentCvModule) {
-                if (currentCvModule.outputs[module.state.id]) currentCvModule.removeOutput(module.state.id, module.cv);
+                if (currentCvModule.outputs[module.state.id+".1"]) currentCvModule.removeOutput(module.state.id+".1", module.cv);
             }
             currentCvModule = null;
         }
     }
+
+    $: if (currentCvModule) {
+        currentCvModule.setGain(module.state.id+".1", module.state.gain);
+    }
+
     module.clearCurrents = () => {
         currentInput = null;
         cvModule = null;
         currentCvModule = null;
     }
 
-    module.update = () => {
-        module.state.inputId = module.state.inputId;
-    }
+    let moduleIsClicked = false;
+    let moduleTyping = false;
+    window.addEventListener("mouseup", () => {
+        if (moduleIsClicked) moduleIsClicked = false;
+    });
+    window.addEventListener("mousedown", () => {
+        $isTyping = false;
+        moduleTyping = false;
+        titleNode.style.outline = "none";
+    });
 
     function setModule(node) {
         moduleNode = node;
+        moduleNode.addEventListener("mousedown", () => { moduleIsClicked = true; })
         moduleNode.addEventListener("mouseup", () => {
-            if ($selectingModule == "output") {
-                $output.select(module.state.id);
-            } else if ($selectingModule != null && $modules[$selectingModule].selectingInput
-                && $selectingModule != module.state.id
-                && ($modules[$selectingModule].state.type != "mixer" 
-                || (!$modules[$selectingModule].state.inputIds.includes(module.state.id)
-                || $modules[$selectingModule].state.inputIds[$modules[$selectingModule].inputSelecting] == module.state.id))) 
-            {
-                $modules[$selectingModule].select(module.state.id);
-            } else if ($selectingModule == module.state.id) {
-                module.select(null);
+            if (moduleIsClicked) {
+                if ($selectingModule == "output") {
+                    $output.select(module.state.id);
+                } else if ($selectingModule != null && $modules[$selectingModule].selectingInput
+                    && $selectingModule != module.state.id
+                    && ($modules[$selectingModule].state.type != "mixer" 
+                    || (!$modules[$selectingModule].state.inputIds.includes(module.state.id)
+                    || $modules[$selectingModule].state.inputIds[$modules[$selectingModule].inputSelecting] == module.state.id))) 
+                {
+                    $modules[$selectingModule].select(module.state.id);
+                } else if ($selectingModule == module.state.id) {
+                    module.select(null);
+                }
             }
         });
     }
@@ -127,6 +141,22 @@
         });
         cvBtn.addEventListener("mouseleave", () => {
             if ($selectingModule == null) cvBtn.style.opacity = 1;
+        });
+    }
+    function setTitleNode(node) {
+        titleNode = node;
+        titleNode.addEventListener("mouseenter", () => {
+            titleNode.style.outline = "2px solid #222222";
+        });
+        titleNode.addEventListener("mouseleave", () => {
+            if (!moduleTyping) titleNode.style.outline = "none";
+        });
+        titleNode.addEventListener("mousedown", () => {
+            setTimeout(() => {
+                $isTyping = true;
+                moduleTyping = true;
+                titleNode.style.outline = "2px solid #222222";
+            }, 10);
         });
     }
     
@@ -233,7 +263,7 @@
     <div class="delete" use:setDelete><DeleteButton module={module} /></div>
     <h1>{module.state.id}</h1>
     <div id="controls" use:setControls>
-        <h2 class='editableTitle' bind:textContent={$modules[module.state.id].state.title} contenteditable='true'>{module.state.title}</h2>
+        <h2 use:setTitleNode class='editableTitle' bind:textContent={$modules[module.state.id].state.title} contenteditable='true'>{module.state.title}</h2>
         
         <div class='inputDiv' on:mouseenter={() => inputsAllHover(module)} on:mouseleave={() => {if ($selectingModule == null) unhover();}}>
         <label><button use:setInputBtn on:click={chooseInput}>
@@ -298,7 +328,8 @@
         margin-bottom: 10px;
         text-overflow: ellipsis;
         overflow: hidden;
-        padding: 10px
+        padding: 10px;
+        border-radius: 10px;
     }
 </style>
 

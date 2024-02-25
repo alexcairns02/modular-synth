@@ -1,5 +1,5 @@
 <script>
-    import { modules, context, midi, colours, selectingModule, output } from './stores.js';
+    import { modules, context, midi, colours, selectingModule, output, isTyping } from './stores.js';
     import ModuleMovement from './ModuleMovement.svelte';
     import DeleteButton from './DeleteButton.svelte';
     import { createNewId, setPosition, cvsAllHover, unhover } from './utils.js';
@@ -8,32 +8,47 @@
     export let state = {
         type: 'vco',
         frequency: 0,
+        detune: 0,
         shape: 'sine',
         id: createNewId(),
         title: 'Oscillator',
-        cvId: null
+        cvId: null,
+        cvId2: null
     };
+
+    if (state.cvId2 == undefined) state.cvId2 = null;
+    if (state.detune == undefined) state.detune = 0;
 
     let moduleNode;
     let controlsNode;
     let deleteNode;
     let titleNode;
-    let cvBtn;
+    let freqCvBtn;
+    let detuneCvBtn;
 
     $modules[state.id] = {};
     const module = $modules[state.id];
     module.state = state;
+    module.isAudio = true;
+    module.isControl = false;
 
     if (!module.state.position) module.state.position = setPosition();
 
     module.selectingCv = false;
 
-    let cvModule;
+    let freqCvModule;
+    let detuneCvModule;
     
     $: if (module.state.cvId != null) {
-        cvModule = $modules[module.state.cvId];
+        freqCvModule = $modules[module.state.cvId];
     } else {
-        cvModule = null;
+        freqCvModule = null;
+    }
+
+    $: if (module.state.cvId2 != null) {
+        detuneCvModule = $modules[module.state.cvId2];
+    } else {
+        detuneCvModule = null;
     }
 
     let voct = Math.log2(440);
@@ -42,71 +57,142 @@
     
     module.output = oscNode;
     module.cv = oscNode.frequency;
+    module.cv2 = oscNode.detune;
 
     $: if ($midi.voct) voct = $midi.voct;
 
-    $: oscNode.frequency.setValueAtTime(Math.pow(2, voct + module.state.frequency), $context.currentTime);
+    let totalFrequency
+    $: totalFrequency = Math.pow(2, voct + module.state.frequency);
+
+    $: oscNode.frequency.setValueAtTime(totalFrequency, $context.currentTime);
+    $: oscNode.detune.setValueAtTime(module.state.detune, $context.currentTime);
     $: oscNode.type = module.state.shape;
     
     oscNode.start(0);
 
+    let moduleIsClicked = false;
+    let moduleTyping = false;
+    window.addEventListener("mouseup", () => {
+        if (moduleIsClicked) moduleIsClicked = false;
+    });
+    window.addEventListener("mousedown", () => {
+        $isTyping = false;
+        moduleTyping = false;
+        titleNode.style.outline = "none";
+    });
+
     function setModule(node) {
         moduleNode = node;
+        moduleNode.addEventListener("mousedown", () => { moduleIsClicked = true; })
         moduleNode.addEventListener("mouseup", () => {
-            if ($selectingModule == "output") {
-                $output.select(module.state.id);
-            } else if ($selectingModule != null && $modules[$selectingModule].selectingInput
-                && $selectingModule != module.state.id
-                && ($modules[$selectingModule].state.type != "mixer" 
-                || (!$modules[$selectingModule].state.inputIds.includes(module.state.id)
-                || $modules[$selectingModule].state.inputIds[$modules[$selectingModule].inputSelecting] == module.state.id))) 
-            {
-                $modules[$selectingModule].select(module.state.id);
-            } else if ($selectingModule == module.state.id) {
-                module.select(null);
+            if (moduleIsClicked) {
+                if ($selectingModule == "output") {
+                    $output.select(module.state.id);
+                } else if ($selectingModule != null && $modules[$selectingModule].selectingInput
+                    && $selectingModule != module.state.id
+                    && ($modules[$selectingModule].state.type != "mixer" 
+                    || (!$modules[$selectingModule].state.inputIds.includes(module.state.id)
+                    || $modules[$selectingModule].state.inputIds[$modules[$selectingModule].inputSelecting] == module.state.id))) 
+                {
+                    $modules[$selectingModule].select(module.state.id);
+                } else if ($selectingModule == module.state.id) {
+                    module.select(null);
+                }
             }
         });
     }
     function setControls(node) { controlsNode = node; }
     function setDelete(node) { deleteNode = node; }
-    function setTitleNode(node) { titleNode = node; }
-    function setCvBtn(node) {
-        cvBtn = node;
-        cvBtn.addEventListener("mouseenter", () => {
-            if ($selectingModule == null) cvBtn.style.opacity = 0.8;
+    function setTitleNode(node) {
+        titleNode = node;
+        titleNode.addEventListener("mouseenter", () => {
+            titleNode.style.outline = "2px solid #222222";
         });
-        cvBtn.addEventListener("mouseleave", () => {
-            if ($selectingModule == null) cvBtn.style.opacity = 1;
+        titleNode.addEventListener("mouseleave", () => {
+            if (!moduleTyping) titleNode.style.outline = "none";
+        });
+        titleNode.addEventListener("mousedown", () => {
+            setTimeout(() => {
+                $isTyping = true;
+                moduleTyping = true;
+                titleNode.style.outline = "2px solid #222222";
+            }, 10);
+        });
+    }
+    function setFreqCvBtn(node) {
+        freqCvBtn = node;
+        freqCvBtn.addEventListener("mouseenter", () => {
+            if ($selectingModule == null) freqCvBtn.style.opacity = 0.8;
+        });
+        freqCvBtn.addEventListener("mouseleave", () => {
+            if ($selectingModule == null) freqCvBtn.style.opacity = 1;
+        });
+    }
+    function setDetuneCvBtn(node) {
+        detuneCvBtn = node;
+        detuneCvBtn.addEventListener("mouseenter", () => {
+            if ($selectingModule == null) detuneCvBtn.style.opacity = 0.8;
+        });
+        detuneCvBtn.addEventListener("mouseleave", () => {
+            if ($selectingModule == null) detuneCvBtn.style.opacity = 1;
         });
     }
 
-    var currentCvModule;
-
-    $: if (currentCvModule) {
-        currentCvModule.setGain(module.state.id, Math.pow(2, voct + module.state.frequency));
-    }
+    var currentFreqCvModule;
 
     $: if (!module.destroyed) {
-        if (cvModule) {
+        if (freqCvModule) {
             oscNode.frequency.cancelScheduledValues($context.currentTime);
             oscNode.frequency.setValueAtTime(0, $context.currentTime);
-            if (currentCvModule) {
-                if (currentCvModule.outputs[module.state.id]); currentCvModule.removeOutput(module.state.id, module.cv);
+            if (currentFreqCvModule) {
+                if (currentFreqCvModule.outputs[module.state.id+".1"]); currentFreqCvModule.removeOutput(module.state.id+".1", module.cv);
             }
-            currentCvModule = cvModule;
-            if (!currentCvModule.outputs[module.state.id]) currentCvModule.addOutput(module.state.id, module.cv);
+            currentFreqCvModule = freqCvModule;
+            if (!currentFreqCvModule.outputs[module.state.id+".1"]) currentFreqCvModule.addOutput(module.state.id+".1", module.cv);
         } else {
             oscNode.frequency.cancelScheduledValues($context.currentTime);
-            oscNode.frequency.setValueAtTime(Math.pow(2, voct + module.state.frequency), $context.currentTime);
-            if (currentCvModule) {
-                if (currentCvModule.outputs[module.state.id]) currentCvModule.removeOutput(module.state.id, module.cv);
+            oscNode.frequency.setValueAtTime(totalFrequency, $context.currentTime);
+            if (currentFreqCvModule) {
+                if (currentFreqCvModule.outputs[module.state.id+".1"]) currentFreqCvModule.removeOutput(module.state.id+".1", module.cv);
             }
-            currentCvModule = null;
+            currentFreqCvModule = null;
         }
     }
+
+    $: if (currentFreqCvModule) {
+        currentFreqCvModule.setGain(module.state.id+".1", totalFrequency);
+    }
+
+    let currentDetuneCvModule;
+
+    $: if (!module.destroyed) {
+        if (detuneCvModule) {
+            oscNode.detune.cancelScheduledValues($context.currentTime);
+            oscNode.detune.setValueAtTime(0, $context.currentTime);
+            if (currentDetuneCvModule) {
+                if (currentDetuneCvModule.outputs[module.state.id+".2"]); currentDetuneCvModule.removeOutput(module.state.id+".2", module.cv2);
+            }
+            currentDetuneCvModule = detuneCvModule;
+            if (!currentDetuneCvModule.outputs[module.state.id+".2"]) currentDetuneCvModule.addOutput(module.state.id+".2", module.cv2);
+        } else {
+            oscNode.detune.cancelScheduledValues($context.currentTime);
+            oscNode.detune.setValueAtTime(module.state.detune, $context.currentTime);
+            if (currentDetuneCvModule) {
+                if (currentDetuneCvModule.outputs[module.state.id+".2"]) currentDetuneCvModule.removeOutput(module.state.id+".2", module.cv2);
+            }
+            currentDetuneCvModule = null;
+        }
+    }
+
+    $: if (currentDetuneCvModule) {
+        currentDetuneCvModule.setGain(module.state.id+".2", module.state.detune);
+    }
+
     module.clearCurrents = () => {
-        cvModule = null;
-        currentCvModule = null;
+        freqCvModule = null;
+        currentFreqCvModule = null;
+        detuneCvModule = null;
+        currentDetuneCvModule = null;
     }
     
     let opacity = spring(1, {
@@ -139,12 +225,19 @@
         opacity.set(1);
     }
 
-    function chooseCv() {
-        cvsAllHover(module);
-        if (!cvBtn) return;
+    module.cvSelecting = null;
+
+    function chooseCv(i) {
+        module.cvSelecting = i;
+        cvsAllHover(module, i);
+        if (!freqCvBtn) return;
         if (!module.selectingCv) {
             module.selectingCv = true;
-            cvBtn.style.opacity = 0.5;
+            if (module.cvSelecting == 0) {
+                freqCvBtn.style.opacity = 0.5;
+            } else {
+                detuneCvBtn.style.opacity = 0.5;
+            }
             $selectingModule = module.state.id;
         } else {
             module.selectingCv = false;
@@ -153,8 +246,14 @@
 
     module.select = (id) => {
         if (module.selectingCv) {
-            module.state.cvId = id;
-            cvBtn.style.opacity = 1;
+            if (module.cvSelecting == 0) {
+                module.state.cvId = id;
+                freqCvBtn.style.opacity = 1;
+            }
+            else {
+                module.state.cvId2 = id;
+                detuneCvBtn.style.opacity = 1;
+            }
             module.selectingCv = false;
         }
         $selectingModule = null;
@@ -162,11 +261,18 @@
     }
 
     $: if (!module.destroyed) {
-        if (cvBtn) {
+        if (freqCvBtn) {
             if (module.state.cvId != null) {
-                cvBtn.style.backgroundColor = $colours[$modules[module.state.cvId].state.type];
+                freqCvBtn.style.backgroundColor = $colours[$modules[module.state.cvId].state.type];
             } else {
-                cvBtn.style.backgroundColor = "#f0f0f0";
+                freqCvBtn.style.backgroundColor = "#f0f0f0";
+            }
+        }
+        if (detuneCvBtn) {
+            if (module.state.cvId2 != null) {
+                detuneCvBtn.style.backgroundColor = $colours[$modules[module.state.cvId2].state.type];
+            } else {
+                detuneCvBtn.style.backgroundColor = "#f0f0f0";
             }
         }
     }
@@ -179,35 +285,39 @@
         deleteNode.style.pointerEvents = "all";
     }}
 
-    function titleHighlight() {
-        if (titleNode) titleNode.style.borderStyle = "solid";
-    }
-    function titleUnighlight() {
-        if (titleNode) titleNode.style.borderStyle = "none";
-    }
-
     module.bob();
 </script>
 
 {#if !module.destroyed}
 <main bind:this={module.component}>
-    <ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode bind:nodePos={state.position} nodeSize={{ x: 320, y: 320 }} bind:bobSize />
+    <ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode bind:nodePos={state.position} nodeSize={{ x: 320, y: 420 }} bind:bobSize />
     <div id="module" use:setModule style={"background-color: " + $colours[module.state.type]}>
     <div class="delete" use:setDelete><DeleteButton module={module} /></div>
     <h1>{module.state.id}</h1>
     <div class="controls" use:setControls>
         <h2 class='editableTitle' use:setTitleNode bind:textContent={$modules[module.state.id].state.title} contenteditable='true' >{module.state.title}</h2>
-        
-        <div class='inputDiv' on:mouseenter={() => {cvsAllHover(module)}} on:mouseleave={() => {if ($selectingModule == null) unhover();}}>
-            <label><button use:setCvBtn on:click={chooseCv}>
+
+        <div class='inputDiv' on:mouseenter={() => {cvsAllHover(module, 0)}} on:mouseleave={() => {if ($selectingModule == null) unhover();}}>
+            <label><button use:setFreqCvBtn on:click={() => chooseCv(0)}>
                 {#if module.state.cvId != null && $modules[module.state.cvId]}
                     {module.state.cvId} {$modules[module.state.cvId].state.title}
                 {:else}
                     None
                 {/if}
-        </button> Control</label></div><br>
+        </button> Control</label></div>
+        <label for="freq">Frequency ({totalFrequency.toFixed(1)}Hz)</label><input id="freq" bind:value={module.state.frequency} type='range' min='-2' max='2' step='0.083333333333333'>
+        <br><br>
 
-        <label for="freq">Frequency ({Math.pow(2, voct + module.state.frequency).toFixed(1)}Hz)</label><input id="freq" bind:value={module.state.frequency} type='range' min='-2' max='2' step='0.083333333333333'>
+        <div class='inputDiv' on:mouseenter={() => {cvsAllHover(module, 1)}} on:mouseleave={() => {if ($selectingModule == null) unhover();}}>
+            <label><button use:setDetuneCvBtn on:click={() => chooseCv(1)}>
+                {#if module.state.cvId2 != null && $modules[module.state.cvId2]}
+                    {module.state.cvId2} {$modules[module.state.cvId2].state.title}
+                {:else}
+                    None
+                {/if}
+        </button> Control</label></div>
+        <label for="detune">Detune ({module.state.detune} cents)</label><input id="detune" bind:value={module.state.detune} type='range' min='-100' max='100' step='1'>
+
         <br><section class="shape">
             <input id={'sine'+module.state.id} type='radio' value='sine' bind:group={module.state.shape} /><label for={'sine'+module.state.id}>Sine</label>
             <input id ={'triangle'+module.state.id} type='radio' value='triangle' bind:group={module.state.shape} /><label for={'triangle'+module.state.id}>Triangle</label>
@@ -216,7 +326,6 @@
         </section>
     </div>
 </div>
-<br>
 </main>
 {/if}
 
@@ -287,10 +396,7 @@
         text-overflow: ellipsis;
         overflow: hidden;
         padding: 10px;
-        border-style: none;
         border-radius: 10px;
-        border-color: rgba(34, 34, 34, 0.5);
-        border-width: 2px;
     }
 </style>
 
