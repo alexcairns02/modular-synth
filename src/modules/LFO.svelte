@@ -1,9 +1,10 @@
 <script>
-    import { modules, context, colours, selectingModule, isTyping } from './stores.js';
-    import ModuleMovement from './ModuleMovement.svelte';
-    import DeleteButton from './DeleteButton.svelte';
-    import { createNewId, setPosition } from './utils.js';
+    import { modules, context, colours, selectingModule, isTyping } from '../stores.js';
+    import ModuleMovement from '../ModuleMovement.svelte';
+    import DeleteButton from '../DeleteButton.svelte';
+    import { createNewId, setPosition } from '../utils.js';
     import { spring } from 'svelte/motion';
+    import HelpButton from '../HelpButton.svelte';
 
     export let state = {
         type: 'lfo',
@@ -27,6 +28,11 @@
     let controlsNode;
     let deleteNode;
     let titleNode;
+    let helpBtn;
+    let helpDiv;
+    let notHelpDiv;
+
+    let nodeSize = { x: 320, y: 250 };
 
     let oscNode = $context.createOscillator();
 
@@ -51,7 +57,7 @@
 
     module.setGain = (id, gain) => {
         if (module.outputs[id]) {
-            module.outputs[id].gain.value = gain;
+            module.outputs[id].gain.linearRampToValueAtTime(gain, $context.currentTime + 0.01);
         }
     }
 
@@ -63,7 +69,7 @@
     window.addEventListener("mousedown", () => {
         $isTyping = false;
         moduleTyping = false;
-        titleNode.style.outline = "none";
+        if (titleNode) titleNode.style.outline = "none";
     });
 
     function setModule(node) {
@@ -93,6 +99,12 @@
             }, 10);
         });
     }
+    function setHelpBtn(node) { helpBtn = node; }
+    function setHelpDiv(node) {
+        helpDiv = node;
+        helpDiv.style.display = "none";
+    }
+    function setNotHelpDiv(node) { notHelpDiv = node; }
     
     let opacity = spring(1, {
         stiffness: 0.1,
@@ -124,6 +136,30 @@
         }, 50);
     }
 
+    module.toggleHelp = () => {
+        module.showingHelp = !module.showingHelp;
+        if (notHelpDiv) {
+            if (!module.showingHelp) {
+                notHelpDiv.style.display = "initial";
+            } else {
+                notHelpDiv.style.display = "none";
+            }
+        }
+        if (helpDiv) {
+            if (module.showingHelp) {
+                helpDiv.style.display = "initial";
+            } else {
+                helpDiv.style.display = "none";
+            }
+        }
+
+        if (module.showingHelp) {
+            nodeSize = { x: 320, y: 400 };
+        } else {
+            nodeSize = { x: 320, y: 250 };
+        }
+    }
+
     $: if (controlsNode && deleteNode) {if ($selectingModule != null) {
         controlsNode.style.pointerEvents = "none";
         deleteNode.style.pointerEvents = "none";
@@ -137,12 +173,15 @@
 
 {#if !module.destroyed}
 <main bind:this={module.component}>
-    <ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode bind:nodePos={state.position} nodeSize={{ x: 320, y: 250 }} bind:bobSize />
+    <ModuleMovement bind:moduleNode bind:controlsNode bind:deleteNode bind:helpBtn bind:nodePos={state.position} bind:nodeSize bind:bobSize />
     <div id="module" use:setModule style={"background-color: " + $colours[module.state.type]}>
         <div class="delete" use:setDelete><DeleteButton module={module} /></div>
+        <div class="help" use:setHelpBtn><HelpButton module={module} /></div>
         <h1>{module.state.id}</h1>
         <div id="controls" use:setControls>
             <h2 use:setTitleNode class='editableTitle' bind:textContent={$modules[module.state.id].state.title} contenteditable='true'>{module.state.title}</h2>
+            
+            <div use:setNotHelpDiv>
             <label for="freq">Frequency ({oscNode.frequency.value.toFixed(1)}Hz)</label><input id="freq" bind:value={module.state.frequency} type='range' min='0.1' max='20' step='0.01'>
             <br><section class="shape">
                 <input id={'sine'+module.state.id} type='radio' value='sine' bind:group={module.state.shape} /><label for={'sine'+module.state.id}>Sine</label>
@@ -150,6 +189,15 @@
                 <input id={'sawtooth'+module.state.id} type='radio' value='sawtooth' bind:group={module.state.shape} /><label for={'sawtooth'+module.state.id}>Sawtooth</label>
                 <input id={'square'+module.state.id} type='radio' value='square' bind:group={module.state.shape} /><label for={'square'+module.state.id}>Square</label>
             </section>
+            </div>
+        </div>
+        <div use:setHelpDiv>
+            <p>
+                Low Frequency Oscillator.<br><br>
+                Can be selected as a Control option on other modules to automate parameters.<br><br>
+                Causes the value of connected parameters to rise and fall periodically.<br><br>
+                Frequency parameter determines the rate at which the LFO oscillates.<br><br>
+            </p>
         </div>
     </div>
     <br>
@@ -164,6 +212,13 @@
         user-select: none;
         border-radius: 50px;
         border-color: #222222;
+    }
+
+    p {
+        margin-left: auto;
+        margin-right: auto;
+        width: 256px;
+        font-size: 16px;
     }
 
     .shape {
@@ -196,6 +251,12 @@
     .delete {
         position: absolute;
         right: 20px;
+        top: 20px;
+    }
+
+    .help {
+        position: absolute;
+        left: 20px;
         top: 20px;
     }
 

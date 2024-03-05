@@ -7,6 +7,7 @@
     export let moduleNode;
     export let controlsNode;
     export let deleteNode;
+    export let helpBtn;
     export let nodeSize = { x: 300, y: 300 };
     export let nodePos = { x: 300, y: 100 };
     export let bobSize;
@@ -30,7 +31,7 @@
     const moduleClick = () => {
         moving = true;
         if (!controlling && $selectingModule == null) size.set(20);
-        else if (!controlling) size.set(10);
+        else if (!controlling) size.set(5);
     };
 
     const controlsClick = () => { controlling = true };
@@ -60,10 +61,13 @@
             node.addEventListener('touchstart', controlsClick);
         })
     }
-
     $: if (deleteNode) {
         deleteNode.addEventListener('mousedown', controlsClick);
         deleteNode.addEventListener('touchstart', controlsClick);
+    }
+    $: if (helpBtn) {
+        helpBtn.addEventListener('mousedown', controlsClick);
+        helpBtn.addEventListener('touchstart', controlsClick);
     }
 
     window.addEventListener('mouseup', windowUnClick);

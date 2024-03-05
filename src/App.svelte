@@ -2,13 +2,14 @@
 	import { context, modules, output } from './stores.js';
 	import fileDialog from 'file-dialog';
 	import MIDI from './MIDI.svelte';
-	import VCO from './VCO.svelte';
 	import Output from './Output.svelte';
-	import VCA from './VCA.svelte';
-	import ADSR from './ADSR.svelte';
-	import VCF from './VCF.svelte';
-	import Mixer from './Mixer.svelte';
-    import LFO from './LFO.svelte';
+	import VCO from './modules/VCO.svelte';
+	import VCA from './modules/VCA.svelte';
+	import ADSR from './modules/ADSR.svelte';
+	import VCF from './modules/VCF.svelte';
+	import Mixer from './modules/Mixer.svelte';
+    import LFO from './modules/LFO.svelte';
+	import Delay from './modules/Delay.svelte';
     import { destroyModule } from './utils.js';
 
 	const DEBUG = false;
@@ -24,13 +25,24 @@
 	function setButtons(node) {
 		buttons = node;
 		buttons.childNodes.forEach((button) => {
-			button.addEventListener("mouseenter", () => {
-				button.style.opacity = 0.8;
-			});
-			button.addEventListener("mouseleave", () => {
-				button.style.opacity = 1;
-			});
-		})
+			if (button.childNodes.length > 1) {
+				button.childNodes.forEach((button) => {
+					button.addEventListener("mouseenter", () => {
+						button.style.opacity = 0.8;
+					});
+					button.addEventListener("mouseleave", () => {
+						button.style.opacity = 1;
+					});
+				});
+			} else {
+				button.addEventListener("mouseenter", () => {
+					button.style.opacity = 0.8;
+				});
+				button.addEventListener("mouseleave", () => {
+					button.style.opacity = 1;
+				});
+			}
+		});
 	}
 
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -67,6 +79,9 @@
 					break;
 				case "lfo":
 					addModule(LFO, {state: module});
+					break;
+				case "delay":
+					addModule(Delay, {state: module});
 					break;
 			}
 		});
@@ -114,9 +129,9 @@
 
 	const clear = () => addPatch({output: {volume: $output.state.volume, inputId: null}, modules: []});
 
-	const debugPatch = {"output":{"volume":0.2,"inputId":"1"},"modules":[{"type":"vco","frequency":0,"shape":"sine","id":0,"title":"Oscillator","position":{"x":350,"y":100}},{"type":"vca","gain":1,"id":1,"inputId":0,"cvId":null,"title":"out","position":{"x":656,"y":241}}]};
+	const debugPatch = {"output":{"volume":0.2,"inputId":1},"modules":[{"type":"vco","frequency":0,"shape":"sine","id":0,"title":"Oscillator","position":{"x":350,"y":100}},{"type":"vca","gain":1,"id":1,"inputId":0,"cvId":null,"title":"out","position":{"x":656,"y":241}}]};
 
-	if (DEBUG) addPatch(debugPatch);
+	if (DEBUG) addPatch({ ...debugPatch });
 </script>
 
 <html lang="UTF-8">
@@ -130,10 +145,16 @@
 		<button id='vcoBtn' on:click={() => addModule(VCO)}>Add Oscillator</button>
 		<button id='vcaBtn' on:click={() => addModule(VCA)}>Add Amplifier</button>
 		<button id='vcfBtn' on:click={() => addModule(VCF)}>Add Filter</button>
-		<button id='adsrBtn' on:click={() => addModule(ADSR)}>Add Envelope</button>
 		<button id='mixerBtn' on:click={() => addModule(Mixer)}>Add Mixer</button>
+		<button id='adsrBtn' on:click={() => addModule(ADSR)}>Add Envelope</button>
 		<button id='lfoBtn' on:click={() => addModule(LFO)}>Add LFO</button>
+		<!--<button id='delayBtn' on:click={() => addModule(Delay)}>Add Delay</button>-->
 		<button on:click={clear}>Clear Patch</button>
+		<div class="demos">
+			<button id='demo1' on:click={() => addPatch({"output":{"volume":0.5,"inputId":8},"modules":[{"type":"vcf","voct":10.5078280948874,"filterType":"lowpass","id":0,"inputId":3,"cvId":1,"title":"Filter","position":{"x":640,"y":528}},{"type":"adsr","attack":0,"decay":0.077,"sustain":0.058,"release":0.035,"id":1,"title":"Envelope","position":{"x":318,"y":513}},{"type":"vco","frequency":0,"detune":0,"shape":"sawtooth","id":2,"title":"Oscillator","cvId":null,"cvId2":null,"position":{"x":302,"y":66}},{"type":"mixer","id":3,"inputIds":[2,4,null,null],"title":"Mixer","position":{"x":979,"y":77}},{"type":"vco","frequency":0,"detune":7,"shape":"sawtooth","id":4,"title":"Oscillator","cvId":null,"cvId2":null,"position":{"x":637,"y":68}},{"type":"vco","frequency":-1.08333333333334,"detune":-2,"shape":"sine","id":5,"title":"Oscillator","cvId":null,"cvId2":null,"position":{"x":311,"y":930}},{"type":"mixer","id":6,"inputIds":[0,7,null,null],"title":"Mixer","position":{"x":321,"y":1384}},{"type":"vca","gain":1,"id":7,"inputId":5,"cvId":1,"title":"Amplifier","position":{"x":661,"y":940}},{"type":"vcf","voct":11.2724280948874,"filterType":"lowpass","id":8,"inputId":6,"cvId":null,"title":"Filter","position":{"x":539,"y":1383}}]})}>Demo 1</button><br>
+			<button id='demo2' on:click={() => addPatch({"output":{"volume":0.5,"inputId":3},"modules":[{"type":"vco","frequency":0,"detune":0,"shape":"sawtooth","id":0,"title":"Oscillator","cvId":null,"cvId2":null,"position":{"x":300,"y":53}},{"type":"vco","frequency":0,"detune":10,"shape":"sawtooth","id":1,"title":"Oscillator","cvId":null,"cvId2":null,"position":{"x":639,"y":52}},{"type":"mixer","id":2,"inputIds":[0,1,6,7],"title":"Mixer","position":{"x":310,"y":499}},{"type":"vcf","voct":9.53782809488736,"filterType":"lowpass","id":3,"inputId":2,"cvId":5,"title":"Filter","position":{"x":818,"y":503}},{"type":"adsr","attack":0.443,"decay":0.465,"sustain":0.433,"release":0.387,"id":5,"title":"Envelope","position":{"x":515,"y":501}},{"type":"vco","frequency":0.333333333333324,"detune":0,"shape":"square","id":6,"title":"Oscillator","cvId":null,"cvId2":null,"position":{"x":975,"y":52}},{"type":"vco","frequency":0.333333333333324,"detune":8,"shape":"square","id":7,"title":"Oscillator","cvId":null,"cvId2":null,"position":{"x":1311,"y":53}}]})}>Demo 2</button><br>
+			<button id='demo3' on:click={() => addPatch({"output":{"volume":0.5,"inputId":3},"modules":[{"type":"vco","frequency":0,"detune":44,"shape":"sawtooth","id":0,"title":"Oscillator","cvId":2,"cvId2":1,"position":{"x":660,"y":65}},{"type":"lfo","frequency":6.3,"shape":"sine","id":1,"title":"LFO","position":{"x":315,"y":64}},{"type":"adsr","attack":0,"decay":0.041,"sustain":0.5,"release":0.022,"id":2,"title":"Envelope","position":{"x":319,"y":339}},{"type":"vcf","voct":10.5078280948874,"filterType":"lowpass","id":3,"inputId":0,"cvId":null,"title":"Filter","position":{"x":999,"y":64}}]})}>Demo 3</button><br>
+		</div>
 		</div>
 		<MIDI />
 		<Output />
@@ -186,6 +207,13 @@
 		height: 100%;
 	}
 
+	.demos {
+		position: absolute;
+		right: 15px;
+		top: 0px;
+		vertical-align: middle;
+	}
+
 	button {
 		pointer-events: all;
 		padding: 10px;
@@ -215,6 +243,10 @@
 
 	#lfoBtn {
 		background-color: #dd88ff;
+	}
+
+	#delayBtn {
+		background-color: #bbbbcc;
 	}
     
     .inputDiv {

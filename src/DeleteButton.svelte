@@ -1,5 +1,4 @@
 <script>
-    import { onMount } from 'svelte';
     import { spring } from 'svelte/motion';
     import { destroyModule } from './utils';
 
@@ -42,7 +41,12 @@
         }
     };
 
-    onMount(() => {
+    $: if (button) {
+        button.style.width = `${$size}px`;
+    }
+
+    function setButton(node) {
+        button = node;
         button.addEventListener('mousedown', buttonClick);
         button.addEventListener('touchstart', buttonClick);
 
@@ -55,19 +59,11 @@
         button.addEventListener('mouseover', buttonHover);
 
         button.addEventListener('mouseout', buttonUnHover);
-
-    });
-
-    $: if (button) {
-        button.style.width = `${$size}px`;
-    }
-
-    function setButton(node) {
-        button = node;
     }
 </script>
 
 <main>
+<!--source: -->
 <svg use:setButton xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 256 256" xml:space="preserve">
     <defs>
     </defs>

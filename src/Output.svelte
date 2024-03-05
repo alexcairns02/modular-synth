@@ -4,7 +4,7 @@
     import { spring } from 'svelte/motion';
 
     export let state = {
-        volume: 0.2,
+        volume: 0.5,
         inputId: null
     };
 

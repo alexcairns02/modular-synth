@@ -15,6 +15,7 @@ export const colours = readable({
     vcf: "#ff9955",
     lfo: "#dd88ff",
     adsr: "#7788ff",
+    delay: "#bbbbcc"
 });
 
 export const selectingModule = writable(null);
