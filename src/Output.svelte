@@ -11,6 +11,7 @@
     let divNode;
     let controlsNode;
     let inputBtn;
+    let recordBtn;
 
     $output.selectingInput = false;
 
@@ -58,6 +59,15 @@
             if ($selectingModule == null) inputBtn.style.opacity = 1;
         });
     };
+    const setRecordBtn = (node) => {
+        recordBtn = node;
+        recordBtn.addEventListener("mouseenter", () => {
+            recordBtn.style.opacity = 0.8;
+        });
+        recordBtn.addEventListener("mouseleave", () => {
+            recordBtn.style.opacity = 1;
+        });
+    }
 
     let redness = spring(0, {
         stiffness: 0.05,
@@ -123,6 +133,56 @@
     } else {
         divNode.style.pointerEvents = "none";
     }}
+
+    let recording = false;
+    let recordNode;
+    let recorder;
+    let chunks = [];
+    let recordBtnText = "Record";
+
+    function recordBtnClick() {
+        recording = !recording;
+        if (recording) {
+            startRecording();
+        } else {
+            stopRecording();
+        }
+        
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/MediaStream_Recording_API/Using_the_MediaStream_Recording_API
+    function startRecording() {
+
+        if (recordBtn) recordBtn.style.backgroundColor = "#ff6666";
+        recordBtnText = "Recording";
+
+        recordNode = $context.createMediaStreamDestination();
+        gainNode.connect(recordNode);
+        recorder = new MediaRecorder(recordNode.stream);
+
+        recorder.ondataavailable = (e) => {
+            chunks.push(e.data);
+        }
+
+        recorder.onstop = (e) => {
+            const a = document.createElement("a");
+            const file = new Blob(chunks, { type: "audio/ogg; codec=opus"});
+            a.href = URL.createObjectURL(file);
+            a.download = "recording.ogg";
+            a.click();
+
+            chunks = [];
+
+            if (recordBtn) recordBtn.style.backgroundColor = "#f0f0f0";
+            recordBtnText = "Record";
+        }
+
+        recorder.start();
+    }
+
+    function stopRecording() {
+        recorder.stop();
+    }
 </script>
 
 <main>
@@ -133,7 +193,7 @@
         {/if}
         <div use:setControls>
         <div id='inputDiv' on:mouseenter={() => {inputsAllHover(null)}} on:mouseleave={() => { if ($selectingModule == null) unhover()}}>
-        <label><button use:setInputBtn on:click={chooseInput}>
+        <label><button id='inputBtn' use:setInputBtn on:click={chooseInput}>
             {#if $output.state.inputId != null && $modules[$output.state.inputId]}
                 {$output.state.inputId} {$modules[$output.state.inputId].state.title}
             {:else}
@@ -142,6 +202,9 @@
         </button> Input</label>
         </div><br>
         <label for='gain'>Volume</label><input id='gain' bind:value={$output.state.volume} type='range' min='0' max='1' step='0.001'>
+        {#if $output.state.inputId != null}
+            <button id='recordBtn' use:setRecordBtn on:click={recordBtnClick}>{recordBtnText}</button>
+        {/if}
         </div>
     </div>
     <br>
@@ -159,7 +222,13 @@
         pointer-events: all;
     }
 
-    button {
+    #recordBtn {
+		padding: 10px;
+		background-color: #f0f0f0;
+		border: solid #222222 1px;
+    }
+
+    #inputBtn {
         background-color: #f0f0f0;
         border-radius: 10px;
         border-width: 2px;

@@ -36,7 +36,11 @@
 
     let oscNode = $context.createOscillator();
 
-    $: oscNode.frequency.value = module.state.frequency;
+    let frequency;
+
+    $: frequency = Math.pow(20, module.state.frequency - 1);
+
+    $: oscNode.frequency.value = frequency;
     $: oscNode.type = module.state.shape;
 
     oscNode.start(0);
@@ -182,7 +186,7 @@
             <h2 use:setTitleNode class='editableTitle' bind:textContent={$modules[module.state.id].state.title} contenteditable='true'>{module.state.title}</h2>
             
             <div use:setNotHelpDiv>
-            <label for="freq">Frequency ({oscNode.frequency.value.toFixed(1)}Hz)</label><input id="freq" bind:value={module.state.frequency} type='range' min='0.1' max='20' step='0.01'>
+            <label for="freq">Frequency ({oscNode.frequency.value.toFixed(2)}Hz)</label><input id="freq" bind:value={module.state.frequency} type='range' min='0.001' max='2' step='0.001'>
             <br><section class="shape">
                 <input id={'sine'+module.state.id} type='radio' value='sine' bind:group={module.state.shape} /><label for={'sine'+module.state.id}>Sine</label>
                 <input id ={'triangle'+module.state.id} type='radio' value='triangle' bind:group={module.state.shape} /><label for={'triangle'+module.state.id}>Triangle</label>

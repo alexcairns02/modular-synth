@@ -1,30 +1,27 @@
 <script>
-    import { modules, context, colours, selectingModule, output, isTyping } from '../stores.js';
+    import { modules, context, colours, selectingModule, isTyping, output } from '../stores.js';
     import ModuleMovement from '../ModuleMovement.svelte';
     import DeleteButton from '../DeleteButton.svelte';
     import HelpButton from '../HelpButton.svelte';
-    import { createNewId, setPosition, inputsAllHover, unhover } from '../utils.js';
+    import { createNewId, setPosition, } from '../utils.js';
     import { spring } from 'svelte/motion';
 
     export let state = {
-        type: 'delay',
+        type: 'noise',
         id: createNewId(),
-        title: 'Delay',
-        inputId: null,
-        delayTime: 0.5
+        title: 'Noise'
     }
 
     let moduleNode;
     let controlsNode;
     let deleteNode;
     let titleNode;
-    let inputBtn;
     let helpBtn;
     let notHelpDiv;
     let helpDiv;
 
-    let nodeSize = { x: 280, y: 265 };
-
+    let nodeSize = { x: 200, y: 150 };
+    
     $modules[state.id] = {};
     const module = $modules[state.id];
     module.state = state;
@@ -34,51 +31,22 @@
 
     if (!module.state.position) module.state.position = setPosition();
 
-    let mixerNode = $context.createGain();
-
-    let n = 10;
-
-    let delays = [];
-    let gains = [];
-
-    for (let i=0; i<n; i++) {
-        let delayNode = $context.createDelay(20);
-        let gainNode = $context.createGain();
-
-        delayNode.connect(gainNode);
-        gainNode.connect(mixerNode);
-
-        delays.push(delayNode);
-        gains.push(gainNode);
+    // https://noisehack.com/generate-noise-web-audio-api/
+    let bufferSize = 2 * $context.sampleRate;
+    let noiseBuffer = $context.createBuffer(1, bufferSize, $context.sampleRate);
+    let noiseOutput = noiseBuffer.getChannelData(0);
+    for (let i=0; i<bufferSize; i++) {
+        noiseOutput[i] = Math.random() * 2 - 1;
     }
 
-    module.output = mixerNode;
+    let noiseNode = $context.createBufferSource();
+    noiseNode.buffer = noiseBuffer;
+    noiseNode.loop = true;
+    noiseNode.start(0);
 
-    $: for (let i=0; i<n; i++) {
-        delays[i].delayTime.setValueAtTime(module.state.delayTime*i, $context.currentTime);
-    }
-    
-    for (let i=0; i<n; i++) {
-        gains[i].gain.setValueAtTime(1-((i+1)/n), $context.currentTime);
-    }
+    module.output = noiseNode;
 
-    var currentInput;
-
-    $: if (!module.destroyed) {
-        if (module.state.inputId != null && $modules[module.state.inputId] && $modules[module.state.inputId].output) {
-            if (currentInput) delays.forEach((delayNode) => {currentInput.disconnect(delayNode)});
-            currentInput = $modules[module.state.inputId].output;
-            delays.forEach((delayNode) => {currentInput.connect(delayNode)});
-            if ($modules[module.state.inputId].input || $modules[module.state.inputId].inputs) $modules[module.state.inputId].update();
-        } else {
-            if (currentInput) delays.forEach((delayNode) => {currentInput.disconnect(delayNode)});
-            currentInput = null;
-        }
-    }
-
-    module.clearCurrents = () => {
-        currentInput = null;
-    }
+    module.clearCurrents = () => { return; }
 
     let moduleIsClicked = false;
     let moduleTyping = false;
@@ -113,15 +81,6 @@
     }
     function setControls(node) { controlsNode = node; }
     function setDelete(node) { deleteNode = node; }
-    function setInputBtn(node) {
-        inputBtn = node;
-        inputBtn.addEventListener("mouseenter", () => {
-            if ($selectingModule == null) inputBtn.style.opacity = 0.8;
-        });
-        inputBtn.addEventListener("mouseleave", () => {
-            if ($selectingModule == null) inputBtn.style.opacity = 1;
-        });
-    }
     function setTitleNode(node) {
         titleNode = node;
         titleNode.addEventListener("mouseenter", () => {
@@ -193,41 +152,9 @@
         }
 
         if (module.showingHelp) {
-            nodeSize = { x: 280, y: 310 };
+            nodeSize = { x: 200, y: 220 };
         } else {
-            nodeSize = { x: 280, y: 265 };
-        }
-    }
-
-    function chooseInput() {
-        inputsAllHover(module);
-        if (!inputBtn) return;
-        if (!module.selectingInput) {
-            module.selectingInput = true;
-            inputBtn.style.opacity = 0.5;
-            $selectingModule = module.state.id;
-        } else {
-            module.selectingInput = false;
-        }
-    }
-
-    module.select = (id) => {
-        if (module.selectingInput) {
-            module.state.inputId = id;
-            inputBtn.style.opacity = 1;
-            module.selectingInput = false;
-        }
-        $selectingModule = null;
-        unhover();
-    }
-
-    $: if (!module.destroyed) {
-        if (inputBtn) {
-            if (module.state.inputId != null) {
-                inputBtn.style.backgroundColor = $colours[$modules[module.state.inputId].state.type];
-            } else {
-                inputBtn.style.backgroundColor = "#f0f0f0";
-            }
+            nodeSize = { x: 200, y: 150 };
         }
     }
 
@@ -254,20 +181,10 @@
         <h2 use:setTitleNode class='editableTitle' bind:textContent={$modules[module.state.id].state.title} contenteditable='true'>{module.state.title}</h2>
         
         <div use:setNotHelpDiv>
-        <div class='inputDiv' on:mouseenter={() => inputsAllHover(module)} on:mouseleave={() => {if ($selectingModule == null) unhover();}}>
-        <label><button use:setInputBtn on:click={chooseInput}>
-            {#if module.state.inputId != null && $modules[module.state.inputId]}
-                {module.state.inputId} {$modules[module.state.inputId].state.title}
-            {:else}
-                None
-            {/if}
-        </button> Input</label></div><br>
-        <label for='delayTime'>Delay Time ({module.state.delayTime.toFixed(2)}s)</label><input id='delayTime' bind:value={module.state.delayTime} type='range' min='0.01' max='1' step='0.001'>
         </div>
     </div>
     <div use:setHelpDiv>
-        <p>Causes the input signal to repeat, with each repetition gradually lowering in volume.<br><br>
-            Delay Time parameter controls the time between each repetition.
+        <p>Produces a constant white noise signal.
         </p>
     </div>
 </div>
@@ -284,23 +201,10 @@
         border-color: #222222;
     }
 
-    button {
-        background-color: #f0f0f0;
-        border-radius: 10px;
-        border-width: 2px;
-        border-style: solid;
-        border-color: #222222;
-        width: 110px;
-        height: 35px;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        white-space: nowrap;
-    }
-
     p {
         margin-left: auto;
         margin-right: auto;
-        width: 224px;
+        width: 160px;
         font-size: 16px;
     }
 
