@@ -226,15 +226,15 @@
     </div>
     <br>
     <div id='recording'>
-    {#if $output.state.inputId != null}
-        <button id='recordBtn' use:setRecordBtn on:click={recordBtnClick}>{recordBtnText}</button>
+        {#if $output.state.inputId != null}
+            <button id='recordBtn' use:setRecordBtn on:click={recordBtnClick}>{recordBtnText}</button>
+        {/if}
         <div id='recorded'>
             <div id='audioClip' use:setAudioClip></div>
             {#if recorded}
                 <button id='saveBtn' use:setSaveBtn on:click={() => recordingElement.click()}>Save</button>
             {/if}
         </div>
-    {/if}
     </div>
 </main>
 
@@ -272,8 +272,9 @@
     }
 
     #recording {
-        position: absolute;
-        left: 300px;
+        position: fixed;
+        bottom: 15px;
+        left: 315px;
         width: 480px;
     }
 
