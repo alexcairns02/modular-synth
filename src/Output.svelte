@@ -12,6 +12,8 @@
     let controlsNode;
     let inputBtn;
     let recordBtn;
+    let audioClip;
+    let saveBtn;
 
     $output.selectingInput = false;
 
@@ -66,6 +68,16 @@
         });
         recordBtn.addEventListener("mouseleave", () => {
             recordBtn.style.opacity = 1;
+        });
+    }
+    const setAudioClip = (node) => { audioClip = node; }
+    const setSaveBtn = (node) => {
+        saveBtn = node;
+        saveBtn.addEventListener("mouseenter", () => {
+            saveBtn.style.opacity = 0.8;
+        });
+        saveBtn.addEventListener("mouseleave", () => {
+            saveBtn.style.opacity = 1;
         });
     }
 
@@ -135,10 +147,12 @@
     }}
 
     let recording = false;
+    let recorded = false;
     let recordNode;
     let recorder;
     let chunks = [];
     let recordBtnText = "Record";
+    let recordingElement;
 
     function recordBtnClick() {
         recording = !recording;
@@ -150,7 +164,6 @@
         
     }
 
-    // https://developer.mozilla.org/en-US/docs/Web/API/MediaStream_Recording_API/Using_the_MediaStream_Recording_API
     function startRecording() {
 
         if (recordBtn) recordBtn.style.backgroundColor = "#ff6666";
@@ -165,13 +178,21 @@
         }
 
         recorder.onstop = (e) => {
-            const a = document.createElement("a");
+            recordingElement = document.createElement("a");
             const file = new Blob(chunks, { type: "audio/ogg; codec=opus"});
-            a.href = URL.createObjectURL(file);
-            a.download = "recording.ogg";
-            a.click();
+            const url = URL.createObjectURL(file);
+            recordingElement.href = url;
+            recordingElement.download = "recording.ogg";
+
+            const audio = new Audio();
+            audio.setAttribute("controls", "");
+            audio.src = url;
+
+            audioClip.replaceChildren(audio);
 
             chunks = [];
+
+            recorded = true;
 
             if (recordBtn) recordBtn.style.backgroundColor = "#f0f0f0";
             recordBtnText = "Record";
@@ -202,12 +223,19 @@
         </button> Input</label>
         </div><br>
         <label for='gain'>Volume</label><input id='gain' bind:value={$output.state.volume} type='range' min='0' max='1' step='0.001'>
-        {#if $output.state.inputId != null}
-            <button id='recordBtn' use:setRecordBtn on:click={recordBtnClick}>{recordBtnText}</button>
-        {/if}
-        </div>
     </div>
     <br>
+    <div id='recording'>
+    {#if $output.state.inputId != null}
+        <button id='recordBtn' use:setRecordBtn on:click={recordBtnClick}>{recordBtnText}</button>
+        <div id='recorded'>
+            <div id='audioClip' use:setAudioClip></div>
+            {#if recorded}
+                <button id='saveBtn' use:setSaveBtn on:click={() => recordingElement.click()}>Save</button>
+            {/if}
+        </div>
+    {/if}
+    </div>
 </main>
 
 <style>
@@ -215,17 +243,11 @@
         border-style: solid;
         position: absolute;
         width: 250px;
-        height: 270px;
+        height: 280px;
         bottom: 20px;
         padding: 1%;
         background-color: rgba(255, 255, 255, 0.7);
         pointer-events: all;
-    }
-
-    #recordBtn {
-		padding: 10px;
-		background-color: #f0f0f0;
-		border: solid #222222 1px;
     }
 
     #inputBtn {
@@ -247,5 +269,39 @@
         padding: 5px;
         padding-left: 20px;
         padding-right: 20px;
+    }
+
+    #recording {
+        position: absolute;
+        left: 300px;
+        width: 480px;
+    }
+
+    #recordBtn {
+        padding: 10px;
+        background-color: #f0f0f0;
+        border: solid #222222 1px;
+        float: left;
+        width: 100px;
+    }
+
+    #recording * {
+        pointer-events: all;
+    }
+
+    #recorded {
+        float: right;
+        width: 368px;
+    }
+
+    #audioClip {
+        float: left;
+    }
+
+    #saveBtn {
+        float: right;
+		padding: 10px;
+		background-color: #f0f0f0;
+		border: solid #222222 1px;
     }
 </style>

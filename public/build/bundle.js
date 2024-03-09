@@ -1492,15 +1492,44 @@ var app = (function () {
     const { Object: Object_1$2 } = globals;
     const file$c = "src\\Output.svelte";
 
-    // (192:48) 
-    function create_if_block_3(ctx) {
+    // (213:48) 
+    function create_if_block_4(ctx) {
     	let p;
 
     	const block = {
     		c: function create() {
     			p = element("p");
     			p.textContent = "Select input below";
-    			add_location(p, file$c, 191, 48, 5503);
+    			add_location(p, file$c, 212, 48, 6069);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, p, anchor);
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(p);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block_4.name,
+    		type: "if",
+    		source: "(213:48) ",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (212:8) {#if Object.values($modules).length == 0}
+    function create_if_block_3(ctx) {
+    	let p;
+
+    	const block = {
+    		c: function create() {
+    			p = element("p");
+    			p.textContent = "Add modules using buttons above";
+    			add_location(p, file$c, 211, 49, 5981);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, p, anchor);
@@ -1514,43 +1543,14 @@ var app = (function () {
     		block,
     		id: create_if_block_3.name,
     		type: "if",
-    		source: "(192:48) ",
+    		source: "(212:8) {#if Object.values($modules).length == 0}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (191:8) {#if Object.values($modules).length == 0}
-    function create_if_block_2$3(ctx) {
-    	let p;
-
-    	const block = {
-    		c: function create() {
-    			p = element("p");
-    			p.textContent = "Add modules using buttons above";
-    			add_location(p, file$c, 190, 49, 5415);
-    		},
-    		m: function mount(target, anchor) {
-    			insert_dev(target, p, anchor);
-    		},
-    		d: function destroy(detaching) {
-    			if (detaching) detach_dev(p);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_if_block_2$3.name,
-    		type: "if",
-    		source: "(191:8) {#if Object.values($modules).length == 0}",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    // (199:12) {:else}
+    // (220:12) {:else}
     function create_else_block$6(ctx) {
     	let t;
 
@@ -1571,15 +1571,15 @@ var app = (function () {
     		block,
     		id: create_else_block$6.name,
     		type: "else",
-    		source: "(199:12) {:else}",
+    		source: "(220:12) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (197:12) {#if $output.state.inputId != null && $modules[$output.state.inputId]}
-    function create_if_block_1$5(ctx) {
+    // (218:12) {#if $output.state.inputId != null && $modules[$output.state.inputId]}
+    function create_if_block_2$3(ctx) {
     	let t0_value = /*$output*/ ctx[1].state.inputId + "";
     	let t0;
     	let t1;
@@ -1610,48 +1610,86 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_1$5.name,
+    		id: create_if_block_2$3.name,
     		type: "if",
-    		source: "(197:12) {#if $output.state.inputId != null && $modules[$output.state.inputId]}",
+    		source: "(218:12) {#if $output.state.inputId != null && $modules[$output.state.inputId]}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (205:8) {#if $output.state.inputId != null}
+    // (229:4) {#if $output.state.inputId != null}
     function create_if_block$a(ctx) {
     	let button;
-    	let t;
+    	let t0;
+    	let t1;
+    	let div1;
+    	let div0;
+    	let t2;
     	let mounted;
     	let dispose;
+    	let if_block = /*recorded*/ ctx[4] && create_if_block_1$5(ctx);
 
     	const block = {
     		c: function create() {
     			button = element("button");
-    			t = text(/*recordBtnText*/ ctx[4]);
+    			t0 = text(/*recordBtnText*/ ctx[5]);
+    			t1 = space();
+    			div1 = element("div");
+    			div0 = element("div");
+    			t2 = space();
+    			if (if_block) if_block.c();
     			attr_dev(button, "id", "recordBtn");
-    			attr_dev(button, "class", "svelte-11ecmee");
-    			add_location(button, file$c, 205, 12, 6271);
+    			attr_dev(button, "class", "svelte-oevgu6");
+    			add_location(button, file$c, 229, 8, 6877);
+    			attr_dev(div0, "id", "audioClip");
+    			attr_dev(div0, "class", "svelte-oevgu6");
+    			add_location(div0, file$c, 231, 12, 7010);
+    			attr_dev(div1, "id", "recorded");
+    			attr_dev(div1, "class", "svelte-oevgu6");
+    			add_location(div1, file$c, 230, 8, 6977);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, button, anchor);
-    			append_dev(button, t);
+    			append_dev(button, t0);
+    			insert_dev(target, t1, anchor);
+    			insert_dev(target, div1, anchor);
+    			append_dev(div1, div0);
+    			append_dev(div1, t2);
+    			if (if_block) if_block.m(div1, null);
 
     			if (!mounted) {
     				dispose = [
-    					action_destroyer(/*setRecordBtn*/ ctx[8].call(null, button)),
-    					listen_dev(button, "click", /*recordBtnClick*/ ctx[11], false, false, false, false)
+    					action_destroyer(/*setRecordBtn*/ ctx[10].call(null, button)),
+    					listen_dev(button, "click", /*recordBtnClick*/ ctx[15], false, false, false, false),
+    					action_destroyer(/*setAudioClip*/ ctx[11].call(null, div0))
     				];
 
     				mounted = true;
     			}
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty[0] & /*recordBtnText*/ 16) set_data_dev(t, /*recordBtnText*/ ctx[4]);
+    			if (dirty[0] & /*recordBtnText*/ 32) set_data_dev(t0, /*recordBtnText*/ ctx[5]);
+
+    			if (/*recorded*/ ctx[4]) {
+    				if (if_block) {
+    					if_block.p(ctx, dirty);
+    				} else {
+    					if_block = create_if_block_1$5(ctx);
+    					if_block.c();
+    					if_block.m(div1, null);
+    				}
+    			} else if (if_block) {
+    				if_block.d(1);
+    				if_block = null;
+    			}
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(button);
+    			if (detaching) detach_dev(t1);
+    			if (detaching) detach_dev(div1);
+    			if (if_block) if_block.d();
     			mounted = false;
     			run_all(dispose);
     		}
@@ -1661,7 +1699,52 @@ var app = (function () {
     		block,
     		id: create_if_block$a.name,
     		type: "if",
-    		source: "(205:8) {#if $output.state.inputId != null}",
+    		source: "(229:4) {#if $output.state.inputId != null}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (233:12) {#if recorded}
+    function create_if_block_1$5(ctx) {
+    	let button;
+    	let mounted;
+    	let dispose;
+
+    	const block = {
+    		c: function create() {
+    			button = element("button");
+    			button.textContent = "Save";
+    			attr_dev(button, "id", "saveBtn");
+    			attr_dev(button, "class", "svelte-oevgu6");
+    			add_location(button, file$c, 233, 16, 7099);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, button, anchor);
+
+    			if (!mounted) {
+    				dispose = [
+    					action_destroyer(/*setSaveBtn*/ ctx[12].call(null, button)),
+    					listen_dev(button, "click", /*click_handler*/ ctx[28], false, false, false, false)
+    				];
+
+    				mounted = true;
+    			}
+    		},
+    		p: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(button);
+    			mounted = false;
+    			run_all(dispose);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block_1$5.name,
+    		type: "if",
+    		source: "(233:12) {#if recorded}",
     		ctx
     	});
 
@@ -1670,7 +1753,7 @@ var app = (function () {
 
     function create_fragment$d(ctx) {
     	let main;
-    	let div2;
+    	let div3;
     	let h2;
     	let t0;
     	let t1;
@@ -1689,23 +1772,24 @@ var app = (function () {
     	let label1;
     	let input;
     	let t9;
-    	let t10;
     	let br1;
+    	let t10;
+    	let div2;
     	let mounted;
     	let dispose;
 
     	function select_block_type(ctx, dirty) {
     		if (dirty[0] & /*$modules*/ 4) show_if = null;
     		if (show_if == null) show_if = !!(Object.values(/*$modules*/ ctx[2]).length == 0);
-    		if (show_if) return create_if_block_2$3;
-    		if (/*$output*/ ctx[1].state.inputId == null) return create_if_block_3;
+    		if (show_if) return create_if_block_3;
+    		if (/*$output*/ ctx[1].state.inputId == null) return create_if_block_4;
     	}
 
     	let current_block_type = select_block_type(ctx, [-1, -1]);
     	let if_block0 = current_block_type && current_block_type(ctx);
 
     	function select_block_type_1(ctx, dirty) {
-    		if (/*$output*/ ctx[1].state.inputId != null && /*$modules*/ ctx[2][/*$output*/ ctx[1].state.inputId]) return create_if_block_1$5;
+    		if (/*$output*/ ctx[1].state.inputId != null && /*$modules*/ ctx[2][/*$output*/ ctx[1].state.inputId]) return create_if_block_2$3;
     		return create_else_block$6;
     	}
 
@@ -1716,7 +1800,7 @@ var app = (function () {
     	const block = {
     		c: function create() {
     			main = element("main");
-    			div2 = element("div");
+    			div3 = element("div");
     			h2 = element("h2");
     			t0 = text("Audio Output (");
     			t1 = text(/*connectedString*/ ctx[3]);
@@ -1737,47 +1821,51 @@ var app = (function () {
     			label1.textContent = "Volume";
     			input = element("input");
     			t9 = space();
-    			if (if_block2) if_block2.c();
-    			t10 = space();
     			br1 = element("br");
-    			add_location(h2, file$c, 189, 8, 5323);
+    			t10 = space();
+    			div2 = element("div");
+    			if (if_block2) if_block2.c();
+    			add_location(h2, file$c, 210, 8, 5889);
     			attr_dev(button, "id", "inputBtn");
-    			attr_dev(button, "class", "svelte-11ecmee");
-    			add_location(button, file$c, 195, 15, 5730);
-    			add_location(label0, file$c, 195, 8, 5723);
+    			attr_dev(button, "class", "svelte-oevgu6");
+    			add_location(button, file$c, 216, 15, 6296);
+    			add_location(label0, file$c, 216, 8, 6289);
     			attr_dev(div0, "id", "inputDiv");
-    			attr_dev(div0, "class", "svelte-11ecmee");
-    			add_location(div0, file$c, 194, 8, 5584);
-    			add_location(br0, file$c, 202, 14, 6073);
+    			attr_dev(div0, "class", "svelte-oevgu6");
+    			add_location(div0, file$c, 215, 8, 6150);
+    			add_location(br0, file$c, 223, 14, 6639);
     			attr_dev(label1, "for", "gain");
-    			add_location(label1, file$c, 203, 8, 6087);
+    			add_location(label1, file$c, 224, 8, 6653);
     			attr_dev(input, "id", "gain");
     			attr_dev(input, "type", "range");
     			attr_dev(input, "min", "0");
     			attr_dev(input, "max", "1");
     			attr_dev(input, "step", "0.001");
-    			add_location(input, file$c, 203, 40, 6119);
-    			add_location(div1, file$c, 193, 8, 5553);
-    			attr_dev(div2, "id", "mainDiv");
-    			attr_dev(div2, "class", "svelte-11ecmee");
-    			add_location(div2, file$c, 188, 4, 5284);
-    			add_location(br1, file$c, 209, 4, 6410);
-    			add_location(main, file$c, 187, 0, 5272);
+    			add_location(input, file$c, 224, 40, 6685);
+    			add_location(div1, file$c, 214, 8, 6119);
+    			add_location(br1, file$c, 226, 4, 6796);
+    			attr_dev(div2, "id", "recording");
+    			attr_dev(div2, "class", "svelte-oevgu6");
+    			add_location(div2, file$c, 227, 4, 6806);
+    			attr_dev(div3, "id", "mainDiv");
+    			attr_dev(div3, "class", "svelte-oevgu6");
+    			add_location(div3, file$c, 209, 4, 5850);
+    			add_location(main, file$c, 208, 0, 5838);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, main, anchor);
-    			append_dev(main, div2);
-    			append_dev(div2, h2);
+    			append_dev(main, div3);
+    			append_dev(div3, h2);
     			append_dev(h2, t0);
     			append_dev(h2, t1);
     			append_dev(h2, t2);
-    			append_dev(div2, t3);
-    			if (if_block0) if_block0.m(div2, null);
-    			append_dev(div2, t4);
-    			append_dev(div2, div1);
+    			append_dev(div3, t3);
+    			if (if_block0) if_block0.m(div3, null);
+    			append_dev(div3, t4);
+    			append_dev(div3, div1);
     			append_dev(div1, div0);
     			append_dev(div0, label0);
     			append_dev(label0, button);
@@ -1789,21 +1877,22 @@ var app = (function () {
     			append_dev(div1, label1);
     			append_dev(div1, input);
     			set_input_value(input, /*$output*/ ctx[1].state.volume);
-    			append_dev(div1, t9);
-    			if (if_block2) if_block2.m(div1, null);
-    			append_dev(main, t10);
-    			append_dev(main, br1);
+    			append_dev(div3, t9);
+    			append_dev(div3, br1);
+    			append_dev(div3, t10);
+    			append_dev(div3, div2);
+    			if (if_block2) if_block2.m(div2, null);
 
     			if (!mounted) {
     				dispose = [
-    					action_destroyer(/*setInputBtn*/ ctx[7].call(null, button)),
-    					listen_dev(button, "click", /*chooseInput*/ ctx[10], false, false, false, false),
-    					listen_dev(div0, "mouseenter", /*mouseenter_handler*/ ctx[21], false, false, false, false),
-    					listen_dev(div0, "mouseleave", /*mouseleave_handler*/ ctx[22], false, false, false, false),
-    					listen_dev(input, "change", /*input_change_input_handler*/ ctx[23]),
-    					listen_dev(input, "input", /*input_change_input_handler*/ ctx[23]),
-    					action_destroyer(/*setControls*/ ctx[6].call(null, div1)),
-    					action_destroyer(/*setDiv*/ ctx[5].call(null, div2))
+    					action_destroyer(/*setInputBtn*/ ctx[9].call(null, button)),
+    					listen_dev(button, "click", /*chooseInput*/ ctx[14], false, false, false, false),
+    					listen_dev(div0, "mouseenter", /*mouseenter_handler*/ ctx[25], false, false, false, false),
+    					listen_dev(div0, "mouseleave", /*mouseleave_handler*/ ctx[26], false, false, false, false),
+    					listen_dev(input, "change", /*input_change_input_handler*/ ctx[27]),
+    					listen_dev(input, "input", /*input_change_input_handler*/ ctx[27]),
+    					action_destroyer(/*setControls*/ ctx[8].call(null, div1)),
+    					action_destroyer(/*setDiv*/ ctx[7].call(null, div3))
     				];
 
     				mounted = true;
@@ -1818,7 +1907,7 @@ var app = (function () {
 
     				if (if_block0) {
     					if_block0.c();
-    					if_block0.m(div2, t4);
+    					if_block0.m(div3, t4);
     				}
     			}
 
@@ -1844,7 +1933,7 @@ var app = (function () {
     				} else {
     					if_block2 = create_if_block$a(ctx);
     					if_block2.c();
-    					if_block2.m(div1, null);
+    					if_block2.m(div2, null);
     				}
     			} else if (if_block2) {
     				if_block2.d(1);
@@ -1886,7 +1975,7 @@ var app = (function () {
     	let $colours;
     	let $redness;
     	validate_store(context, 'context');
-    	component_subscribe($$self, context, $$value => $$invalidate(29, $context = $$value));
+    	component_subscribe($$self, context, $$value => $$invalidate(36, $context = $$value));
     	validate_store(selectingModule, 'selectingModule');
     	component_subscribe($$self, selectingModule, $$value => $$invalidate(0, $selectingModule = $$value));
     	validate_store(output, 'output');
@@ -1894,7 +1983,7 @@ var app = (function () {
     	validate_store(modules, 'modules');
     	component_subscribe($$self, modules, $$value => $$invalidate(2, $modules = $$value));
     	validate_store(colours, 'colours');
-    	component_subscribe($$self, colours, $$value => $$invalidate(19, $colours = $$value));
+    	component_subscribe($$self, colours, $$value => $$invalidate(23, $colours = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('Output', slots, []);
     	let { state = { volume: 0.5, inputId: null } } = $$props;
@@ -1902,6 +1991,8 @@ var app = (function () {
     	let controlsNode;
     	let inputBtn;
     	let recordBtn;
+    	let audioClip;
+    	let saveBtn;
     	set_store_value(output, $output.selectingInput = false, $output);
     	set_store_value(output, $output.state = state, $output);
     	var gainNode = $context.createGain();
@@ -1909,7 +2000,7 @@ var app = (function () {
     	var currentInput;
 
     	const setDiv = node => {
-    		$$invalidate(13, divNode = node);
+    		$$invalidate(17, divNode = node);
 
     		divNode.addEventListener("mousedown", () => {
     			if ($selectingModule == "output") {
@@ -1919,18 +2010,18 @@ var app = (function () {
     	};
 
     	const setControls = node => {
-    		$$invalidate(14, controlsNode = node);
+    		$$invalidate(18, controlsNode = node);
     	};
 
     	const setInputBtn = node => {
-    		$$invalidate(15, inputBtn = node);
+    		$$invalidate(19, inputBtn = node);
 
     		inputBtn.addEventListener("mouseenter", () => {
-    			if ($selectingModule == null) $$invalidate(15, inputBtn.style.opacity = 0.8, inputBtn);
+    			if ($selectingModule == null) $$invalidate(19, inputBtn.style.opacity = 0.8, inputBtn);
     		});
 
     		inputBtn.addEventListener("mouseleave", () => {
-    			if ($selectingModule == null) $$invalidate(15, inputBtn.style.opacity = 1, inputBtn);
+    			if ($selectingModule == null) $$invalidate(19, inputBtn.style.opacity = 1, inputBtn);
     		});
     	};
 
@@ -1946,15 +2037,31 @@ var app = (function () {
     		});
     	};
 
+    	const setAudioClip = node => {
+    		audioClip = node;
+    	};
+
+    	const setSaveBtn = node => {
+    		saveBtn = node;
+
+    		saveBtn.addEventListener("mouseenter", () => {
+    			saveBtn.style.opacity = 0.8;
+    		});
+
+    		saveBtn.addEventListener("mouseleave", () => {
+    			saveBtn.style.opacity = 1;
+    		});
+    	};
+
     	let redness = spring(0, { stiffness: 0.05, damping: 0.3 });
     	validate_store(redness, 'redness');
-    	component_subscribe($$self, redness, value => $$invalidate(20, $redness = value));
+    	component_subscribe($$self, redness, value => $$invalidate(24, $redness = value));
     	let loaded = false;
     	let connectedString = "disconnected";
 
     	setTimeout(
     		() => {
-    			$$invalidate(18, loaded = true);
+    			$$invalidate(22, loaded = true);
     		},
     		500
     	);
@@ -1965,7 +2072,7 @@ var app = (function () {
 
     		if (!$output.selectingInput) {
     			set_store_value(output, $output.selectingInput = true, $output);
-    			$$invalidate(15, inputBtn.style.opacity = 0.5, inputBtn);
+    			$$invalidate(19, inputBtn.style.opacity = 0.5, inputBtn);
     			set_store_value(selectingModule, $selectingModule = "output", $selectingModule);
     		} else {
     			set_store_value(output, $output.selectingInput = false, $output);
@@ -1977,7 +2084,7 @@ var app = (function () {
     		$output.select = id => {
     			if ($output.selectingInput) {
     				set_store_value(output, $output.state.inputId = id, $output);
-    				$$invalidate(15, inputBtn.style.opacity = 1, inputBtn);
+    				$$invalidate(19, inputBtn.style.opacity = 1, inputBtn);
     				set_store_value(output, $output.selectingInput = false, $output);
     			}
 
@@ -1988,10 +2095,12 @@ var app = (function () {
     	);
 
     	let recording = false;
+    	let recorded = false;
     	let recordNode;
     	let recorder;
     	let chunks = [];
     	let recordBtnText = "Record";
+    	let recordingElement;
 
     	function recordBtnClick() {
     		recording = !recording;
@@ -2003,10 +2112,9 @@ var app = (function () {
     		}
     	}
 
-    	// https://developer.mozilla.org/en-US/docs/Web/API/MediaStream_Recording_API/Using_the_MediaStream_Recording_API
     	function startRecording() {
     		if (recordBtn) recordBtn.style.backgroundColor = "#ff6666";
-    		$$invalidate(4, recordBtnText = "Recording");
+    		$$invalidate(5, recordBtnText = "Recording");
     		recordNode = $context.createMediaStreamDestination();
     		gainNode.connect(recordNode);
     		recorder = new MediaRecorder(recordNode.stream);
@@ -2016,14 +2124,19 @@ var app = (function () {
     		};
 
     		recorder.onstop = e => {
-    			const a = document.createElement("a");
+    			$$invalidate(6, recordingElement = document.createElement("a"));
     			const file = new Blob(chunks, { type: "audio/ogg; codec=opus" });
-    			a.href = URL.createObjectURL(file);
-    			a.download = "recording.ogg";
-    			a.click();
+    			const url = URL.createObjectURL(file);
+    			$$invalidate(6, recordingElement.href = url, recordingElement);
+    			$$invalidate(6, recordingElement.download = "recording.ogg", recordingElement);
+    			const audio = new Audio();
+    			audio.setAttribute("controls", "");
+    			audio.src = url;
+    			audioClip.replaceChildren(audio);
     			chunks = [];
+    			$$invalidate(4, recorded = true);
     			if (recordBtn) recordBtn.style.backgroundColor = "#f0f0f0";
-    			$$invalidate(4, recordBtnText = "Record");
+    			$$invalidate(5, recordBtnText = "Record");
     		};
 
     		recorder.start();
@@ -2052,8 +2165,10 @@ var app = (function () {
     		output.set($output);
     	}
 
+    	const click_handler = () => recordingElement.click();
+
     	$$self.$$set = $$props => {
-    		if ('state' in $$props) $$invalidate(12, state = $$props.state);
+    		if ('state' in $$props) $$invalidate(16, state = $$props.state);
     	};
 
     	$$self.$capture_state = () => ({
@@ -2070,21 +2185,27 @@ var app = (function () {
     		controlsNode,
     		inputBtn,
     		recordBtn,
+    		audioClip,
+    		saveBtn,
     		gainNode,
     		currentInput,
     		setDiv,
     		setControls,
     		setInputBtn,
     		setRecordBtn,
+    		setAudioClip,
+    		setSaveBtn,
     		redness,
     		loaded,
     		connectedString,
     		chooseInput,
     		recording,
+    		recorded,
     		recordNode,
     		recorder,
     		chunks,
     		recordBtnText,
+    		recordingElement,
     		recordBtnClick,
     		startRecording,
     		stopRecording,
@@ -2097,21 +2218,25 @@ var app = (function () {
     	});
 
     	$$self.$inject_state = $$props => {
-    		if ('state' in $$props) $$invalidate(12, state = $$props.state);
-    		if ('divNode' in $$props) $$invalidate(13, divNode = $$props.divNode);
-    		if ('controlsNode' in $$props) $$invalidate(14, controlsNode = $$props.controlsNode);
-    		if ('inputBtn' in $$props) $$invalidate(15, inputBtn = $$props.inputBtn);
+    		if ('state' in $$props) $$invalidate(16, state = $$props.state);
+    		if ('divNode' in $$props) $$invalidate(17, divNode = $$props.divNode);
+    		if ('controlsNode' in $$props) $$invalidate(18, controlsNode = $$props.controlsNode);
+    		if ('inputBtn' in $$props) $$invalidate(19, inputBtn = $$props.inputBtn);
     		if ('recordBtn' in $$props) recordBtn = $$props.recordBtn;
-    		if ('gainNode' in $$props) $$invalidate(16, gainNode = $$props.gainNode);
-    		if ('currentInput' in $$props) $$invalidate(17, currentInput = $$props.currentInput);
-    		if ('redness' in $$props) $$invalidate(9, redness = $$props.redness);
-    		if ('loaded' in $$props) $$invalidate(18, loaded = $$props.loaded);
+    		if ('audioClip' in $$props) audioClip = $$props.audioClip;
+    		if ('saveBtn' in $$props) saveBtn = $$props.saveBtn;
+    		if ('gainNode' in $$props) $$invalidate(20, gainNode = $$props.gainNode);
+    		if ('currentInput' in $$props) $$invalidate(21, currentInput = $$props.currentInput);
+    		if ('redness' in $$props) $$invalidate(13, redness = $$props.redness);
+    		if ('loaded' in $$props) $$invalidate(22, loaded = $$props.loaded);
     		if ('connectedString' in $$props) $$invalidate(3, connectedString = $$props.connectedString);
     		if ('recording' in $$props) recording = $$props.recording;
+    		if ('recorded' in $$props) $$invalidate(4, recorded = $$props.recorded);
     		if ('recordNode' in $$props) recordNode = $$props.recordNode;
     		if ('recorder' in $$props) recorder = $$props.recorder;
     		if ('chunks' in $$props) chunks = $$props.chunks;
-    		if ('recordBtnText' in $$props) $$invalidate(4, recordBtnText = $$props.recordBtnText);
+    		if ('recordBtnText' in $$props) $$invalidate(5, recordBtnText = $$props.recordBtnText);
+    		if ('recordingElement' in $$props) $$invalidate(6, recordingElement = $$props.recordingElement);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -2128,26 +2253,26 @@ var app = (function () {
     		}
 
     		if ($$self.$$.dirty[0] & /*$output*/ 2) {
-    			$$invalidate(16, gainNode.gain.value = $output.state.volume, gainNode);
+    			$$invalidate(20, gainNode.gain.value = $output.state.volume, gainNode);
     		}
 
-    		if ($$self.$$.dirty[0] & /*$output, currentInput, gainNode*/ 196610) {
+    		if ($$self.$$.dirty[0] & /*$output, currentInput, gainNode*/ 3145730) {
     			if ($output.input) {
     				if (currentInput) currentInput.disconnect(gainNode);
-    				$$invalidate(17, currentInput = $output.input.output);
+    				$$invalidate(21, currentInput = $output.input.output);
     				currentInput.connect(gainNode);
     				if ($output.input.input || $output.input.inputs) $output.input.update();
     			} else {
     				if (currentInput) currentInput.disconnect(gainNode);
-    				$$invalidate(17, currentInput = null);
+    				$$invalidate(21, currentInput = null);
     			}
     		}
 
-    		if ($$self.$$.dirty[0] & /*divNode, $redness*/ 1056768) {
-    			if (divNode) $$invalidate(13, divNode.style.backgroundColor = `rgba(255, ${255 - $redness}, ${255 - $redness}, 0.7)`, divNode);
+    		if ($$self.$$.dirty[0] & /*divNode, $redness*/ 16908288) {
+    			if (divNode) $$invalidate(17, divNode.style.backgroundColor = `rgba(255, ${255 - $redness}, ${255 - $redness}, 0.7)`, divNode);
     		}
 
-    		if ($$self.$$.dirty[0] & /*loaded, $output*/ 262146) {
+    		if ($$self.$$.dirty[0] & /*loaded, $output*/ 4194306) {
     			if (loaded && $output.state.inputId == null) {
     				redness.set(255);
     				$$invalidate(3, connectedString = "disconnected");
@@ -2157,32 +2282,32 @@ var app = (function () {
     			}
     		}
 
-    		if ($$self.$$.dirty[0] & /*inputBtn, $output, $colours, $modules*/ 557062) {
+    		if ($$self.$$.dirty[0] & /*inputBtn, $output, $colours, $modules*/ 8912902) {
     			if (inputBtn) {
     				if ($output.state.inputId != null) {
-    					$$invalidate(15, inputBtn.style.backgroundColor = $colours[$modules[$output.state.inputId].state.type], inputBtn);
+    					$$invalidate(19, inputBtn.style.backgroundColor = $colours[$modules[$output.state.inputId].state.type], inputBtn);
     				} else {
-    					$$invalidate(15, inputBtn.style.backgroundColor = "#f0f0f0", inputBtn);
+    					$$invalidate(19, inputBtn.style.backgroundColor = "#f0f0f0", inputBtn);
     				}
     			}
     		}
 
-    		if ($$self.$$.dirty[0] & /*controlsNode, $selectingModule*/ 16385) {
+    		if ($$self.$$.dirty[0] & /*controlsNode, $selectingModule*/ 262145) {
     			if (controlsNode) {
     				if ($selectingModule != null) {
-    					$$invalidate(14, controlsNode.style.pointerEvents = "none", controlsNode);
+    					$$invalidate(18, controlsNode.style.pointerEvents = "none", controlsNode);
     				} else {
-    					$$invalidate(14, controlsNode.style.pointerEvents = "all", controlsNode);
+    					$$invalidate(18, controlsNode.style.pointerEvents = "all", controlsNode);
     				}
     			}
     		}
 
-    		if ($$self.$$.dirty[0] & /*divNode, $selectingModule*/ 8193) {
+    		if ($$self.$$.dirty[0] & /*divNode, $selectingModule*/ 131073) {
     			if (divNode) {
     				if ($selectingModule != null) {
-    					$$invalidate(13, divNode.style.pointerEvents = "all", divNode);
+    					$$invalidate(17, divNode.style.pointerEvents = "all", divNode);
     				} else {
-    					$$invalidate(13, divNode.style.pointerEvents = "none", divNode);
+    					$$invalidate(17, divNode.style.pointerEvents = "none", divNode);
     				}
     			}
     		}
@@ -2193,11 +2318,15 @@ var app = (function () {
     		$output,
     		$modules,
     		connectedString,
+    		recorded,
     		recordBtnText,
+    		recordingElement,
     		setDiv,
     		setControls,
     		setInputBtn,
     		setRecordBtn,
+    		setAudioClip,
+    		setSaveBtn,
     		redness,
     		chooseInput,
     		recordBtnClick,
@@ -2212,14 +2341,15 @@ var app = (function () {
     		$redness,
     		mouseenter_handler,
     		mouseleave_handler,
-    		input_change_input_handler
+    		input_change_input_handler,
+    		click_handler
     	];
     }
 
     class Output extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$d, create_fragment$d, safe_not_equal, { state: 12 }, null, [-1, -1]);
+    		init(this, options, instance$d, create_fragment$d, safe_not_equal, { state: 16 }, null, [-1, -1]);
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
