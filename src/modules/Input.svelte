@@ -32,7 +32,12 @@
     if (!module.state.position) module.state.position = setPosition();
 
     if (navigator.mediaDevices) {
-        navigator.mediaDevices.getUserMedia({audio: true, video: false}).then((stream) => {
+        navigator.mediaDevices.getUserMedia({audio:
+            {
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false
+            }, video: false}).then((stream) => {
             let source = $context.createMediaStreamSource(stream);
 
             module.output = source;

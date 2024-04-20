@@ -2,6 +2,7 @@ import { modules, output } from './stores.js';
 
 let mods, out;
 
+// Svelte stores must be subscribed to explicitly in raw JS
 modules.subscribe((value) => {
     mods = value;
 });
@@ -9,12 +10,14 @@ output.subscribe((value) => {
     out = value;
 });
 
+// Returns a new ID for a new module being created
 export function createNewId() {
     for (let i=0; i<Object.keys(mods).length+1; i++) {
         if (!mods[i]) return i;
     }
 }
 
+// Destroys a given module
 export function destroyModule(module) {
     if (module.isAudio) module.clearCurrents();
 
@@ -59,6 +62,7 @@ export function destroyModule(module) {
     modules.update((ms) => {delete ms[module.state.id]; return ms;});
 };
 
+// Highlights modules that can be selected as inputs and causes currently selected module to bob
 export function inputsAllHover(module) {
     Object.values(mods).forEach((m) => {
         if (!m.isAudio && (module == null || m.state.id != module.state.id)) {

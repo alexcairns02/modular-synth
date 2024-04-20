@@ -74,6 +74,7 @@
     }
 
     module.setGain = (id, gain) => {
+        console.log("h")
         maxCvs[id] = gain;
     }
 

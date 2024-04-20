@@ -63,7 +63,7 @@
 </script>
 
 <main>
-    <!--source: -->
+    <!--source: https://www.iconpacks.net/free-icon/information-black-circle-20767.html-->
     <svg use:setButton xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 256 256" xml:space="preserve">
 
         <defs>

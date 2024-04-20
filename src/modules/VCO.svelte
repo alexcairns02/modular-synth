@@ -6,6 +6,7 @@
     import { createNewId, setPosition, cvsAllHover, unhover } from '../utils.js';
     import { spring } from 'svelte/motion';
 
+    // Default values for module state
     export let state = {
         type: 'vco',
         frequency: 0,
@@ -17,6 +18,7 @@
         cvId2: null
     };
 
+    // Makes sure unspecified state inputs are set correctly (for old patch saves)
     if (state.cvId2 == undefined) state.cvId2 = null;
     if (state.detune == undefined) state.detune = 0;
 
@@ -30,55 +32,71 @@
     let notHelpDiv;
     let helpDiv;
 
+    // Module dimensions in px
     let nodeSize = { x: 320, y: 420 };
 
+    // Module data is stored in modules store so that it can be accessed by other components
     $modules[state.id] = {};
     const module = $modules[state.id];
     module.state = state;
-    module.isAudio = true;
-    module.isControl = false;
-    module.showingHelp = false;
+    module.isAudio = true; // Lets other modules know that this module outputs audio
+    module.isControl = false; // Lets other modules know that this module does not output control signal
+    module.showingHelp = false; // Whether the module component is displaying inputs or help info
 
+    // If this is a newly added module, its initial position is calculated and set
     if (!module.state.position) module.state.position = setPosition();
 
-    module.selectingCv = false;
+    module.selectingCv = false; // If true, changes the effect of clicking on the module for CV selection
 
     let freqCvModule;
     let detuneCvModule;
     
+    // Reactively sets the correct module as the frequency CV when the frequency CV ID is changed
     $: if (module.state.cvId != null) {
         freqCvModule = $modules[module.state.cvId];
     } else {
         freqCvModule = null;
     }
 
+    // Reactively sets the correct module as the detune CV when the detune CV ID is changed
     $: if (module.state.cvId2 != null) {
         detuneCvModule = $modules[module.state.cvId2];
     } else {
         detuneCvModule = null;
     }
 
+    // Initial frequency is 440Hz (A4)
     let voct = Math.log2(440);
 
+    // Creates the OscillatorNode using the AudioContext
 	let oscNode = $context.createOscillator();
     
+    // Module's output is set as the OscillatorNode and CV signals are set as its frequency and detune parameters
     module.output = oscNode;
     module.cv = oscNode.frequency;
     module.cv2 = oscNode.detune;
 
+    // Reactively sets our voct when a note input is given
     $: if ($midi.voct) voct = $midi.voct;
 
+    // Reactively sets our frequency for the oscillator to be set to to be the note input frequency + the adjusted frequency from our module frequency parameter
     let totalFrequency
     $: totalFrequency = Math.pow(2, voct + module.state.frequency);
 
+    // Reactively sets the OscillatorNode frequency and detune parameters to be our total frequency and detune respectively
     $: oscNode.frequency.linearRampToValueAtTime(totalFrequency, $context.currentTime + 0.03);
     $: oscNode.detune.linearRampToValueAtTime(module.state.detune, $context.currentTime + 0.03);
+
+    // Reactively changes the OscillatorNode type when our type parameter is changed
     $: oscNode.type = module.state.shape;
     
+    // Starts the oscillator
     oscNode.start(0);
 
-    let moduleIsClicked = false;
-    let moduleTyping = false;
+    let moduleIsClicked = false; // Whether this module is in the middle of being clicked (mouse down event has occurred but not mouse up yet)
+    let moduleTyping = false; // Whether the user is in the middle of changing the module's title
+
+    // Mouse events for the entire window
     window.addEventListener("mouseup", () => {
         if (moduleIsClicked) moduleIsClicked = false;
     });
@@ -88,38 +106,53 @@
         if (titleNode) titleNode.style.outline = "none";
     });
 
+    // Sets our module's JS DOM element and adds all necessary event listeners
     function setModule(node) {
         moduleNode = node;
         moduleNode.addEventListener("mousedown", () => { moduleIsClicked = true; })
         moduleNode.addEventListener("mouseup", () => {
             if (moduleIsClicked) {
+                // Mouse up event occured in module container after mouse down event in the container, module has been clicked
+
                 if ($selectingModule == "output") {
+                    // This module is set as the output component's input
                     $output.select(module.state.id);
+
                 } else if ($selectingModule != null && $modules[$selectingModule].selectingInput
                     && $selectingModule != module.state.id
                     && ($modules[$selectingModule].state.type != "mixer" 
                     || (!$modules[$selectingModule].state.inputIds.includes(module.state.id)
                     || $modules[$selectingModule].state.inputIds[$modules[$selectingModule].inputSelecting] == module.state.id))) 
                 {
+                    // Module is set as the input of whatever module is trying to select an input
                     $modules[$selectingModule].select(module.state.id);
+
                 } else if ($selectingModule == module.state.id) {
+                    // If this is the module that is trying to select and it is clicked, selected input is set to None
                     module.select(null);
                 }
             }
         });
     }
+    // Sets the control div JS DOM element
     function setControls(node) { controlsNode = node; }
+    // Sets the delete button JS DOM element
     function setDelete(node) { deleteNode = node; }
+    // Sets the help button JS DOM element
     function setHelpBtn(node) { helpBtn = node; }
+    // Sets the title box JS DOM element and adds necessary event listeners
     function setTitleNode(node) {
         titleNode = node;
         titleNode.addEventListener("mouseenter", () => {
+            // Creates title box outline when mouse hovered over
             titleNode.style.outline = "2px solid #222222";
         });
         titleNode.addEventListener("mouseleave", () => {
+            // Removes title box outline when mouse not hovered over
             if (!moduleTyping) titleNode.style.outline = "none";
         });
         titleNode.addEventListener("mousedown", () => {
+            // If title clicked, we are set to title changing module, therefore pressing keys will not trigger note input
             setTimeout(() => {
                 $isTyping = true;
                 moduleTyping = true;
@@ -127,34 +160,45 @@
             }, 10);
         });
     }
+    // Sets the frequency CV selector JS DOM element and adds necessary event listeners
     function setFreqCvBtn(node) {
         freqCvBtn = node;
         freqCvBtn.addEventListener("mouseenter", () => {
+            // Hovering over selector causes it to become slightly transparent
             if ($selectingModule == null) freqCvBtn.style.opacity = 0.8;
         });
         freqCvBtn.addEventListener("mouseleave", () => {
+            // No longer hovering removes transparency
             if ($selectingModule == null) freqCvBtn.style.opacity = 1;
         });
     }
+    // Sets the detune CV selector JS DOM element and adds necessary event listeners
     function setDetuneCvBtn(node) {
         detuneCvBtn = node;
         detuneCvBtn.addEventListener("mouseenter", () => {
+            // Hovering over selector causes it to become slightly transparent
             if ($selectingModule == null) detuneCvBtn.style.opacity = 0.8;
         });
         detuneCvBtn.addEventListener("mouseleave", () => {
+            // No longer hovering removes transparency
             if ($selectingModule == null) detuneCvBtn.style.opacity = 1;
         });
     }
+    // Sets the help section div JS DOM element
     function setHelpDiv(node) {
         helpDiv = node;
+        // Help div by default is not displayed
         helpDiv.style.display = "none";
     }
+    // Sets the regular module parameters div JS DOM element (the non help section)
     function setNotHelpDiv(node) { notHelpDiv = node; }
 
     var currentFreqCvModule;
 
+    // Reactive code block that is triggered when the frequency CV selector is changed
     $: if (!module.destroyed) {
         if (freqCvModule) {
+            // If CV module is selected, we send this modules frequency param to that module to be manipulated
             oscNode.frequency.cancelScheduledValues($context.currentTime);
             oscNode.frequency.linearRampToValueAtTime(0, $context.currentTime);
             if (currentFreqCvModule) {
@@ -163,6 +207,7 @@
             currentFreqCvModule = freqCvModule;
             if (!currentFreqCvModule.outputs[module.state.id+".1"]) currentFreqCvModule.addOutput(module.state.id+".1", module.cv);
         } else {
+            // If no CV module is selected, control of this module's frequency is localised
             oscNode.frequency.cancelScheduledValues($context.currentTime);
             oscNode.frequency.linearRampToValueAtTime(totalFrequency, $context.currentTime);
             if (currentFreqCvModule) {
@@ -172,14 +217,17 @@
         }
     }
 
+    // If there is a frequency CV module, reactively changes the max frequency value of the modulation to what would otherwise be the frequency of the oscillator
     $: if (currentFreqCvModule) {
         currentFreqCvModule.setGain(module.state.id+".1", totalFrequency);
     }
 
     let currentDetuneCvModule;
 
+    // Reactive code block that is triggered when the detune CV selector is changed
     $: if (!module.destroyed) {
         if (detuneCvModule) {
+            // If CV module is selected, we send this modules detune param to that module to be manipulated
             oscNode.detune.cancelScheduledValues($context.currentTime);
             oscNode.detune.linearRampToValueAtTime(0, $context.currentTime + 0.01);
             if (currentDetuneCvModule) {
@@ -188,6 +236,7 @@
             currentDetuneCvModule = detuneCvModule;
             if (!currentDetuneCvModule.outputs[module.state.id+".2"]) currentDetuneCvModule.addOutput(module.state.id+".2", module.cv2);
         } else {
+            // If no CV module is selected, control of this module's detune is localised
             oscNode.detune.cancelScheduledValues($context.currentTime);
             oscNode.detune.linearRampToValueAtTime(module.state.detune, $context.currentTime + 0.01);
             if (currentDetuneCvModule) {
@@ -197,10 +246,12 @@
         }
     }
 
+    // If there is a detune CV module, reactively changes the max detune value of the modulation to what would otherwise be the detune of the oscillator
     $: if (currentDetuneCvModule) {
         currentDetuneCvModule.setGain(module.state.id+".2", module.state.detune);
     }
 
+    // Globally accessible function resets CV modules to None
     module.clearCurrents = () => {
         freqCvModule = null;
         currentFreqCvModule = null;
@@ -208,6 +259,7 @@
         currentDetuneCvModule = null;
     }
     
+    // Spring variables for module opacity level and how much to expand when 'bobbing'
     let opacity = spring(1, {
         stiffness: 0.1,
         damping: 0.5
@@ -217,12 +269,20 @@
         damping: 0.2
     });
 
+    // Reactively sets the modules CSS opacity to our spring
     $: if (moduleNode) moduleNode.style.opacity = `${$opacity}`;
 
+    // Globally accessible function to fade out this module
     module.fade = () => {
         opacity.set(0.2);
     }
 
+    // Globally accessible function to stop fading out this module
+    module.unfade = () => {
+        opacity.set(1);
+    }
+
+    // Globally accessible function to make this module do a 'bob' animation
     module.bob = () => {
         bobSize.set(10);
         setTimeout(() => {
@@ -230,14 +290,7 @@
         }, 50);
     }
 
-    module.halfFade = () => {
-        opacity.set(0.8)
-    }
-
-    module.unfade = () => {
-        opacity.set(1);
-    }
-
+    // Toggles between showing the module's parameters and its help section
     module.toggleHelp = () => {
         module.showingHelp = !module.showingHelp;
         if (notHelpDiv) {
@@ -255,6 +308,7 @@
             }
         }
 
+        // Changes module size accordingly to accomodate its displayed content
         if (module.showingHelp) {
             nodeSize = { x: 320, y: 550 };
         } else {
@@ -262,10 +316,14 @@
         }
     }
 
+    // Globally accessible module attribute - the CV module we are trying to select (freq or detune)
     module.cvSelecting = null;
 
+    // Switches us into selecting mode
+    // i: if 0, we are selecting a freq CV, if 1, we are selecting a detune CV
     function chooseCv(i) {
         module.cvSelecting = i;
+        // Fades out unavailable modules for selection
         cvsAllHover(module, i);
         if (!freqCvBtn) return;
         if (!module.selectingCv) {
@@ -281,8 +339,10 @@
         }
     }
 
+    // Globally accessible function that sets this module's input as the module with the given ID
     module.select = (id) => {
         if (module.selectingCv) {
+            // Sets the freq CV or detune CV accordingly
             if (module.cvSelecting == 0) {
                 module.state.cvId = id;
                 freqCvBtn.style.opacity = 1;
@@ -291,12 +351,17 @@
                 module.state.cvId2 = id;
                 detuneCvBtn.style.opacity = 1;
             }
+            // No longer selecting a CV as complete
             module.selectingCv = false;
         }
+        // No longer is a module in selecting mode
         $selectingModule = null;
+
+        // Causes faded out modules to unfade
         unhover();
     }
 
+    // Reactively causes selector buttons to change colour to the colour of the selected module or grey if there is None
     $: if (!module.destroyed) {
         if (freqCvBtn) {
             if (module.state.cvId != null) {
@@ -314,6 +379,7 @@
         }
     }
 
+    // If we are in selecting mode, mouse clicks for buttons within the module are disabled
     $: if (controlsNode && deleteNode) {if ($selectingModule != null) {
         controlsNode.style.pointerEvents = "none";
         deleteNode.style.pointerEvents = "none";
@@ -321,7 +387,8 @@
         controlsNode.style.pointerEvents = "all";
         deleteNode.style.pointerEvents = "all";
     }}
-
+    
+    // Causes this module to do a bob animation upon being created
     module.bob();
 </script>
 
