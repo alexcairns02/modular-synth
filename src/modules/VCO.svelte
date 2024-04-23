@@ -22,6 +22,7 @@
     if (state.cvId2 == undefined) state.cvId2 = null;
     if (state.detune == undefined) state.detune = 0;
 
+    // Declarations of HTML DOM elements
     let moduleNode;
     let controlsNode;
     let deleteNode;
